@@ -1,0 +1,364 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── MODELOS ──────────────────────────────────────────────────────────────────
+// Enums definidos como String para compatibilidad SQLite/PostgreSQL.
+// Ver src/types/index.ts para las definiciones TypeScript de los valores válidos.
+
+// Escalafón — 3 cuerpos: Suboficial (1–8), Oficial (9–18), Técnico (19–26)
+// Los civiles (CIVIL_BECARIO, CIVIL_POLICIAL) NO tienen jerarquía
+model Rango {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  cuerpo    String   // "SUBOFICIAL" | "OFICIAL" | "TECNICO"
+  orden     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  agentes         Agente[]
+  historialRangos HistorialRango[]
+
+  @@map("rangos")
+}
+
+// Estructura organizacional de la Dirección Monitoreo Cordobeses en Alerta
+model Sector {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  tipo      String   // TipoSector: "DIRECCION" | "DEPARTAMENTO" | "DIVISION"
+  padreId   String?
+  padre     Sector?  @relation("SectorJerarquia", fields: [padreId], references: [id])
+  hijos     Sector[] @relation("SectorJerarquia")
+  agentes   Agente[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sectores")
+}
+
+model Agente {
+  id              String   @id @default(cuid())
+  cuil            String   @unique
+
+  // Datos personales
+  nombres              String
+  apellidos            String
+  sexo                 String   // "MASCULINO" | "FEMENINO" | "NO_BINARIO" | "PREFIERO_NO_DECIR" | "OTRO"
+  sexoPersonalizado    String?  // Texto libre cuando sexo = "OTRO"
+  fechaNacimiento      DateTime?
+  estadoCivil     String?
+  nacionalidad    String?
+  provinciaOrigen String?
+  ciudadOrigen    String?
+
+  // Datos médicos
+  grupoSanguineo       String?
+  alergias             String?
+  enfermedadesCronicas String?
+  medicamentos         String?
+  cirugias             String?
+
+  // Familia
+  hijosCargo     Int     @default(0)
+  poseeSepelio   Boolean @default(false)
+  empresaSepelio String?
+
+  // Contacto
+  email                       String? @unique
+  telefono                    String?
+  telefonoAlternativo         String?
+  contactoEmergencia          String?  // Nombre/vínculo del contacto
+  telefonoContactoEmergencia  String?  // Teléfono del contacto de emergencia
+
+  // Domicilio
+  domicilioReal String?
+  ciudad        String?
+  barrio        String?
+  nroDomicilio  String?
+  piso          String?
+
+  // Datos laborales
+  tipoPersonal String  // TipoPersonal: "SEGURIDAD"|"TECNICO"|"CIVIL_BECARIO"|"CIVIL_POLICIAL"
+  estado            String  @default("PENDIENTE") // EstadoAgente: "PENDIENTE"|"ACTIVO"|"BAJA"|"PASE"
+  motivoRechazo     String? // Motivo del último rechazo de validación
+  fechaIngreso DateTime?
+  turno        String?
+  // Valores turno: "A"|"B"|"C"|"D"|"E"|"F"|"ADMINISTRATIVO"|"FULL TIME"|"GUARDIA LARGA"|"SUPERIOR DE TURNO"
+
+  // Solo SEGURIDAD y TECNICO
+  rangoId       String?
+  rango         Rango?   @relation(fields: [rangoId], references: [id])
+  anoEgreso     DateTime?
+  perteneceETAC Boolean?
+
+  // Solo SEGURIDAD
+  tipoArma           String?
+  marcaPistola       String?
+  modeloPistola      String?
+  calibre            String?
+  chalecoProvisto    Boolean?
+  marcaChaleco       String?
+  nroSeriePlacas     String?
+  talleChaleco       String?
+  vencimientoChaleco DateTime?
+
+  // Licencia de conducir
+  licenciaConducir    String?
+  licenciaEmision     DateTime?
+  licenciaVencimiento DateTime?
+
+  // Nivel académico
+  nivelPrimario      String?
+  nivelSecundario    String?
+  nivelTerciario     String?
+  nivelUniversitario String?
+  nivelSuperior      String?
+  detalleTitulos     String?
+
+  fotoUrl  String?
+
+  sectorId String?
+  sector   Sector? @relation(fields: [sectorId], references: [id])
+
+  usuarioId String?  @unique
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  asistencias         Asistencia[]
+  licencias           Licencia[]
+  licenciasPendientes LicenciaPendiente[]
+  turnoAsignado       TurnoAgente?
+  excepciones         ExcepcionTurno[]
+  historialRangos     HistorialRango[]
+  historialEstados    HistorialEstado[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("agentes")
+}
+
+model HistorialEstado {
+  id             String   @id @default(cuid())
+  agenteId       String
+  agente         Agente   @relation(fields: [agenteId], references: [id])
+  estadoAnterior String
+  estadoNuevo    String
+  motivo         String?
+  usuarioNombre  String?
+  createdAt      DateTime @default(now())
+
+  @@map("historial_estados")
+}
+
+model HistorialRango {
+  id          String    @id @default(cuid())
+  agenteId    String
+  agente      Agente    @relation(fields: [agenteId], references: [id])
+  rangoId     String
+  rango       Rango     @relation(fields: [rangoId], references: [id])
+  fechaDesde  DateTime
+  fechaHasta  DateTime?
+  observacion String?
+  createdAt   DateTime  @default(now())
+
+  @@map("historial_rangos")
+}
+
+model Usuario {
+  id           String   @id @default(cuid()) // Debe coincidir con Supabase Auth UID
+  email        String   @unique
+  rol          String   @default("READONLY") // RolUsuario: "SUPERADMIN"|"ADMIN"|"SUPERVISOR"|"OPERADOR"|"READONLY"
+  activo       Boolean  @default(true)
+  nombre       String?
+  apellido     String?
+  tipoPersonal String?  // TipoPersonal: igual que en Agente
+  jerarquia    String?  // Nombre libre del rango/cargo
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agente            Agente?
+  solicitudesEdicion SolicitudEdicion[]
+  notificaciones    Notificacion[]
+
+  @@map("usuarios")
+}
+
+model Turno {
+  id           String   @id @default(cuid())
+  nombre       String   @unique
+  horaInicio   String?
+  horaFin      String?
+  diasTrabajo  Int      @default(1)
+  diasDescanso Int      @default(0)
+  descripcion  String?
+  createdAt    DateTime @default(now())
+
+  asignaciones TurnoAgente[]
+
+  @@map("turnos")
+}
+
+model TurnoAgente {
+  id         String   @id @default(cuid())
+  agenteId   String   @unique
+  agente     Agente   @relation(fields: [agenteId], references: [id])
+  turnoId    String
+  turno      Turno    @relation(fields: [turnoId], references: [id])
+  fechaDesde DateTime
+  createdAt  DateTime @default(now())
+
+  @@map("turnos_agentes")
+}
+
+model ExcepcionTurno {
+  id          String   @id @default(cuid())
+  agenteId    String
+  agente      Agente   @relation(fields: [agenteId], references: [id])
+  tipo        String   // TipoExcepcionTurno: "HORA_EXTRA"|"CAMBIO_TURNO"|"GUARDIA_ESPECIAL"
+  fecha       DateTime
+  horaInicio  String?
+  horaFin     String?
+  descripcion String?
+  aprobadoPor String?
+  createdAt   DateTime @default(now())
+
+  @@map("excepciones_turno")
+}
+
+// Nota: se usa DateTime en lugar de @db.Date para compatibilidad SQLite/PostgreSQL
+model Asistencia {
+  id            String   @id @default(cuid())
+  agenteId      String
+  agente        Agente   @relation(fields: [agenteId], references: [id])
+  fecha         DateTime
+  estado        String   // EstadoAsistencia: "PRESENTE"|"AUSENTE_JUSTIFICADO"|...
+  horaEntrada   DateTime?
+  horaSalida    DateTime?
+  observacion   String?
+  registradoPor String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([agenteId, fecha])
+  @@map("asistencias")
+}
+
+model Licencia {
+  id          String   @id @default(cuid())
+  agenteId    String
+  agente      Agente   @relation(fields: [agenteId], references: [id])
+  tipo        String   // TipoLicencia: "ORDINARIA"|"MEDICA"|"CARPETA_MEDICA"|"ESPECIAL"|"SIN_GOCE_SUELDO"|"ARTICULO"|"SUSPENSION"|"ADSCRIPCION"
+  estado      String   @default("PENDIENTE") // EstadoLicencia: "PENDIENTE"|"APROBADA"|"RECHAZADA"|"CANCELADA"
+  fechaInicio DateTime
+  fechaFin    DateTime
+  diasHabiles Int
+  motivo      String?
+  observacion String?
+  aprobadoPor String?
+  aprobadoEn  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("licencias")
+}
+
+// Saldo de días de licencia acumulados/pendientes de usar (licencia anual ordinaria
+// de años anteriores, días estímulo por decreto, u otros). El estado (pendiente/
+// parcial/usada) se deriva comparando cantidadDias contra la suma de sus usos.
+model LicenciaPendiente {
+  id              String   @id @default(cuid())
+  agenteId        String
+  agente          Agente   @relation(fields: [agenteId], references: [id])
+  tipo            String   // TipoLicenciaPendiente: "ANUAL_ORDINARIA"|"DIA_ESTIMULO"|"OTRO"
+  tipoOtroDetalle String?  // Aclaración libre cuando tipo = "OTRO"
+  unidad          String   // UnidadDias: "HABILES"|"CORRIDOS"
+  anio            Int
+  cantidadDias    Int
+  referencia      String?
+  usos            UsoLicenciaPendiente[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("licencias_pendientes")
+}
+
+// Cada vez que el agente efectivamente toma una parte de un saldo pendiente.
+model UsoLicenciaPendiente {
+  id                  String            @id @default(cuid())
+  licenciaPendienteId String
+  licenciaPendiente   LicenciaPendiente @relation(fields: [licenciaPendienteId], references: [id], onDelete: Cascade)
+  fecha               DateTime
+  cantidadDias        Int
+  referencia          String?
+  createdAt           DateTime          @default(now())
+
+  @@map("usos_licencia_pendiente")
+}
+
+model SolicitudEdicion {
+  id             String    @id @default(cuid())
+  usuarioId      String
+  usuario        Usuario   @relation(fields: [usuarioId], references: [id])
+  estado         String    @default("PENDIENTE") // "PENDIENTE" | "APROBADA" | "RECHAZADA"
+  motivoRechazo  String?
+  permisoHasta   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("solicitudes_edicion")
+}
+
+model Notificacion {
+  id        String   @id @default(cuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  tipo          String   // "SOLICITUD_NUEVA" | "APROBADA" | "RECHAZADA" | "PERMISO_VENCIDO" | "LEGAJO_NUEVO"
+  mensaje       String
+  referenciaId  String?  // ID del recurso relacionado (agenteId, etc.)
+  leida         Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notificaciones")
+}
+
+model Feriado {
+  id        String   @id @default(cuid())
+  fecha     DateTime @unique
+  nombre    String
+  aplica    Boolean  @default(true) // true = descuenta días hábiles en licencias
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("feriados")
+}
+
+model ResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("reset_tokens")
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  agenteId      String
+  usuarioId     String?
+  usuarioNombre String?
+  seccion       String   // "PERSONAL" | "LABORAL"
+  cambios       String   // JSON: [{campo, anterior, nuevo}]
+  createdAt     DateTime @default(now())
+
+  @@map("audit_logs")
+}

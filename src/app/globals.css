@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #020617;
+  --foreground: #e2e8f0;
+  /* La app es siempre oscura: le indica al navegador que use su esquema
+     oscuro para controles nativos (selector de fecha/hora, ícono de
+     calendario, scrollbars, checkbox de autocompletado, etc.). */
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -12,15 +16,89 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Fondo/texto por defecto de campos de formulario que no declaran su propio
+   color (evita inputs blancos ilegibles sobre el tema oscuro). Los componentes
+   que sí definen sus propias clases de color las sobreescriben normalmente. */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b;
+}
+
+/* Oculta el scrollbar nativo en contenedores con scroll horizontal manejado
+   por botones propios (p. ej. la barra de pestañas del legajo). */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out;
+}
+
+/* El panel lateral del mini-calendario se desliza hacia afuera desde detrás
+   del panel del día (mismo ancho, así que -100% lo deja tapado por completo). */
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(-100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* Al revés: cuando se cierra, vuelve por donde entró. Duración igual al
+   timeout en JS que desmonta el panel, para que no se corte a mitad. */
+@keyframes slide-out-left {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-100%); }
+}
+.animate-slide-out-left {
+  animation: slide-out-left 0.25s ease-in forwards;
+}
+
+/* Barra de brillo que recorre los bloques de los skeleton loaders (estilo
+   YouTube), en vez de/además del fade-in-out de animate-pulse. */
+@keyframes skeleton-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.skeleton-shimmer {
+  background-color: #1e293b;
+  background-image: linear-gradient(
+    100deg,
+    rgba(148, 163, 184, 0) 30%,
+    rgba(148, 163, 184, 0.16) 50%,
+    rgba(148, 163, 184, 0) 70%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+/* Ocultar el toggle nativo de contraseña del navegador */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+input[type="password"]::-webkit-contacts-auto-fill-button,
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
 }
