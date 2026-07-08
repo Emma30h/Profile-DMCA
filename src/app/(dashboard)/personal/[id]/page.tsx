@@ -157,7 +157,7 @@ export default async function PersonalDetallePage({
         {/* Header del legajo */}
         <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
           <div className="flex justify-end mb-4">
-            <LimpiarFicheroButton href={volverHref} />
+            <LimpiarFicheroButton href={volverHref} agenteId={agente.id} />
           </div>
 
           <div className="flex items-start gap-5">

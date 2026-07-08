@@ -8,7 +8,6 @@ function createRedisClient(): Redis {
   const client = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
     maxRetriesPerRequest: 1,
     lazyConnect: true,
-    enableOfflineQueue: false,
   });
   // Evitar que un error de conexión tire la app en desarrollo
   client.on("error", () => {/* ignorado — Redis no disponible */});
