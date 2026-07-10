@@ -46,8 +46,8 @@ export async function getAgentesResumen(
   const where = {
     ...(params.q && {
       OR: [
-        { nombres: { contains: params.q } },
-        { apellidos: { contains: params.q } },
+        { nombres: { contains: params.q, mode: "insensitive" as const } },
+        { apellidos: { contains: params.q, mode: "insensitive" as const } },
         ...(qDigits ? [{ cuil: { contains: qDigits } }] : []),
       ],
     }),
