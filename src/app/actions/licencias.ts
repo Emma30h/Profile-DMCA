@@ -3,29 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import type { TipoLicencia } from "@/types";
+import { TIPOS_LICENCIA, TIPO_LICENCIA_LABELS, type TipoLicencia } from "@/types";
 
-const TIPOS_LICENCIA_VALIDOS: TipoLicencia[] = [
-  "ORDINARIA",
-  "MEDICA",
-  "CARPETA_MEDICA",
-  "ESPECIAL",
-  "SIN_GOCE_SUELDO",
-  "ARTICULO",
-  "SUSPENSION",
-  "ADSCRIPCION",
-];
-
-const TIPO_LABELS: Record<TipoLicencia, string> = {
-  ORDINARIA: "Ordinaria",
-  MEDICA: "Licencia Médica",
-  CARPETA_MEDICA: "Carpeta Médica",
-  ESPECIAL: "Especial",
-  SIN_GOCE_SUELDO: "Sin goce de sueldo",
-  ARTICULO: "Artículo",
-  SUSPENSION: "Suspensión",
-  ADSCRIPCION: "Adscripción",
-};
+const TIPOS_LICENCIA_VALIDOS = TIPOS_LICENCIA;
+const TIPO_LABELS = TIPO_LICENCIA_LABELS;
 
 const LIMITE_CARPETA_MEDICA = 10;
 

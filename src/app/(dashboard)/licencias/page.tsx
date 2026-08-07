@@ -27,8 +27,11 @@ export default async function LicenciasPage() {
   const esAdmin = ROLES_ADMIN.includes(currentUser.rol);
   const sectorId = currentUser.agente?.sectorId ?? null;
 
-  // Supervisores ven solo su sector; admins ven todo
-  const filtroSector = esSupervisor && sectorId ? { sectorId } : {};
+  // Supervisores ven solo su sector; admins ven todo. En ambos casos, solo
+  // personal activo: si un agente causó baja (p. ej. fallecimiento) o pasó a
+  // otra dependencia, su licencia queda registrada en el legajo pero deja de
+  // tener sentido operativo en este listado general.
+  const filtroSector = { estado: "ACTIVO", ...(esSupervisor && sectorId ? { sectorId } : {}) };
 
   const [licencias, sectores, feriados] = await Promise.all([
     prisma.licencia.findMany({

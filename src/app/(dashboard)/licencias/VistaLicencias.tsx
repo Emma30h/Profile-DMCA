@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useTransition } from "rea
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import GestorFeriados from "./GestorFeriados";
+import { TIPO_LICENCIA_LABELS, LICENCIA_CATEGORIA_DE_TIPO, CATEGORIA_LICENCIA_INFO } from "@/types";
 
 interface Feriado {
   id: string;
@@ -35,38 +36,13 @@ interface SectorOption {
   nombre: string;
 }
 
-const TIPO_LICENCIA_LABELS: Record<string, string> = {
-  ORDINARIA: "Ordinaria",
-  MEDICA: "Licencia Médica",
-  CARPETA_MEDICA: "Carpeta Médica",
-  ESPECIAL: "Especial",
-  SIN_GOCE_SUELDO: "Sin goce de sueldo",
-  ARTICULO: "Artículo",
-  SUSPENSION: "Suspensión",
-  ADSCRIPCION: "Adscripción",
-};
+const TIPO_LICENCIA_BADGE: Record<string, string> = Object.fromEntries(
+  Object.entries(LICENCIA_CATEGORIA_DE_TIPO).map(([tipo, categoria]) => [tipo, CATEGORIA_LICENCIA_INFO[categoria].badge])
+);
 
-const TIPO_LICENCIA_BADGE: Record<string, string> = {
-  ORDINARIA: "bg-blue-500/15 text-blue-300",
-  MEDICA: "bg-red-500/15 text-red-400",
-  CARPETA_MEDICA: "bg-orange-500/15 text-orange-400",
-  ESPECIAL: "bg-purple-500/15 text-purple-400",
-  SIN_GOCE_SUELDO: "bg-slate-800 text-slate-400",
-  ARTICULO: "bg-teal-500/15 text-teal-400",
-  SUSPENSION: "bg-fuchsia-500/15 text-fuchsia-400",
-  ADSCRIPCION: "bg-indigo-500/15 text-indigo-400",
-};
-
-const TIPO_LICENCIA_EMOJI: Record<string, string> = {
-  ORDINARIA: "🏖️",
-  MEDICA: "🏥",
-  CARPETA_MEDICA: "🏥",
-  ESPECIAL: "⭐",
-  SIN_GOCE_SUELDO: "💰",
-  ARTICULO: "👨‍👩‍👧‍👦",
-  SUSPENSION: "🚫",
-  ADSCRIPCION: "🔄",
-};
+const TIPO_LICENCIA_EMOJI: Record<string, string> = Object.fromEntries(
+  Object.entries(LICENCIA_CATEGORIA_DE_TIPO).map(([tipo, categoria]) => [tipo, CATEGORIA_LICENCIA_INFO[categoria].emoji])
+);
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", {
@@ -92,6 +68,32 @@ function esVigente(l: LicenciaRow): boolean {
   const hoy = hoyComoFechaUTC();
   return hoy >= new Date(l.fechaInicio) && hoy <= new Date(l.fechaFin);
 }
+
+// Estado por fecha (independiente del estado de aprobación), usado para el
+// punto de color que se muestra en la lista cuando "Solo vigentes" está
+// desactivado — con ese filtro apagado conviven licencias pasadas, en curso
+// y futuras, y de un vistazo no se distinguían unas de otras.
+type EstadoVigencia = "activa" | "pendiente" | "vencida" | null;
+
+function estadoVigencia(l: LicenciaRow): EstadoVigencia {
+  if (l.estado === "RECHAZADA" || l.estado === "CANCELADA") return null;
+  const hoy = hoyComoFechaUTC();
+  if (hoy < new Date(l.fechaInicio)) return "pendiente";
+  if (hoy > new Date(l.fechaFin)) return "vencida";
+  return "activa";
+}
+
+const VIGENCIA_COLOR: Record<Exclude<EstadoVigencia, null>, string> = {
+  activa: "bg-green-500",
+  pendiente: "bg-yellow-500",
+  vencida: "bg-red-500",
+};
+
+const VIGENCIA_LABEL: Record<Exclude<EstadoVigencia, null>, string> = {
+  activa: "En curso",
+  pendiente: "Próxima",
+  vencida: "Vencida",
+};
 
 // ─── Calendario mensual ───────────────────────────────────────────────────────
 
@@ -253,7 +255,7 @@ function CalendarioMes({
         setMenuContextual({
           x: e.clientX,
           y: e.clientY,
-          href: `/personal/${panelLicencia.agente.id}?tab=licencias`,
+          href: `/personal/${panelLicencia.agente.id}?tab=licencias&volver=${encodeURIComponent("/licencias")}`,
         });
       } else {
         setMenuContextual(null);
@@ -326,7 +328,7 @@ function CalendarioMes({
   function renderLicencia(l: LicenciaRow, { truncar, enModal = false }: { truncar: boolean; enModal?: boolean }) {
     const resaltada = enModal ? panelLicencia?.id === l.id : licenciaResaltada === l.id;
     const atenuada = enModal ? false : licenciaResaltada !== null && !resaltada;
-    const href = `/personal/${l.agente.id}?tab=licencias`;
+    const href = `/personal/${l.agente.id}?tab=licencias&volver=${encodeURIComponent("/licencias")}`;
 
     return (
       <Link
@@ -362,8 +364,65 @@ function CalendarioMes({
     semanas.push(celdas.slice(i, i + 7));
   }
 
+  // Fila de una licencia en la agenda mobile: a diferencia de renderLicencia
+  // (pensada para mouse — un solo click no navega, hace falta doble click
+  // para resaltar y click derecho para ir al legajo), acá un tap simple
+  // navega directo. No tiene sentido el resaltado/menú contextual sin mouse.
+  function renderLicenciaAgenda(l: LicenciaRow) {
+    return (
+      <Link
+        key={l.id}
+        href={`/personal/${l.agente.id}?tab=licencias&volver=${encodeURIComponent("/licencias")}`}
+        className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-slate-800 text-slate-400"}`}
+      >
+        <span className="min-w-0 truncate">{l.agente.apellidos}, {l.agente.nombres}</span>
+        <span className="shrink-0 text-base">{TIPO_LICENCIA_EMOJI[l.tipo]}</span>
+      </Link>
+    );
+  }
+
+  const hoyAgenda = new Date();
+  const diasConLicencias = Array.from({ length: diasEnMes }, (_, i) => i + 1).filter(
+    (dia) => getLicenciasDelDia(dia).length > 0
+  );
+
   return (
     <div>
+      {/* Agenda — mobile. El grid de 7 columnas no entra con licencias que
+          pueden abarcar varios días y solaparse (carriles); en vez de eso,
+          una tarjeta por día con actividad, ordenadas cronológicamente. */}
+      <div className="lg:hidden space-y-2">
+        {diasConLicencias.length === 0 ? (
+          <p className="text-sm text-slate-500 text-center py-8">Sin licencias en este mes.</p>
+        ) : (
+          diasConLicencias.map((dia) => {
+            const lics = getLicenciasDelDia(dia);
+            const esHoy = hoyAgenda.getDate() === dia && hoyAgenda.getMonth() === mes && hoyAgenda.getFullYear() === anio;
+            const nombreFeriado = feriadosDelMes.get(dia);
+            const nombreDia = new Date(anio, mes, dia).toLocaleDateString("es-AR", { weekday: "short" });
+
+            return (
+              <div
+                key={dia}
+                className={`rounded-lg border p-3 space-y-2 ${esHoy ? "border-blue-400 bg-blue-500/10" : "border-slate-800 bg-slate-900"}`}
+              >
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-sm font-semibold ${esHoy ? "text-blue-400" : "text-slate-200"}`}>{dia}</span>
+                  <span className="text-xs text-slate-500 uppercase">{nombreDia}</span>
+                  {nombreFeriado && (
+                    <span className="text-xs text-slate-400 truncate">· {nombreFeriado}</span>
+                  )}
+                  {esHoy && <span className="text-[10px] font-medium text-blue-400 ml-auto">Hoy</span>}
+                </div>
+                <div className="space-y-1">{lics.map(renderLicenciaAgenda)}</div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Calendario mensual — desktop */}
+      <div className="hidden lg:block">
       <div className="grid grid-cols-7 mb-1">
         {["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"].map((d) => (
           <div key={d} className="text-center text-xs font-semibold text-slate-500 py-1">{d}</div>
@@ -430,6 +489,7 @@ function CalendarioMes({
           </div>
         ))}
       </div>
+      </div>
       {menuContextual && (
         <div
           className="fixed z-[60] rounded-lg border border-slate-700 bg-slate-800 py-1 text-xs shadow-lg shadow-black/40"
@@ -457,9 +517,9 @@ function CalendarioMes({
             cerrarModalDia();
           }}
         >
-          <div className="flex items-start gap-4" onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-col sm:flex-row items-start gap-4 w-full max-w-md sm:max-w-none sm:w-auto" onClick={(e) => e.stopPropagation()}>
             <div
-              className="w-96 max-h-[80vh] shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl shadow-black/50 animate-fade-in flex flex-col"
+              className="w-full sm:w-96 max-h-[80vh] shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl shadow-black/50 animate-fade-in flex flex-col"
               style={alturaCalendario ? { height: `${alturaCalendario}px` } : undefined}
               onClick={cerrarPorClickEnListaDelDia}
             >
@@ -488,7 +548,7 @@ function CalendarioMes({
                 key={panelParaMostrar.id}
                 ref={panelRef}
                 onClick={() => setMenuContextual(null)}
-                className={`w-96 max-h-[80vh] shrink-0 overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl shadow-black/50 ${
+                className={`w-full sm:w-96 max-h-[80vh] shrink-0 overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl shadow-black/50 ${
                   panelSaliendo ? "animate-slide-out-left" : "animate-slide-in-right"
                 }`}
               >
@@ -1000,7 +1060,7 @@ export default function VistaLicencias({
           placeholder="Buscar por apellido o nombre..."
           value={filtroBusqueda}
           onChange={(e) => setFiltroBusqueda(e.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-96"
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-96"
         />
         <button
           type="button"
@@ -1046,6 +1106,7 @@ export default function VistaLicencias({
       )}
       {mainTab === "licencias" && !vistaPending && vista === "lista" && (
         <div key={vista} className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden animate-fade-in">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-950 border-b border-slate-700">
@@ -1068,7 +1129,7 @@ export default function VistaLicencias({
                   licenciasVisibles.map((l) => (
                     <tr key={l.id} className="hover:bg-slate-800 transition-colors">
                       <td className="px-4 py-3">
-                        <Link href={`/personal/${l.agente.id}?tab=licencias`} className="font-medium text-slate-100 hover:text-blue-400 transition-colors">
+                        <Link href={`/personal/${l.agente.id}?tab=licencias&volver=${encodeURIComponent("/licencias")}`} className="font-medium text-slate-100 hover:text-blue-400 transition-colors">
                           {l.agente.apellidos}, {l.agente.nombres}
                         </Link>
                       </td>
@@ -1082,7 +1143,15 @@ export default function VistaLicencias({
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-300 whitespace-nowrap">
-                        {fmt(l.fechaInicio)} → {fmt(l.fechaFin)}
+                        <span className="inline-flex items-center gap-1.5">
+                          {!soloVigentes && estadoVigencia(l) && (
+                            <span
+                              className={`inline-block h-2 w-2 rounded-full shrink-0 ${VIGENCIA_COLOR[estadoVigencia(l)!]}`}
+                              title={VIGENCIA_LABEL[estadoVigencia(l)!]}
+                            />
+                          )}
+                          {fmt(l.fechaInicio)} → {fmt(l.fechaFin)}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-slate-300 text-center">{l.diasHabiles}</td>
                       <td className="px-4 py-3 text-slate-400 text-xs max-w-[200px] truncate">{l.motivo ?? "—"}</td>
@@ -1091,6 +1160,7 @@ export default function VistaLicencias({
                 )}
               </tbody>
           </table>
+          </div>
           {cantidadVisible < licenciasFiltradas.length && (
             <div className="flex items-center justify-between border-t border-slate-800 px-4 py-3">
               <span className="text-xs text-slate-500">
@@ -1113,7 +1183,7 @@ export default function VistaLicencias({
       )}
 
       {mainTab === "licencias" && !vistaPending && vista === "calendario" && (
-        <div key={vista} className="bg-slate-900 rounded-xl border border-slate-700 p-5 animate-fade-in">
+        <div key={vista} className="bg-slate-900 rounded-xl border border-slate-700 p-3 lg:p-5 animate-fade-in">
           {/* Navegación mes */}
           <div className="flex items-center justify-between mb-5">
             <button
