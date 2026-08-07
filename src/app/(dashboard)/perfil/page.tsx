@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import type { RolUsuario } from "@/types";
+import AgenteAvatar from "@/components/AgenteAvatar";
+import FotoPerfilBtn from "@/components/legajo/FotoPerfilBtn";
+import EventosResumenMobile from "@/app/(dashboard)/dashboard/EventosResumenMobile";
 
 const ROL_LABELS: Record<RolUsuario, string> = {
   SUPERADMIN: "Superadmin",
@@ -52,6 +55,7 @@ export default async function PerfilPage() {
           apellidos: true,
           cuil: true,
           tipoPersonal: true,
+          fotoUrl: true,
           sexo: true,
           sexoPersonalizado: true,
           fechaNacimiento: true,
@@ -74,8 +78,16 @@ export default async function PerfilPage() {
   });
 
   const rol = (usuario?.rol ?? "READONLY") as RolUsuario;
+  const esAdmin = rol === "SUPERADMIN" || rol === "ADMIN";
   const meta = user.user_metadata ?? {};
   const agente = usuario?.agente;
+
+  const solicitudFotoPendiente = agente
+    ? await prisma.solicitudFoto.findFirst({
+        where: { agenteId: agente.id, estado: "PENDIENTE" },
+        select: { tipo: true },
+      })
+    : null;
 
   const nombreCompleto = agente
     ? `${agente.apellidos}, ${agente.nombres}`
@@ -112,7 +124,9 @@ export default async function PerfilPage() {
     : (agente?.sexo ? (SEXO_LABELS[agente.sexo] ?? agente.sexo) : null);
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="space-y-4">
+
+      <EventosResumenMobile />
 
       {/* Hero — estilo LinkedIn */}
       <div className="bg-slate-900 rounded-xl border border-slate-700">
@@ -131,8 +145,27 @@ export default async function PerfilPage() {
 
           {/* Avatar posicionado absolutamente sobre el borde inferior del banner */}
           <div className="absolute left-6 bottom-0 translate-y-1/2 z-10">
-            <div className="w-20 h-20 rounded-full bg-blue-700 border-4 border-slate-900 flex items-center justify-center text-white text-2xl font-bold shadow">
-              {inicial}
+            <div className="relative">
+              {agente ? (
+                <AgenteAvatar
+                  fotoUrl={agente.fotoUrl}
+                  sexo={agente.sexo}
+                  sizeClassName="w-20 h-20 rounded-full border-4 border-slate-900 shadow"
+                  iconSizeClassName="h-8 w-8"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-blue-700 border-4 border-slate-900 flex items-center justify-center text-white text-2xl font-bold shadow">
+                  {inicial}
+                </div>
+              )}
+              {agente && (
+                <FotoPerfilBtn
+                  agenteId={agente.id}
+                  fotoUrlActual={agente.fotoUrl}
+                  esAdmin={esAdmin}
+                  tieneSolicitudPendiente={Boolean(solicitudFotoPendiente)}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -154,6 +187,11 @@ export default async function PerfilPage() {
             }`}>
               {usuario?.activo !== false ? "Cuenta activa" : "Cuenta inactiva"}
             </span>
+            {solicitudFotoPendiente && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400">
+                ⏳ {solicitudFotoPendiente.tipo === "SUBIR" ? "Foto nueva en revisión" : "Solicitud para sacar tu foto en revisión"}
+              </span>
+            )}
           </div>
 
           <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
@@ -165,9 +203,11 @@ export default async function PerfilPage() {
         </div>
       </div>
 
-      {/* Datos personales + Información laboral — lado a lado */}
+      {/* Datos personales + Información laboral — lado a lado solo desde lg;
+          en mobile, 2 columnas dejaba cada tarjeta con ~160px de ancho y
+          todas las etiquetas partidas en 2-4 líneas. */}
       {agente && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
           {/* Datos personales */}
           <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">

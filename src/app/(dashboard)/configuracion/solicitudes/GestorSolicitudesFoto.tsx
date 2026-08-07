@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { aprobarSolicitud, rechazarSolicitud } from "@/app/actions/solicitudes";
+import { aprobarSolicitudFoto, rechazarSolicitudFoto } from "@/app/actions/solicitudesFoto";
 
-interface SolicitudItem {
+interface SolicitudFotoItem {
   id: string;
+  tipo: string;
   estado: string;
+  fotoUrlPropuesta: string | null;
+  fotoUrlAnterior: string | null;
   motivoRechazo: string | null;
-  permisoHasta: string | null;
   createdAt: string;
   usuario: {
     id: string;
@@ -19,8 +21,8 @@ interface SolicitudItem {
 }
 
 interface Props {
-  pendientes: SolicitudItem[];
-  historial: SolicitudItem[];
+  pendientes: SolicitudFotoItem[];
+  historial: SolicitudFotoItem[];
 }
 
 const ESTADO_BADGE: Record<string, string> = {
@@ -35,7 +37,12 @@ const ESTADO_LABELS: Record<string, string> = {
   RECHAZADA: "Rechazada",
 };
 
-function nombreSolicitud(s: SolicitudItem) {
+const TIPO_LABELS: Record<string, string> = {
+  SUBIR: "Cambio de foto",
+  QUITAR: "Sacar foto",
+};
+
+function nombreSolicitud(s: SolicitudFotoItem) {
   if (s.usuario.agente) {
     return `${s.usuario.agente.apellidos}, ${s.usuario.agente.nombres}`;
   }
@@ -49,9 +56,25 @@ function formatFecha(iso: string) {
   });
 }
 
+function Miniatura({ src, label }: { src: string | null; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="w-14 h-14 rounded-lg border border-slate-700 bg-slate-950 overflow-hidden flex items-center justify-center">
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-[10px] text-slate-600">Sin foto</span>
+        )}
+      </div>
+      <span className="text-[10px] text-slate-500">{label}</span>
+    </div>
+  );
+}
+
 // ─── Fila pendiente ───────────────────────────────────────────────────────────
 
-function FilaPendiente({ solicitud }: { solicitud: SolicitudItem }) {
+function FilaPendiente({ solicitud }: { solicitud: SolicitudFotoItem }) {
   const [pending, startTransition] = useTransition();
   const [modalRechazo, setModalRechazo] = useState(false);
   const [motivo, setMotivo] = useState("");
@@ -61,7 +84,7 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudItem }) {
     setError(null);
     startTransition(async () => {
       try {
-        await aprobarSolicitud(solicitud.id);
+        await aprobarSolicitudFoto(solicitud.id);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Error al aprobar");
       }
@@ -72,7 +95,7 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudItem }) {
     setError(null);
     startTransition(async () => {
       try {
-        await rechazarSolicitud(solicitud.id, motivo);
+        await rechazarSolicitudFoto(solicitud.id, motivo);
         setModalRechazo(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Error al rechazar");
@@ -86,6 +109,13 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudItem }) {
         <td className="px-4 py-3">
           <p className="font-medium text-slate-100">{nombreSolicitud(solicitud)}</p>
           <p className="text-xs text-slate-500">{solicitud.usuario.email}</p>
+        </td>
+        <td className="px-4 py-3 text-sm text-slate-400">{TIPO_LABELS[solicitud.tipo] ?? solicitud.tipo}</td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Miniatura src={solicitud.fotoUrlAnterior} label="Actual" />
+            {solicitud.tipo === "SUBIR" && <Miniatura src={solicitud.fotoUrlPropuesta} label="Propuesta" />}
+          </div>
         </td>
         <td className="px-4 py-3 text-sm text-slate-400">{formatFecha(solicitud.createdAt)}</td>
         <td className="px-4 py-3">
@@ -114,14 +144,14 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudItem }) {
       {/* Modal rechazo */}
       {modalRechazo && (
         <tr>
-          <td colSpan={3} className="p-0">
+          <td colSpan={5} className="p-0">
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div
                 className="absolute inset-0 bg-black/40"
                 onClick={() => !pending && setModalRechazo(false)}
               />
               <div className="relative bg-slate-900 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-                <h3 className="text-base font-semibold text-slate-100">Rechazar solicitud</h3>
+                <h3 className="text-base font-semibold text-slate-100">Rechazar solicitud de foto</h3>
                 <p className="text-sm text-slate-400">
                   Solicitud de <strong>{nombreSolicitud(solicitud)}</strong>
                 </p>
@@ -133,7 +163,7 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudItem }) {
                     value={motivo}
                     onChange={(e) => setMotivo(e.target.value)}
                     rows={3}
-                    placeholder="Explicá brevemente el motivo..."
+                    placeholder="Ej: la foto tiene que ser con fondo blanco y sin lentes..."
                     className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
                   />
                 </div>
@@ -167,7 +197,7 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudItem }) {
 
 // ─── Historial ────────────────────────────────────────────────────────────────
 
-function TablaHistorial({ solicitudes }: { solicitudes: SolicitudItem[] }) {
+function TablaHistorial({ solicitudes }: { solicitudes: SolicitudFotoItem[] }) {
   const [filtroNombre, setFiltroNombre] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
 
@@ -180,7 +210,6 @@ function TablaHistorial({ solicitudes }: { solicitudes: SolicitudItem[] }) {
 
   return (
     <div className="space-y-3">
-      {/* Filtros */}
       <div className="flex gap-3 flex-wrap">
         <input
           type="text"
@@ -202,7 +231,7 @@ function TablaHistorial({ solicitudes }: { solicitudes: SolicitudItem[] }) {
 
       {filtradas.length === 0 ? (
         <div className="px-6 py-12 text-center text-slate-500 text-sm">
-          No hay solicitudes que coincidan con los filtros.
+          No hay solicitudes de foto que coincidan con los filtros.
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -210,7 +239,8 @@ function TablaHistorial({ solicitudes }: { solicitudes: SolicitudItem[] }) {
           <thead>
             <tr className="bg-slate-950 border-b border-slate-700">
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Personal</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Fecha solicitud</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Tipo</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Fecha</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Estado</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Detalle</th>
             </tr>
@@ -222,6 +252,7 @@ function TablaHistorial({ solicitudes }: { solicitudes: SolicitudItem[] }) {
                   <p className="font-medium text-slate-100">{nombreSolicitud(s)}</p>
                   <p className="text-xs text-slate-500">{s.usuario.email}</p>
                 </td>
+                <td className="px-4 py-3 text-slate-400">{TIPO_LABELS[s.tipo] ?? s.tipo}</td>
                 <td className="px-4 py-3 text-slate-400">{formatFecha(s.createdAt)}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ESTADO_BADGE[s.estado] ?? "bg-slate-800 text-slate-400"}`}>
@@ -229,9 +260,6 @@ function TablaHistorial({ solicitudes }: { solicitudes: SolicitudItem[] }) {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-400">
-                  {s.estado === "APROBADA" && s.permisoHasta && (
-                    <span>Vence: {formatFecha(s.permisoHasta)}</span>
-                  )}
                   {s.estado === "RECHAZADA" && s.motivoRechazo && (
                     <span className="text-red-500">{s.motivoRechazo}</span>
                   )}
@@ -251,12 +279,11 @@ function TablaHistorial({ solicitudes }: { solicitudes: SolicitudItem[] }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function GestorSolicitudes({ pendientes, historial }: Props) {
+export default function GestorSolicitudesFoto({ pendientes, historial }: Props) {
   const [tab, setTab] = useState<"pendientes" | "historial">("pendientes");
 
   return (
     <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
-      {/* Pestañas */}
       <div className="flex border-b border-slate-700">
         <button
           type="button"
@@ -290,13 +317,12 @@ export default function GestorSolicitudes({ pendientes, historial }: Props) {
         </button>
       </div>
 
-      {/* Contenido */}
       <div className="p-4">
         {tab === "pendientes" && (
           <>
             {pendientes.length === 0 ? (
               <div className="px-6 py-12 text-center text-slate-500 text-sm">
-                No hay solicitudes pendientes.
+                No hay solicitudes de foto pendientes.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -304,6 +330,8 @@ export default function GestorSolicitudes({ pendientes, historial }: Props) {
                 <thead>
                   <tr className="bg-slate-950 border-b border-slate-700">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Personal</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Tipo</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Foto</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Fecha</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Acciones</th>
                   </tr>
