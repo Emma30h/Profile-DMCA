@@ -27,9 +27,13 @@ const TIPO_ICON: Record<string, string> = {
   LEGAJO_NUEVO: "🔔",
   LEGAJO_APROBADO: "✅",
   LEGAJO_RECHAZADO: "❌",
+  LEGAJO_VINCULADO_AUTO: "🔗",
   ESTADO_CAMBIADO: "🔄",
   LICENCIA_NUEVA: "📅",
   LICENCIA_PENDIENTE_NUEVA: "🏖️",
+  SOLICITUD_FOTO_NUEVA: "🖼️",
+  FOTO_APROBADA: "✅",
+  FOTO_RECHAZADA: "❌",
 };
 
 const TIPO_HREF: Record<string, string> = {
@@ -40,9 +44,13 @@ const TIPO_HREF: Record<string, string> = {
   PERMISO_VENCIDO: "/mi-legajo",
   LEGAJO_APROBADO: "/mi-legajo",
   LEGAJO_RECHAZADO: "/mi-legajo",
+  LEGAJO_VINCULADO_AUTO: "/personal",
   ESTADO_CAMBIADO: "/mi-legajo",
   LICENCIA_NUEVA: "/mi-legajo",
   LICENCIA_PENDIENTE_NUEVA: "/mi-legajo",
+  SOLICITUD_FOTO_NUEVA: "/configuracion/solicitudes",
+  FOTO_APROBADA: "/perfil",
+  FOTO_RECHAZADA: "/perfil",
 };
 
 export default function NotificacionesBell({ notificaciones: inicial }: Props) {
@@ -126,7 +134,10 @@ export default function NotificacionesBell({ notificaciones: inicial }: Props) {
       {abierto && (
         <>
           {/* Backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setAbierto(false)} />
+          <div
+            className="fixed inset-0 z-40 bg-black/60 animate-fade-in"
+            onClick={() => setAbierto(false)}
+          />
 
           {/* Panel */}
           <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border border-slate-700 bg-slate-900 shadow-lg overflow-hidden">
@@ -144,7 +155,7 @@ export default function NotificacionesBell({ notificaciones: inicial }: Props) {
                 </div>
               ) : (
                 notificaciones.map((n) => {
-                  const href = n.referenciaId && n.tipo === "LEGAJO_NUEVO"
+                  const href = n.referenciaId && (n.tipo === "LEGAJO_NUEVO" || n.tipo === "LEGAJO_VINCULADO_AUTO")
                     ? `/personal/${n.referenciaId}`
                     : TIPO_HREF[n.tipo];
                   const inner = (

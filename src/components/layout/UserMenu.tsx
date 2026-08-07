@@ -9,10 +9,12 @@ interface Props {
   displayName: string | null;
   email: string;
   initials: string;
+  fotoUrl: string | null;
 }
 
-export default function UserMenu({ displayName, email, initials }: Props) {
+export default function UserMenu({ displayName, email, initials, fotoUrl }: Props) {
   const [abierto, setAbierto] = useState(false);
+  const [fotoRota, setFotoRota] = useState(false);
   const router = useRouter();
 
   async function handleLogout() {
@@ -27,15 +29,23 @@ export default function UserMenu({ displayName, email, initials }: Props) {
       <button
         type="button"
         onClick={() => setAbierto((v) => !v)}
-        className="flex items-center justify-center h-9 w-9 rounded-full bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors select-none"
+        className="flex items-center justify-center h-9 w-9 rounded-full bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors select-none overflow-hidden border-2 border-blue-400"
         title={displayName ?? email}
       >
-        {initials}
+        {fotoUrl && !fotoRota ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={fotoUrl} alt="" onError={() => setFotoRota(true)} className="h-full w-full object-cover" />
+        ) : (
+          initials
+        )}
       </button>
 
       {abierto && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setAbierto(false)} />
+          <div
+            className="fixed inset-0 z-40 bg-black/60 animate-fade-in"
+            onClick={() => setAbierto(false)}
+          />
 
           <div className="absolute right-0 top-full mt-2 z-50 w-64 rounded-xl border border-slate-700 bg-slate-900 shadow-lg overflow-hidden">
             {/* Info usuario */}

@@ -1,8 +1,13 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
+import { MobileSidebarProvider } from "@/components/layout/MobileSidebarContext";
+import EventosAsideShell from "@/components/layout/EventosAsideShell";
+import EventosAsideContent from "./dashboard/EventosAsideContent";
+import EventosAsideSkeleton from "./dashboard/EventosAsideSkeleton";
 import type { RolUsuario } from "@/types";
 
 async function ensureUsuario(): Promise<RolUsuario> {
@@ -14,7 +19,6 @@ async function ensureUsuario(): Promise<RolUsuario> {
   // Buscar por ID (caso normal) o por email (usuario recreado tras borrar de Supabase)
   const existing = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
-    include: { agente: { select: { id: true } } },
   });
 
   if (existing) {
@@ -26,27 +30,29 @@ async function ensureUsuario(): Promise<RolUsuario> {
     // Si el registro existe pero con un ID viejo (cuenta recreada), actualizar el ID y metadata
     if (existing.id !== user.id) {
       const meta = user.user_metadata ?? {};
-      await prisma.usuario.update({
-        where: { id: existing.id },
-        data: {
-          id: user.id,
-          nombre: meta.nombre ?? existing.nombre,
-          apellido: meta.apellido ?? existing.apellido,
-          tipoPersonal: meta.tipoPersonal ?? existing.tipoPersonal,
-          jerarquia: meta.jerarquia ?? existing.jerarquia,
-        },
-      });
-
-      // Intentar vinculación automática si aún no tiene agente vinculado
-      if (!existing.agente) {
-        const agente = await prisma.agente.findFirst({
-          where: { email: user.email!, usuarioId: null },
+      try {
+        await prisma.usuario.update({
+          where: { id: existing.id },
+          data: {
+            id: user.id,
+            nombre: meta.nombre ?? existing.nombre,
+            apellido: meta.apellido ?? existing.apellido,
+            tipoPersonal: meta.tipoPersonal ?? existing.tipoPersonal,
+            jerarquia: meta.jerarquia ?? existing.jerarquia,
+          },
         });
-        if (agente) {
-          await prisma.agente.update({
-            where: { id: agente.id },
-            data: { usuarioId: user.id },
-          });
+      } catch (e: unknown) {
+        // Carrera entre requests concurrentes (el layout puede correr más de
+        // una vez en paralelo para la misma navegación): otra ya migró este
+        // mismo id viejo. Si el error no es "registro no encontrado", sí es
+        // un problema real.
+        if (
+          typeof e === "object" &&
+          e !== null &&
+          "code" in e &&
+          (e as { code: string }).code !== "P2025"
+        ) {
+          throw e;
         }
       }
     }
@@ -96,17 +102,6 @@ async function ensureUsuario(): Promise<RolUsuario> {
     return (created?.rol ?? "READONLY") as RolUsuario;
   }
 
-  // Vinculación automática: si hay un agente con el mismo email y sin usuario, conectarlo
-  const agente = await prisma.agente.findFirst({
-    where: { email: user.email!, usuarioId: null },
-  });
-  if (agente) {
-    await prisma.agente.update({
-      where: { id: agente.id },
-      data: { usuarioId: user.id },
-    });
-  }
-
   return rol;
 }
 
@@ -118,12 +113,19 @@ export default async function DashboardLayout({
   const rol = await ensureUsuario();
 
   return (
-    <div className="flex h-full min-h-screen">
-      <Sidebar rol={rol} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+    <MobileSidebarProvider>
+      <div className="flex h-full min-h-screen">
+        <Sidebar rol={rol} />
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6">{children}</main>
+        </div>
+        <EventosAsideShell>
+          <Suspense fallback={<EventosAsideSkeleton />}>
+            <EventosAsideContent />
+          </Suspense>
+        </EventosAsideShell>
       </div>
-    </div>
+    </MobileSidebarProvider>
   );
 }

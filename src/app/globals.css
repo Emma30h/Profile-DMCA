@@ -93,6 +93,65 @@ textarea::placeholder {
   animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
+/* Borde derecho del Sidebar: una franja con degradé (los mismos azul/violeta
+   de "Turno 1"/"Turno 2" en TurnoHoyCard) que recorre su propio largo muy
+   lentamente, en vez de un borde sólido estático — un acento sutil, no una
+   barra de carga. */
+@keyframes sidebar-edge-glow {
+  0%, 100% { background-position: 50% 0%; }
+  50% { background-position: 50% 100%; }
+}
+.sidebar-edge-glow {
+  background-image: linear-gradient(180deg, #3987e5, #9085e9, #3987e5);
+  background-size: 100% 220%;
+  animation: sidebar-edge-glow 7s ease-in-out infinite;
+  box-shadow: 0 0 10px 1px rgba(57, 135, 229, 0.45);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-edge-glow {
+    animation: none;
+    background-position: 50% 0%;
+  }
+}
+
+/* Panel colapsable del dashboard (p. ej. "Atención requerida"): en vez de
+   medir la altura por JS, se anima grid-template-rows entre 0fr y 1fr — el
+   contenido interno necesita overflow-hidden + min-height:0 para poder
+   encogerse por debajo de su alto natural. */
+.dashboard-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+.dashboard-collapse.abierto {
+  grid-template-rows: 1fr;
+}
+.dashboard-collapse > div {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* "Puerta corrediza": dos vistas de un mismo gráfico del dashboard puestas
+   una al lado de la otra, desplazadas con translateX en vez de mostrar/ocultar
+   de golpe. Reutilizado por el toggle turno↔dependencia y el de hijos a cargo. */
+.dashboard-slide-track {
+  display: flex;
+  transition: transform 0.42s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.dashboard-slide-track.mostrar-detalle {
+  transform: translateX(-100%);
+}
+.dashboard-slide-pane {
+  flex: 0 0 100%;
+  min-width: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-collapse,
+  .dashboard-slide-track {
+    transition: none;
+  }
+}
+
 /* Ocultar el toggle nativo de contraseña del navegador */
 input::-ms-reveal,
 input::-ms-clear {
@@ -101,4 +160,30 @@ input::-ms-clear {
 input[type="password"]::-webkit-contacts-auto-fill-button,
 input[type="password"]::-webkit-credentials-auto-fill-button {
   visibility: hidden;
+}
+
+/* Impresión de informes puntuales (ej. ausentismo por legajo): en vez de
+   tocar sidebar/header/tabs de todo el shell para que se oculten al imprimir,
+   se oculta todo el body y se revela solo el subárbol marcado — funciona sin
+   importar dónde vive ese subárbol en el DOM. El bloque .print-informe trae
+   su propia paleta clara porque el tema oscuro de la app (texto claro sobre
+   fondo oscuro) es ilegible en papel/PDF. */
+.print-informe {
+  display: none;
+}
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-informe,
+  .print-informe * {
+    visibility: visible;
+  }
+  .print-informe {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    color: #0f172a;
+  }
 }

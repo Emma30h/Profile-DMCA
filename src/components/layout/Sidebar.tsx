@@ -2,22 +2,25 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { Home, Users, Building2, Clock, ClipboardList, Settings, Lock, X, type LucideIcon } from "lucide-react";
 import type { RolUsuario } from "@/types";
+import { useMobileSidebar } from "./MobileSidebarContext";
 
-const navItems = [
-  { href: "/dashboard", label: "Inicio", icon: "🏠" },
-  { href: "/personal", label: "Personal", icon: "👥" },
-  { href: "/escalafon", label: "Escalafón", icon: "⭐", disabled: true },
-  { href: "/turnos", label: "Turnos", icon: "🕐", disabled: true },
-  { href: "/asistencia", label: "Asistencia", icon: "✅", disabled: true },
-  { href: "/licencias", label: "Licencias y Ausentismo", icon: "📋" },
+const navItems: { href: string; label: string; icon: LucideIcon; disabled?: boolean }[] = [
+  { href: "/dashboard", label: "Inicio", icon: Home },
+  { href: "/personal", label: "Personal", icon: Users },
+  { href: "/organigrama", label: "Organigrama", icon: Building2 },
+  { href: "/turnos", label: "Turnos", icon: Clock },
+  { href: "/licencias", label: "Licencias y Ausentismo", icon: ClipboardList },
 ];
 
 const ROLES_ADMIN: RolUsuario[] = ["SUPERADMIN", "ADMIN"];
 
 export default function Sidebar({ rol }: { rol: RolUsuario }) {
   const pathname = usePathname();
+  const { abierto, cerrar } = useMobileSidebar();
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -27,64 +30,97 @@ export default function Sidebar({ rol }: { rol: RolUsuario }) {
   const esReadonly = rol === "READONLY";
 
   const footerItems = ROLES_ADMIN.includes(rol)
-    ? [{ href: "/configuracion/usuarios", label: "Roles de Usuario", icon: "⚙️" }]
+    ? [{ href: "/configuracion/usuarios", label: "Roles de Usuario", icon: Settings }]
     : [];
 
+  // Al navegar a una nueva página desde el drawer mobile, se cierra solo —
+  // si no, taparía el contenido recién cargado hasta que el usuario lo cierre a mano.
+  useEffect(() => {
+    cerrar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   return (
-    <aside className="w-64 min-h-screen bg-slate-950 text-white flex flex-col">
-      {/* Logo / Header */}
-      <div className="px-6 py-5 border-b border-slate-700 flex items-center gap-3">
-        <Image
-          src="/escudo_png_2.png"
-          alt="Escudo Policía de Córdoba"
-          width={40}
-          height={40}
-          className="shrink-0"
+    <>
+      {/* Fondo oscuro detrás del drawer — solo mobile, solo mientras está abierto */}
+      {abierto && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          onClick={cerrar}
+          aria-hidden="true"
         />
-        <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-0.5">
-            Policía de Córdoba
-          </p>
-          <h1 className="text-sm font-semibold leading-tight text-white">
-            Dir. Monitoreo<br />Cordobeses en Alerta
-          </h1>
+      )}
+
+      <aside
+        // lg:relative (no lg:static): sigue participando del flex del layout
+        // en desktop igual que antes, pero mantiene un contexto de posición
+        // propio para que la franja de abajo (absolute) se ancle a ESTE
+        // aside y no a algún ancestro lejano.
+        className={`fixed inset-y-0 left-0 z-50 w-56 min-h-screen bg-slate-950 text-white flex flex-col transition-transform duration-200 ease-out lg:relative lg:z-auto lg:translate-x-0 ${
+          abierto ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Franja del borde derecho: degradé animado (ver sidebar-edge-glow
+            en globals.css) en vez de un simple border-r estático, para
+            separar visualmente el menú del resto de la app con algo de vida. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-0.5 sidebar-edge-glow" />
+
+        {/* Logo / Header — solo el escudo, grande y centrado. El botón de
+            cerrar (solo mobile) va posicionado absoluto para no romper el
+            centrado. */}
+        <div className="relative px-5 py-5 border-b border-slate-800/70 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={cerrar}
+            className="lg:hidden absolute right-3 top-3 shrink-0 rounded p-1 text-slate-500 hover:text-slate-300"
+            aria-label="Cerrar menú"
+          >
+            <X className="w-4 h-4" strokeWidth={1.75} />
+          </button>
+          <Image
+            src="/logo-ojos-en-alerta-blanco.png"
+            alt="Ojos en Alerta"
+            width={92}
+            height={70}
+            className="shrink-0"
+          />
         </div>
-      </div>
 
       {/* Nav principal — oculto para READONLY */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-2.5 py-3 space-y-0.5">
         {esReadonly ? null : navItems.map((item) => {
+          const Icon = item.icon;
+
           if (item.disabled) {
             return (
               <div
                 key={item.href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 cursor-not-allowed select-none"
+                className="flex items-center gap-2.5 px-2.5 py-2 text-[13px] text-slate-500 cursor-not-allowed select-none"
                 title="Próximamente"
               >
-                <span className="text-base leading-none opacity-40">{item.icon}</span>
+                <Icon className="w-[17px] h-[17px] shrink-0 opacity-40" strokeWidth={1.75} />
                 <span className="flex-1">{item.label}</span>
-                <svg className="w-3.5 h-3.5 opacity-50 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <Lock className="w-3.5 h-3.5 opacity-50 shrink-0" strokeWidth={2} />
               </div>
             );
           }
+
+          const active = isActive(item.href);
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.href)
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              className={`flex items-center gap-2.5 px-2.5 py-2 text-[13px] transition-colors ${
+                active
+                  ? "bg-slate-800/70 text-white font-medium"
+                  : "text-slate-400 font-normal hover:bg-slate-900 hover:text-slate-200"
               }`}
             >
-              <span className="text-base leading-none">{item.icon}</span>
+              <Icon
+                className={`w-[17px] h-[17px] shrink-0 ${active ? "text-blue-400" : "text-slate-500"}`}
+                strokeWidth={1.75}
+              />
               {item.label}
             </Link>
           );
@@ -92,22 +128,30 @@ export default function Sidebar({ rol }: { rol: RolUsuario }) {
       </nav>
 
       {/* Footer nav */}
-      <div className="px-3 py-4 border-t border-slate-700 space-y-1">
-        {footerItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive(item.href)
-                ? "bg-blue-600 text-white"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white"
-            }`}
-          >
-            <span className="text-base">{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
+      <div className="px-2.5 py-3 border-t border-slate-800/70 space-y-0.5">
+        {footerItems.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-2.5 px-2.5 py-2 text-[13px] transition-colors ${
+                active
+                  ? "bg-slate-800/70 text-white font-medium"
+                  : "text-slate-400 font-normal hover:bg-slate-900 hover:text-slate-200"
+              }`}
+            >
+              <Icon
+                className={`w-[17px] h-[17px] shrink-0 ${active ? "text-blue-400" : "text-slate-500"}`}
+                strokeWidth={1.75}
+              />
+              {item.label}
+            </Link>
+          );
+        })}
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
