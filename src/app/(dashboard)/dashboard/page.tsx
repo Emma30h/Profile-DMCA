@@ -1,54 +1,26 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { getOrSet, CACHE_TTL } from "@/lib/redis";
-import type { TipoPersonal } from "@/types";
-import { TIPOS_PERSONAL } from "@/types";
+import { getDashboardStats } from "./stats";
+import RingCompare from "./RingCompare";
+import DonutTipoPersonal from "./DonutTipoPersonal";
+import TurnoDependenciaCard from "./TurnoDependenciaCard";
+import HijosACargoCard from "./HijosACargoCard";
+import AlertsPanel from "./AlertsPanel";
+import FlujoPersonalCard from "./FlujoPersonalCard";
+import NovedadesDrawer from "./NovedadesDrawer";
+import EventosResumenMobile from "./EventosResumenMobile";
+import KpiTile from "./KpiTile";
+import { buildQueryString } from "../personal/queryString";
 
-interface PersonalStats {
-  totalActivos: number;
-  porTipo: Record<TipoPersonal, number>;
-  enBaja: number;
-  suspendidos: number;
-}
+const MASC_COLOR = "#3987e5";
+const FEM_COLOR = "#d55181";
+const OTROS_COLOR = "#7c8aa8";
 
-async function getPersonalStats(): Promise<PersonalStats> {
-  return getOrSet("agentes:stats:all", CACHE_TTL.OPERATIVO, async () => {
-    const [totalActivos, porTipo, enBaja, suspendidos] = await Promise.all([
-      prisma.agente.count({ where: { estado: "ACTIVO" } }),
-      prisma.agente.groupBy({
-        by: ["tipoPersonal"],
-        where: { estado: "ACTIVO" },
-        _count: { _all: true },
-      }),
-      prisma.agente.count({ where: { estado: "BAJA" } }),
-      prisma.agente.count({ where: { estado: "SUSPENDIDO" } }),
-    ]);
-
-    const porTipoMap = Object.fromEntries(
-      TIPOS_PERSONAL.map((t) => [t, 0])
-    ) as Record<TipoPersonal, number>;
-
-    for (const entry of porTipo) {
-      (porTipoMap as Record<string, number>)[String(entry.tipoPersonal)] = entry._count._all;
-    }
-
-    return { totalActivos, porTipo: porTipoMap, enBaja, suspendidos };
-  });
-}
-
-const TIPO_LABELS: Record<TipoPersonal, string> = {
-  SEGURIDAD: "Seguridad",
-  TECNICO: "Técnico",
-  CIVIL_BECARIO: "Civil Becario",
-  CIVIL_POLICIAL: "Civil Policial",
-};
-
-const TIPO_COLORS: Record<TipoPersonal, string> = {
-  SEGURIDAD: "bg-blue-500/10 text-blue-300 border-blue-500/25",
-  TECNICO: "bg-purple-500/10 text-purple-400 border-purple-500/25",
-  CIVIL_BECARIO: "bg-green-500/10 text-green-400 border-green-500/25",
-  CIVIL_POLICIAL: "bg-orange-500/10 text-orange-400 border-orange-500/25",
+const SEXO_LABEL: Record<string, string> = {
+  NO_BINARIO: "No binario",
+  PREFIERO_NO_DECIR: "Prefiero no decir",
+  OTRO: "Otro",
 };
 
 export default async function DashboardPage() {
@@ -61,68 +33,176 @@ export default async function DashboardPage() {
   });
   if (currentUser?.rol === "READONLY") redirect("/perfil");
 
-  const stats = await getPersonalStats();
+  const stats = await getDashboardStats();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-100">Resumen del Personal</h2>
-        <p className="text-sm text-slate-400 mt-0.5">
-          Dirección Monitoreo Cordobeses en Alerta
-        </p>
+    <div>
+      <NovedadesDrawer novedades={stats.novedades} tno={stats.tno} />
+
+      <EventosResumenMobile />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <KpiTile
+          label="En pase"
+          value={stats.kpi.enPase}
+          sub="a otra dependencia"
+          icon="⇄"
+          badgeClass="bg-blue-500/10 text-blue-300"
+          href={stats.kpi.enPase > 0 ? "/personal?estado=PASE" : undefined}
+        />
+        <KpiTile
+          label="En baja"
+          value={stats.kpi.enBaja}
+          sub="fuera de servicio"
+          icon="−"
+          badgeClass="bg-slate-800 text-slate-500"
+          href={stats.kpi.enBaja > 0 ? "/personal?estado=BAJA" : undefined}
+        />
+        <KpiTile
+          label="Legajos pendientes"
+          value={stats.kpi.legajosPendientes}
+          sub={stats.kpi.legajosPendientes === 0 ? "al día — nada por validar" : "esperando validación"}
+          subClass={stats.kpi.legajosPendientes === 0 ? "text-green-400" : undefined}
+          icon="✓"
+          badgeClass="bg-green-500/10 text-green-400"
+          href={stats.kpi.legajosPendientes > 0 ? "/personal?estado=PENDIENTE" : undefined}
+        />
+        <KpiTile
+          label="Licencias activas hoy"
+          value={stats.kpi.licenciasActivasHoy}
+          sub={`+${stats.kpi.licenciasProximas} próximas a iniciar`}
+          icon="◐"
+          badgeClass="bg-amber-400/10 text-amber-300"
+          href={
+            stats.kpi.licenciasActivasHoyIds.length > 0
+              ? `/personal?${buildQueryString({ ids: stats.kpi.licenciasActivasHoyIds.join(",") })}`
+              : undefined
+          }
+        />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard title="Personal Activo" value={stats.totalActivos} color="bg-blue-600" icon="👥" />
-        <StatCard title="En Baja" value={stats.enBaja} color="bg-slate-600" icon="📁" />
-        <StatCard title="Suspendidos" value={stats.suspendidos} color="bg-red-600" icon="⛔" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
+        <DonutTipoPersonal data={stats.tipoPersonal} total={stats.totalActivos} />
+        <TurnoDependenciaCard
+          turno={stats.turno}
+          dependencia={stats.dependencia}
+          origenInstitucional={stats.origenInstitucional}
+          totalActivos={stats.totalActivos}
+        />
       </div>
 
-      <div>
-        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wide mb-3">
-          Activos por tipo de personal
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {(Object.entries(stats.porTipo) as [TipoPersonal, number][]).map(([tipo, cantidad]) => (
-            <div key={tipo} className={`rounded-xl border px-4 py-4 ${TIPO_COLORS[tipo]}`}>
-              <p className="text-2xl font-bold">{cantidad}</p>
-              <p className="text-xs font-medium mt-1">{TIPO_LABELS[tipo]}</p>
-            </div>
-          ))}
+      <div className="mb-6">
+        <AlertsPanel alertas={stats.alertas} />
+      </div>
+
+      <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 mb-4">
+        <h3 className="text-sm font-semibold text-slate-100 mb-1">Activos por sexo</h3>
+        <RingCompare
+          iconSize={78}
+          left={{
+            value: stats.sexo.masculino.count,
+            label: "Masculino",
+            pct: stats.sexo.masculino.pct,
+            color: MASC_COLOR,
+            icon: <IconoMarte />,
+            href: "/personal?estado=ACTIVO&sexo=MASCULINO",
+          }}
+          right={{
+            value: stats.sexo.femenino.count,
+            label: "Femenino",
+            pct: stats.sexo.femenino.pct,
+            color: FEM_COLOR,
+            icon: <IconoVenus />,
+            href: "/personal?estado=ACTIVO&sexo=FEMENINO",
+          }}
+        />
+        <div className="flex items-center justify-center gap-2.5 flex-wrap mt-1">
+          {stats.sexo.otros.length > 0 ? (
+            stats.sexo.otros.map((o) => (
+              <span
+                key={o.label}
+                className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-300 bg-slate-950 border border-slate-800 pl-2 pr-2.5 py-1 rounded-full"
+              >
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: OTROS_COLOR }} />
+                {SEXO_LABEL[o.label] ?? o.label}
+                <b className="text-slate-100 font-bold">{o.count}</b>
+              </span>
+            ))
+          ) : (
+            <span className="text-[11px] text-slate-500 text-center">
+              Sin registros en No binario / Otro / Prefiero no decir entre el personal activo.
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
+        <HijosACargoCard hijos={stats.hijos} />
+
+        <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5">
+          <div className="flex items-baseline justify-between mb-1">
+            <h3 className="text-sm font-semibold text-slate-100">Padres y madres</h3>
+            <span className="text-[11px] text-slate-500 tabular-nums">
+              {stats.padresMadres.totalConHijos} con hijos a cargo
+            </span>
+          </div>
+          <RingCompare
+            left={{
+              value: stats.padresMadres.padres.count,
+              label: "Padres",
+              pct: stats.padresMadres.padres.pct,
+              color: MASC_COLOR,
+              icon: <IconoPersona />,
+              href: stats.padresMadres.padresIds.length > 0
+                ? `/personal?${buildQueryString({ ids: stats.padresMadres.padresIds.join(",") })}`
+                : "/personal",
+            }}
+            right={{
+              value: stats.padresMadres.madres.count,
+              label: "Madres",
+              pct: stats.padresMadres.madres.pct,
+              color: FEM_COLOR,
+              icon: <IconoPersona />,
+              href: stats.padresMadres.madresIds.length > 0
+                ? `/personal?${buildQueryString({ ids: stats.padresMadres.madresIds.join(",") })}`
+                : "/personal",
+            }}
+          />
         </div>
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wide mb-3">
-          Acceso rápido
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <QuickLink href="/personal" icon="👥" label="Ver todo el personal" />
-          <QuickLink href="/asistencia" icon="✅" label="Carga de asistencia" />
-          <QuickLink href="/licencias" icon="📋" label="Licencias pendientes" />
-        </div>
+        <FlujoPersonalCard flujo={stats.flujoPersonal} />
       </div>
     </div>
   );
 }
 
-function StatCard({ title, value, color, icon }: { title: string; value: number; color: string; icon: string }) {
+
+function IconoMarte() {
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 p-5 flex items-center gap-4">
-      <div className={`${color} rounded-xl p-3 text-white text-xl`}>{icon}</div>
-      <div>
-        <p className="text-3xl font-bold text-slate-100">{value}</p>
-        <p className="text-sm text-slate-400 mt-0.5">{title}</p>
-      </div>
-    </div>
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <circle cx="8" cy="12" r="5" />
+      <line x1="11.7" y1="8.3" x2="17" y2="3" />
+      <polyline points="11.5 3 17 3 17 8.5" />
+    </svg>
   );
 }
 
-function QuickLink({ href, icon, label }: { href: string; icon: string; label: string }) {
+function IconoPersona() {
   return (
-    <a href={href} className="bg-slate-900 rounded-xl border border-slate-700 px-4 py-3 flex items-center gap-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:border-slate-700 transition-colors">
-      <span className="text-base">{icon}</span>
-      {label}
-    </a>
+    <svg viewBox="0 0 20 20" fill="currentColor" className="w-full h-full">
+      <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+    </svg>
+  );
+}
+
+function IconoVenus() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <circle cx="10" cy="7" r="5" />
+      <line x1="10" y1="12" x2="10" y2="17.5" />
+      <line x1="6.5" y1="14.7" x2="13.5" y2="14.7" />
+    </svg>
   );
 }

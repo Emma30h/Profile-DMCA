@@ -1,0 +1,529 @@
+import { prisma } from "@/lib/prisma";
+import { getOrSet, CACHE_TTL } from "@/lib/redis";
+import type { TipoPersonal, TipoLicencia, OrigenInstitucional } from "@/types";
+import { TIPOS_PERSONAL, TIPOS_LICENCIA } from "@/types";
+import { compararTurnos } from "../personal/lib";
+
+// Mismo horizonte para "licencias que vencen pronto" (alerta) y "licencias
+// próximas a iniciar" (sub-línea del KPI) — confirmado con el usuario.
+const VENTANA_DIAS_ALERTA = 7;
+
+// Los 3 sectores que, organizativamente, son el Departamento Alerta Ciudadana
+// aunque en la tabla Sector estén cargados como filas independientes (ver
+// memoria del proyecto sobre la jerarquía de sectores no reflejada en la BD).
+const NOMBRE_ALERTA_CIUDADANA = "Departamento Alerta Ciudadana";
+const SECTORES_ALERTA_CIUDADANA = new Set([
+  NOMBRE_ALERTA_CIUDADANA,
+  "División Alerta",
+  "División Coordinación Vecinal",
+]);
+
+const ORIGEN_LABEL: Record<OrigenInstitucional, string> = {
+  GOBIERNO: "Gobierno",
+  DMCA: "DMCA",
+  "911": "911",
+  OTRA_DEPENDENCIA: "Otra dependencia",
+};
+const SIN_ORIGEN_LABEL = "Sin clasificar";
+
+function hoyUTC(): Date {
+  const ahora = new Date();
+  return new Date(Date.UTC(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()));
+}
+
+function sumarDias(fecha: Date, dias: number): Date {
+  return new Date(fecha.getTime() + dias * 24 * 60 * 60 * 1000);
+}
+
+function pct(parte: number, total: number): number {
+  return total > 0 ? Math.round((parte / total) * 100) : 0;
+}
+
+const MESES_LARGOS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+function claveMes(fecha: Date): string {
+  return `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+export interface KpiStats {
+  enPase: number;
+  enBaja: number;
+  legajosPendientes: number;
+  licenciasActivasHoy: number;
+  licenciasActivasHoyIds: string[];
+  licenciasProximas: number;
+}
+
+export interface AlertaLicenciasPorVencer {
+  cantidad: number;
+  apellidosMuestra: string[];
+  restantes: number;
+}
+
+export interface AlertaStats {
+  licenciasPorVencer: AlertaLicenciasPorVencer;
+  conducirVencida: number;
+  conducirVencidaIds: string[];
+  chalecoVencido: number;
+  chalecoVencidoIds: string[];
+  chalecoTotal: number;
+}
+
+export interface ConteoLabel {
+  label: string;
+  count: number;
+}
+
+export interface ConteoConIds {
+  label: string;
+  count: number;
+  ids: string[];
+}
+
+export interface TipoPersonalStats {
+  tipo: TipoPersonal;
+  count: number;
+  pct: number;
+}
+
+export interface RingStats {
+  count: number;
+  pct: number;
+}
+
+export interface HijosStats {
+  conHijos: RingStats;
+  conHijosIds: string[];
+  sinHijos: RingStats;
+  sinHijosIds: string[];
+  totalActivos: number;
+  histograma: ConteoLabel[]; // "0 hijos".."4 hijos", "+4 hijos"
+}
+
+export interface PadresMadresStats {
+  padres: RingStats;
+  padresIds: string[];
+  madres: RingStats;
+  madresIds: string[];
+  totalConHijos: number;
+}
+
+export interface FlujoMensual {
+  key: string; // "2025-03"
+  label: string; // "mar" o "mar '25" en enero / primer mes de la serie
+  mesLargo: string; // "Marzo 2025"
+  altas: number;
+  altasIds: string[];
+  bajas: number;
+  bajasIds: string[];
+  neto: number;
+}
+
+export interface FlujoPersonalStats {
+  meses: FlujoMensual[];
+  totalAltas: number;
+  totalBajas: number;
+  totalNeto: number;
+  escalaMax: number; // techo del eje, redondeado, para dibujar las barras
+}
+
+export interface NovedadTipoStats {
+  tipo: TipoLicencia;
+  count: number;
+}
+
+export interface TnoStats {
+  count: number;
+  ids: string[];
+}
+
+export interface DashboardStats {
+  kpi: KpiStats;
+  alertas: AlertaStats;
+  tno: TnoStats;
+  totalActivos: number;
+  turno: ConteoLabel[];
+  dependencia: ConteoConIds[];
+  origenInstitucional: ConteoConIds[];
+  tipoPersonal: TipoPersonalStats[];
+  sexo: { masculino: RingStats; femenino: RingStats; otros: ConteoLabel[] };
+  hijos: HijosStats;
+  padresMadres: PadresMadresStats;
+  flujoPersonal: FlujoPersonalStats;
+  novedades: NovedadTipoStats[];
+}
+
+// El gráfico expresa entrada/salida de personal DE LA DEPENDENCIA, no de la
+// fuerza. Ingresos = fechaIngreso del agente (dato laboral cargado en el
+// legajo, no cuándo se validó el legajo en el sistema). Bajas = transiciones
+// a "BAJA" o "PASE" en HistorialEstado — ambas sacan al agente de la nómina
+// activa acá, aunque el motivo sea distinto (baja real vs. pase a otra
+// dependencia). El alta por validación de legajo (PENDIENTE→ACTIVO en
+// legajo.ts) no pasa por HistorialEstado, por eso no se puede usar la misma
+// tabla para ambos lados.
+//
+// Asimetría conocida: si alguien vuelve de un pase (PASE→ACTIVO), ese regreso
+// no se cuenta como un nuevo ingreso porque fechaIngreso no se actualiza — solo
+// se resta al irse, no se suma al volver. Si esto empieza a pasar seguido,
+// hay que revisar el criterio.
+//
+// Un agente puede tener varias transiciones el mismo mes (pruebas corregidas
+// al toque, o un pase-y-vuelta real). Lo que cuenta como "baja" de ese mes es
+// el ÚLTIMO estado al que llegó ese agente dentro del mes, no cada fila suelta
+// de HistorialEstado — si terminó de nuevo en ACTIVO, no fue una baja real
+// aunque haya pasado por BAJA/PASE en el medio.
+function calcularFlujoPersonal(
+  hoy: Date,
+  agentesConIngreso: { id: string; fechaIngreso: Date }[],
+  transicionesEstado: { agenteId: string; estadoNuevo: string; createdAt: Date }[]
+): FlujoPersonalStats {
+  if (agentesConIngreso.length === 0) {
+    return { meses: [], totalAltas: 0, totalBajas: 0, totalNeto: 0, escalaMax: 5 };
+  }
+
+  const minFecha = agentesConIngreso.reduce(
+    (min, a) => (a.fechaIngreso < min ? a.fechaIngreso : min),
+    agentesConIngreso[0].fechaIngreso
+  );
+  const inicio = new Date(Date.UTC(minFecha.getUTCFullYear(), minFecha.getUTCMonth(), 1));
+  const fin = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), 1));
+
+  const meses: FlujoMensual[] = [];
+  const cursor = new Date(inicio);
+  while (cursor <= fin) {
+    const y = cursor.getUTCFullYear();
+    const m = cursor.getUTCMonth();
+    const esPrimeroOEnero = meses.length === 0 || m === 0;
+    meses.push({
+      key: claveMes(cursor),
+      label: esPrimeroOEnero ? `${MESES_CORTOS[m]} '${String(y).slice(2)}` : MESES_CORTOS[m],
+      mesLargo: `${MESES_LARGOS[m]} ${y}`,
+      altas: 0,
+      altasIds: [],
+      bajas: 0,
+      bajasIds: [],
+      neto: 0,
+    });
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+
+  const indicePorClave = new Map(meses.map((m, i) => [m.key, i]));
+  for (const a of agentesConIngreso) {
+    const i = indicePorClave.get(claveMes(a.fechaIngreso));
+    if (i !== undefined) {
+      meses[i].altas++;
+      meses[i].altasIds.push(a.id);
+    }
+  }
+  const ultimaTransicionPorAgenteYMes = new Map<string, { agenteId: string; estadoNuevo: string; createdAt: Date }>();
+  for (const t of transicionesEstado) {
+    const clave = `${t.agenteId}|${claveMes(t.createdAt)}`;
+    const actual = ultimaTransicionPorAgenteYMes.get(clave);
+    if (!actual || t.createdAt > actual.createdAt) {
+      ultimaTransicionPorAgenteYMes.set(clave, t);
+    }
+  }
+  for (const t of ultimaTransicionPorAgenteYMes.values()) {
+    if (t.estadoNuevo !== "BAJA" && t.estadoNuevo !== "PASE") continue;
+    const i = indicePorClave.get(claveMes(t.createdAt));
+    if (i !== undefined) {
+      meses[i].bajas++;
+      meses[i].bajasIds.push(t.agenteId);
+    }
+  }
+
+  let totalAltas = 0;
+  let totalBajas = 0;
+  let picoMes = 1;
+  for (const m of meses) {
+    m.neto = m.altas - m.bajas;
+    totalAltas += m.altas;
+    totalBajas += m.bajas;
+    picoMes = Math.max(picoMes, m.altas, m.bajas);
+  }
+  const escalaMax = Math.max(5, Math.ceil(picoMes / 5) * 5);
+
+  return { meses, totalAltas, totalBajas, totalNeto: totalAltas - totalBajas, escalaMax };
+}
+
+async function calcularStats(): Promise<DashboardStats> {
+  const hoy = hoyUTC();
+  const finVentana = sumarDias(hoy, VENTANA_DIAS_ALERTA);
+
+  const [
+    enPase,
+    enBaja,
+    legajosPendientes,
+    licenciasActivasHoyRows,
+    licenciasProximas,
+    licenciasPorVencerRows,
+    novedadesPorTipo,
+    conducirVencidaRows,
+    chalecoVencidoRows,
+    chalecoTotal,
+    tnoRows,
+    totalActivos,
+    porTurno,
+    agentesPorSector,
+    sectores,
+    porTipo,
+    porSexo,
+    agentesPorHijos,
+    agentesConHijos,
+    agentesConIngreso,
+    transicionesEstado,
+    agentesPorOrigen,
+  ] = await Promise.all([
+    prisma.agente.count({ where: { estado: "PASE" } }),
+    prisma.agente.count({ where: { estado: "BAJA" } }),
+    prisma.agente.count({ where: { estado: "PENDIENTE" } }),
+    // Igual que en /licencias: si el agente ya no está activo (baja o pase),
+    // su licencia deja de contar acá aunque el rango de fechas siga vigente.
+    // findMany (no count) para poder ofrecer el drill-down a /personal con
+    // los agentes puntuales, igual que conducirVencidaIds/chalecoVencidoIds.
+    prisma.licencia.findMany({
+      where: { estado: "APROBADA", fechaInicio: { lte: hoy }, fechaFin: { gte: hoy }, agente: { estado: "ACTIVO" } },
+      select: { agenteId: true },
+    }),
+    prisma.licencia.count({
+      where: { estado: "APROBADA", fechaInicio: { gt: hoy, lte: finVentana }, agente: { estado: "ACTIVO" } },
+    }),
+    // Mismo criterio que licenciasActivasHoy/licenciasProximas: si el agente
+    // ya no está activo (baja o pase), su licencia deja de aparecer acá.
+    prisma.licencia.findMany({
+      where: { estado: "APROBADA", fechaFin: { gte: hoy, lte: finVentana }, agente: { estado: "ACTIVO" } },
+      select: { agenteId: true, agente: { select: { apellidos: true } } },
+      orderBy: { fechaFin: "asc" },
+    }),
+    // "Novedades administrativas" (cajón del dashboard): mismo criterio de
+    // "vigente hoy" que licenciasActivasHoy, desglosado por tipo.
+    prisma.licencia.groupBy({
+      by: ["tipo"],
+      where: { estado: "APROBADA", fechaInicio: { lte: hoy }, fechaFin: { gte: hoy }, agente: { estado: "ACTIVO" } },
+      _count: { _all: true },
+    }),
+    prisma.agente.findMany({
+      where: { estado: "ACTIVO", tipoPersonal: { in: ["SEGURIDAD", "TECNICO"] }, licenciaVencimiento: { lt: hoy } },
+      select: { id: true },
+    }),
+    prisma.agente.findMany({
+      where: { estado: "ACTIVO", tipoPersonal: "SEGURIDAD", chalecoProvisto: true, vencimientoChaleco: { lt: hoy } },
+      select: { id: true },
+    }),
+    prisma.agente.count({
+      where: { estado: "ACTIVO", tipoPersonal: "SEGURIDAD", chalecoProvisto: true },
+    }),
+    prisma.agente.findMany({
+      where: { estado: "ACTIVO", tipoPersonal: "SEGURIDAD", enTNO: true },
+      select: { id: true },
+    }),
+    prisma.agente.count({ where: { estado: "ACTIVO" } }),
+    prisma.agente.groupBy({ by: ["turno"], where: { estado: "ACTIVO" }, _count: { _all: true } }),
+    prisma.agente.findMany({ where: { estado: "ACTIVO" }, select: { id: true, sectorId: true } }),
+    prisma.sector.findMany({ select: { id: true, nombre: true } }),
+    prisma.agente.groupBy({ by: ["tipoPersonal"], where: { estado: "ACTIVO" }, _count: { _all: true } }),
+    prisma.agente.groupBy({ by: ["sexo"], where: { estado: "ACTIVO" }, _count: { _all: true } }),
+    prisma.agente.findMany({ where: { estado: "ACTIVO" }, select: { id: true, hijosCargo: true } }),
+    prisma.agente.findMany({
+      where: { estado: "ACTIVO", hijosCargo: { gt: 0 } },
+      select: { id: true, sexo: true },
+    }),
+    prisma.agente.findMany({
+      where: { fechaIngreso: { not: null } },
+      select: { id: true, fechaIngreso: true },
+    }),
+    // Se traen TODAS las transiciones (no solo a BAJA/PASE): calcularFlujoPersonal
+    // necesita ver también los regresos a ACTIVO para saber cuál fue el último
+    // estado real de cada agente dentro del mes.
+    prisma.historialEstado.findMany({
+      select: { agenteId: true, estadoNuevo: true, createdAt: true },
+    }),
+    prisma.agente.findMany({
+      where: { estado: "ACTIVO" },
+      select: { id: true, origenInstitucional: true },
+    }),
+  ]);
+
+  // ── Alerta: licencias por vencer — apellidos únicos, hasta 5, orden por vencimiento ──
+  const apellidosUnicos: string[] = [];
+  const agentesVistos = new Set<string>();
+  for (const row of licenciasPorVencerRows) {
+    if (agentesVistos.has(row.agenteId)) continue;
+    agentesVistos.add(row.agenteId);
+    apellidosUnicos.push(row.agente.apellidos);
+  }
+  const licenciasPorVencer: AlertaLicenciasPorVencer = {
+    cantidad: licenciasPorVencerRows.length,
+    apellidosMuestra: apellidosUnicos.slice(0, 5),
+    restantes: Math.max(0, apellidosUnicos.length - 5),
+  };
+
+  // ── Turno: A–F primero, luego el resto por la convención ya usada en /personal ──
+  const turno: ConteoLabel[] = porTurno
+    .filter((t) => t.turno !== null)
+    .map((t) => ({ label: t.turno as string, count: t._count._all }))
+    .sort((a, b) => compararTurnos(a.label, b.label));
+  const sinTurno = porTurno.find((t) => t.turno === null);
+  if (sinTurno && sinTurno._count._all > 0) {
+    turno.push({ label: "Sin turno asignado", count: sinTurno._count._all });
+  }
+
+  // ── Dependencia: fold de los 3 sectores de Alerta Ciudadana + bucket sin sector ──
+  const nombrePorId = new Map(sectores.map((s) => [s.id, s.nombre]));
+  const dependenciaIdsMap = new Map<string, string[]>();
+  const sinDependenciaIds: string[] = [];
+  for (const a of agentesPorSector) {
+    const nombre = a.sectorId ? nombrePorId.get(a.sectorId) : null;
+    if (!nombre) {
+      sinDependenciaIds.push(a.id);
+      continue;
+    }
+    const clave = SECTORES_ALERTA_CIUDADANA.has(nombre) ? NOMBRE_ALERTA_CIUDADANA : nombre;
+    const lista = dependenciaIdsMap.get(clave);
+    if (lista) lista.push(a.id);
+    else dependenciaIdsMap.set(clave, [a.id]);
+  }
+  const dependencia: ConteoConIds[] = Array.from(dependenciaIdsMap, ([label, ids]) => ({
+    label,
+    count: ids.length,
+    ids,
+  })).sort((a, b) => b.count - a.count);
+  if (sinDependenciaIds.length > 0) {
+    dependencia.push({ label: "Sin dependencia asignada", count: sinDependenciaIds.length, ids: sinDependenciaIds });
+  }
+
+  // ── Origen institucional: 911 / DMCA / Gobierno / Otra dependencia ──
+  const origenIdsMap = new Map<string, string[]>();
+  for (const a of agentesPorOrigen) {
+    const label = a.origenInstitucional && a.origenInstitucional in ORIGEN_LABEL
+      ? ORIGEN_LABEL[a.origenInstitucional as OrigenInstitucional]
+      : SIN_ORIGEN_LABEL;
+    const lista = origenIdsMap.get(label);
+    if (lista) lista.push(a.id);
+    else origenIdsMap.set(label, [a.id]);
+  }
+  const origenInstitucional: ConteoConIds[] = Array.from(origenIdsMap, ([label, ids]) => ({
+    label,
+    count: ids.length,
+    ids,
+  })).sort((a, b) => b.count - a.count);
+
+  // ── Novedades administrativas: con 15 tipos posibles, solo se muestran los
+  // que tienen actividad hoy (mostrar los 15 siempre, la mayoría en 0, dejó de
+  // ser "de un vistazo" como cuando eran 8) ──
+  const conteoPorTipoLicencia = Object.fromEntries(TIPOS_LICENCIA.map((t) => [t, 0])) as Record<TipoLicencia, number>;
+  for (const n of novedadesPorTipo) {
+    conteoPorTipoLicencia[n.tipo as TipoLicencia] = n._count._all;
+  }
+  const novedades: NovedadTipoStats[] = TIPOS_LICENCIA
+    .map((tipo) => ({ tipo, count: conteoPorTipoLicencia[tipo] }))
+    .filter((n) => n.count > 0);
+
+  const tno: TnoStats = { count: tnoRows.length, ids: tnoRows.map((a) => a.id) };
+
+  // ── Tipo de personal: todos los tipos presentes aunque tengan 0 ──
+  const conteoPorTipo = Object.fromEntries(TIPOS_PERSONAL.map((t) => [t, 0])) as Record<TipoPersonal, number>;
+  for (const t of porTipo) {
+    conteoPorTipo[t.tipoPersonal as TipoPersonal] = t._count._all;
+  }
+  const tipoPersonal: TipoPersonalStats[] = TIPOS_PERSONAL.map((tipo) => ({
+    tipo,
+    count: conteoPorTipo[tipo],
+    pct: pct(conteoPorTipo[tipo], totalActivos),
+  })).sort((a, b) => b.count - a.count);
+
+  // ── Sexo: Masculino/Femenino como anillos principales, el resto como chips ──
+  const conteoPorSexo = new Map(porSexo.map((s) => [s.sexo, s._count._all]));
+  const masc = conteoPorSexo.get("MASCULINO") ?? 0;
+  const fem = conteoPorSexo.get("FEMENINO") ?? 0;
+  const otros: ConteoLabel[] = porSexo
+    .filter((s) => s.sexo !== "MASCULINO" && s.sexo !== "FEMENINO")
+    .map((s) => ({ label: s.sexo, count: s._count._all }))
+    .filter((o) => o.count > 0);
+
+  // ── Hijos a cargo: con/sin + histograma 0..4 / +4 ──
+  const conHijosIds = agentesPorHijos.filter((a) => a.hijosCargo > 0).map((a) => a.id);
+  const sinHijosIds = agentesPorHijos.filter((a) => a.hijosCargo === 0).map((a) => a.id);
+  const balde = [0, 0, 0, 0, 0]; // 0,1,2,3,4
+  let masDeCuatro = 0;
+  for (const a of agentesPorHijos) {
+    if (a.hijosCargo >= 0 && a.hijosCargo <= 4) balde[a.hijosCargo]++;
+    else if (a.hijosCargo > 4) masDeCuatro++;
+  }
+  const histograma: ConteoLabel[] = [
+    { label: "0 hijos", count: balde[0] },
+    { label: "1 hijo", count: balde[1] },
+    { label: "2 hijos", count: balde[2] },
+    { label: "3 hijos", count: balde[3] },
+    { label: "4 hijos", count: balde[4] },
+    { label: "+4 hijos", count: masDeCuatro },
+  ];
+
+  // ── Padres y madres: entre los que tienen hijos a cargo, Masculino/Femenino ──
+  const padresIds = agentesConHijos.filter((a) => a.sexo === "MASCULINO").map((a) => a.id);
+  const madresIds = agentesConHijos.filter((a) => a.sexo === "FEMENINO").map((a) => a.id);
+  const padresCount = padresIds.length;
+  const madresCount = madresIds.length;
+  const totalConHijos = padresCount + madresCount;
+
+  const fechasIngreso = agentesConIngreso
+    .filter((a): a is { id: string; fechaIngreso: Date } => a.fechaIngreso !== null);
+  const flujoPersonal = calcularFlujoPersonal(hoy, fechasIngreso, transicionesEstado);
+
+  const licenciasActivasHoyIds = licenciasActivasHoyRows.map((l) => l.agenteId);
+
+  return {
+    kpi: {
+      enPase,
+      enBaja,
+      legajosPendientes,
+      licenciasActivasHoy: licenciasActivasHoyRows.length,
+      licenciasActivasHoyIds,
+      licenciasProximas,
+    },
+    alertas: {
+      licenciasPorVencer,
+      conducirVencida: conducirVencidaRows.length,
+      conducirVencidaIds: conducirVencidaRows.map((a) => a.id),
+      chalecoVencido: chalecoVencidoRows.length,
+      chalecoVencidoIds: chalecoVencidoRows.map((a) => a.id),
+      chalecoTotal,
+    },
+    tno,
+    totalActivos,
+    turno,
+    dependencia,
+    origenInstitucional,
+    tipoPersonal,
+    sexo: {
+      masculino: { count: masc, pct: pct(masc, totalActivos) },
+      femenino: { count: fem, pct: pct(fem, totalActivos) },
+      otros,
+    },
+    hijos: {
+      conHijos: { count: conHijosIds.length, pct: pct(conHijosIds.length, totalActivos) },
+      conHijosIds,
+      sinHijos: { count: sinHijosIds.length, pct: pct(sinHijosIds.length, totalActivos) },
+      sinHijosIds,
+      totalActivos,
+      histograma,
+    },
+    padresMadres: {
+      padres: { count: padresCount, pct: pct(padresCount, totalConHijos) },
+      padresIds,
+      madres: { count: madresCount, pct: pct(madresCount, totalConHijos) },
+      madresIds,
+      totalConHijos,
+    },
+    flujoPersonal,
+    novedades,
+  };
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  return getOrSet("dashboard:stats:all", CACHE_TTL.OPERATIVO, calcularStats);
+}

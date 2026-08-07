@@ -1,0 +1,178 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import type { TipoPersonal } from "@/types";
+import type { TipoPersonalStats } from "./stats";
+
+const R = 70;
+const CIRCUNFERENCIA = 2 * Math.PI * R;
+
+// Paleta categórica validada con el skill de dataviz (scripts/validate_palette.js,
+// modo oscuro, --pairs all porque el orden de las porciones cambia con los
+// datos — cualquier par puede terminar siendo adyacente en el anillo). El
+// verde/magenta anteriores no pasaban ese chequeo (ΔE insuficiente entre
+// pares). El único WARN (ΔE 6.5 en visión deuteranope/protanope entre
+// TECNICO y CIVIL_BECARIO) queda cubierto por la leyenda de abajo, que ya
+// muestra la etiqueta de texto de cada tipo — la identidad no depende solo
+// del color.
+const COLORES: Record<TipoPersonal, string> = {
+  SEGURIDAD: "#3987e5",
+  TECNICO: "#199e70",
+  CIVIL_BECARIO: "#e66767",
+  CIVIL_POLICIAL: "#a67c00",
+};
+
+const LABELS: Record<TipoPersonal, string> = {
+  SEGURIDAD: "Seguridad",
+  TECNICO: "Técnico",
+  CIVIL_BECARIO: "Civil Becario",
+  CIVIL_POLICIAL: "Civil Policial",
+};
+
+interface Props {
+  data: TipoPersonalStats[];
+  total: number;
+}
+
+export default function DonutTipoPersonal({ data, total }: Props) {
+  const router = useRouter();
+  const [hover, setHover] = useState<TipoPersonal | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; tipo: TipoPersonal } | null>(null);
+  const [comoTabla, setComoTabla] = useState(false);
+
+  function irAPersonalFiltrado(tipo: TipoPersonal) {
+    // El donut cuenta solo activos — sin este filtro, /personal muestra el
+    // tipo en todos los estados (pendientes/bajas/pases incluidos) y el
+    // total no coincide con el que se ve acá.
+    router.push(`/personal?tipo=${tipo}&estado=ACTIVO`);
+  }
+
+  const segmentos = data.reduce<Array<TipoPersonalStats & { largo: number; offset: number }>>((acc, d) => {
+    const acumulado = acc.length > 0 ? -acc[acc.length - 1].offset + acc[acc.length - 1].largo : 0;
+    const largo = (d.pct / 100) * CIRCUNFERENCIA;
+    return [...acc, { ...d, largo, offset: -acumulado }];
+  }, []);
+
+  return (
+    <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 flex flex-col h-full">
+      <div className="flex items-baseline justify-between mb-3.5">
+        <h3 className="text-sm font-semibold text-slate-100">Activos por tipo de personal</h3>
+        <button
+          type="button"
+          onClick={() => setComoTabla((v) => !v)}
+          className="text-[11px] font-semibold text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-600 rounded-md px-2.5 py-1 transition-colors"
+        >
+          {comoTabla ? "Ver como gráfico" : "Ver como tabla"}
+        </button>
+      </div>
+
+      <div className="overflow-hidden flex-1">
+        <div className={`dashboard-slide-track h-full ${comoTabla ? "mostrar-detalle" : ""}`}>
+          <div className="dashboard-slide-pane flex items-center gap-7 flex-wrap">
+            <div className="relative w-[200px] h-[200px] shrink-0">
+              <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90" aria-hidden="true">
+                <circle cx="100" cy="100" r={R} fill="none" stroke="#0b1220" strokeWidth="32" />
+                {segmentos.map((s) => (
+                  <circle
+                    key={s.tipo}
+                    cx="100"
+                    cy="100"
+                    r={R}
+                    fill="none"
+                    stroke={COLORES[s.tipo]}
+                    strokeWidth={hover === s.tipo ? 36 : 32}
+                    strokeDasharray={`${s.largo} ${CIRCUNFERENCIA}`}
+                    strokeDashoffset={s.offset}
+                    className="cursor-pointer transition-[stroke-width] duration-150"
+                    style={{ filter: hover === s.tipo ? "brightness(1.12)" : undefined }}
+                    onPointerMove={(e) => {
+                      setHover(s.tipo);
+                      setTooltip({ x: e.clientX, y: e.clientY, tipo: s.tipo });
+                    }}
+                    onPointerLeave={() => {
+                      setHover(null);
+                      setTooltip(null);
+                    }}
+                    onDoubleClick={() => irAPersonalFiltrado(s.tipo)}
+                  />
+                ))}
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                <span className="text-3xl font-semibold tracking-tight text-slate-100 tabular-nums">{total}</span>
+                <span className="text-[10.5px] text-slate-500 mt-1 max-w-[88px] leading-tight">personal activo</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-0.5 flex-1 min-w-[220px]">
+              {data.map((d) => (
+                <div
+                  key={d.tipo}
+                  onPointerEnter={() => setHover(d.tipo)}
+                  onPointerLeave={() => setHover(null)}
+                  onDoubleClick={() => irAPersonalFiltrado(d.tipo)}
+                  className={`grid grid-cols-[12px_1fr_auto_auto] items-center gap-2.5 px-2.5 py-2 rounded-lg border transition-colors cursor-pointer ${
+                    hover === d.tipo ? "bg-slate-800/70 border-slate-700" : "border-transparent"
+                  }`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-[3.5px]" style={{ background: COLORES[d.tipo] }} />
+                  <span className="text-[12.5px] font-medium text-slate-200">{LABELS[d.tipo]}</span>
+                  <span className="text-[13px] font-semibold text-slate-100 tabular-nums">{d.count}</span>
+                  <span className="text-[11.5px] text-slate-500 w-8 text-right tabular-nums">{d.pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="dashboard-slide-pane">
+            <table className="w-full text-[12.5px] border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left text-[10.5px] tracking-wide uppercase text-slate-500 font-semibold pb-2 border-b border-slate-800">
+                    Tipo de personal
+                  </th>
+                  <th className="text-right text-[10.5px] tracking-wide uppercase text-slate-500 font-semibold pb-2 border-b border-slate-800 tabular-nums">
+                    Activos
+                  </th>
+                  <th className="text-right text-[10.5px] tracking-wide uppercase text-slate-500 font-semibold pb-2 border-b border-slate-800 tabular-nums">
+                    % del total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((d) => (
+                  <tr
+                    key={d.tipo}
+                    onDoubleClick={() => irAPersonalFiltrado(d.tipo)}
+                    className="cursor-pointer hover:bg-slate-800/40"
+                  >
+                    <td className="py-2.5 border-b border-slate-800 text-slate-200">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: COLORES[d.tipo] }} />
+                        {LABELS[d.tipo]}
+                      </span>
+                    </td>
+                    <td className="py-2.5 border-b border-slate-800 text-right text-slate-200 tabular-nums">{d.count}</td>
+                    <td className="py-2.5 border-b border-slate-800 text-right text-slate-200 tabular-nums">{d.pct}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {tooltip && (
+        <div
+          className="fixed z-40 pointer-events-none bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 shadow-lg shadow-black/40"
+          style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}
+        >
+          <span className="font-bold tabular-nums">
+            {data.find((d) => d.tipo === tooltip.tipo)?.count} ({data.find((d) => d.tipo === tooltip.tipo)?.pct}%)
+          </span>
+          <span className="text-slate-500 ml-1.5">{LABELS[tooltip.tipo]}</span>
+        </div>
+      )}
+    </div>
+  );
+}

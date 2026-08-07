@@ -1,0 +1,93 @@
+import type { TurnoHoyInfo } from "@/app/actions/turnos";
+
+// Cada franja horaria la cubre una letra del grupo 1 y una del grupo 2 (ver
+// GRUPO_TURNO_LETRAS en types/index.ts para el agrupamiento A·C·E / B·D·F);
+// acá se discrimina letra por letra según el horario que le toca, y se
+// marca la franja vigente ahora mismo.
+const BANDAS_TURNO: { horario: string; inicio: number; fin: number; letras: [string, string] }[] = [
+  { horario: "07:00 Hrs a 15:00 Hrs", inicio: 7, fin: 15, letras: ["A", "B"] },
+  { horario: "15:00 Hrs a 23:00 Hrs", inicio: 15, fin: 23, letras: ["C", "D"] },
+  { horario: "23:00 Hrs a 07:00 Hrs", inicio: 23, fin: 7, letras: ["E", "F"] },
+];
+
+// El servidor puede correr en cualquier huso horario (ej. UTC en Vercel);
+// las franjas están definidas en hora de Córdoba, así que se lee la hora
+// ahí explícitamente en vez de usar la hora local del proceso.
+function horaActualCordoba(): number {
+  const hora = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Argentina/Cordoba",
+    hour: "numeric",
+    hour12: false,
+  }).format(new Date());
+  return Number(hora) % 24; // Intl puede devolver "24" para la medianoche
+}
+
+function enBandaVigente(hora: number, inicio: number, fin: number): boolean {
+  // Franjas normales (inicio < fin) vs. la que cruza la medianoche (23 a 07).
+  return inicio < fin ? hora >= inicio && hora < fin : hora >= inicio || hora < fin;
+}
+
+export default function TurnoHoyCard({ turnoHoy }: { turnoHoy: TurnoHoyInfo }) {
+  const grupo = turnoHoy.grupoTurno;
+  const horaActual = horaActualCordoba();
+
+  return (
+    <div className="p-4.5">
+      <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2.5">Turno de hoy</h3>
+      <div className="space-y-3 text-[13px]">
+        <div>
+          <div className="text-slate-400 text-[11px] mb-0.5">En servicio</div>
+          {grupo ? (
+            <div className="space-y-1">
+              <div className={`font-semibold ${grupo === 1 ? "text-blue-300" : "text-purple-300"}`}>
+                Turno {grupo === 1 ? "I" : "II"}
+              </div>
+              <div className="space-y-0.5">
+                {BANDAS_TURNO.map((b) => {
+                  const vigente = enBandaVigente(horaActual, b.inicio, b.fin);
+                  return (
+                    <div
+                      key={b.horario}
+                      className={`flex items-center justify-between gap-3 rounded-md px-2 py-1 -mx-2 text-[12px] transition-colors ${
+                        vigente
+                          ? grupo === 1
+                            ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40"
+                            : "bg-purple-500/15 ring-1 ring-inset ring-purple-500/40"
+                          : ""
+                      }`}
+                    >
+                      <span className={vigente ? "font-medium text-slate-200" : "text-slate-500"}>
+                        {b.horario}
+                      </span>
+                      <span className={`font-semibold ${grupo === 1 ? "text-blue-300" : "text-purple-300"}`}>
+                        {b.letras[grupo - 1]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="text-slate-500">Sin definir</div>
+          )}
+        </div>
+        <div>
+          <div className="text-slate-400 text-[11px] mb-0.5">Superior de turno</div>
+          <div className={turnoHoy.superiorTurno ? "font-medium text-slate-200" : "text-slate-500"}>
+            {turnoHoy.superiorTurno
+              ? `${turnoHoy.superiorTurnoRango ? `${turnoHoy.superiorTurnoRango} ` : ""}${turnoHoy.superiorTurno}`
+              : "Sin definir"}
+          </div>
+        </div>
+        {turnoHoy.esFinDeSemana && (
+          <div>
+            <div className="text-slate-400 text-[11px] mb-0.5">Jefe de fin de semana</div>
+            <div className={turnoHoy.jefeFinDe ? "font-medium text-amber-300" : "text-slate-500"}>
+              {turnoHoy.jefeFinDe ?? "Sin definir"}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
