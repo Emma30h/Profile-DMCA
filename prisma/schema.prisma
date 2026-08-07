@@ -37,10 +37,32 @@ model Sector {
   padre     Sector?  @relation("SectorJerarquia", fields: [padreId], references: [id])
   hijos     Sector[] @relation("SectorJerarquia")
   agentes   Agente[]
+  rolesOrganigrama RolOrganigrama[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("sectores")
+}
+
+// Nómina del organigrama: quién ocupa cada puesto dentro de un Sector. Puede
+// apuntar a un Agente real (rango/nombre se leen de ahí, quedan siempre al
+// día) o, si la persona no tiene legajo cargado, guardar rango/nombre sueltos.
+model RolOrganigrama {
+  id          String   @id @default(cuid())
+  sectorId    String
+  sector      Sector   @relation(fields: [sectorId], references: [id])
+  orden       Int      // posición dentro de la nómina del sector (0 = jefe)
+  etiqueta    String   // "Jefe" | "Jefa" | "2°" | "3°" ... texto libre
+  agenteId    String?
+  agente      Agente?  @relation(fields: [agenteId], references: [id])
+  rangoLibre  String?  // usado si agenteId es null
+  nombreLibre String?  // usado si agenteId es null
+  licencia    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([sectorId, orden])
+  @@map("roles_organigrama")
 }
 
 model Agente {
@@ -91,12 +113,19 @@ model Agente {
   fechaIngreso DateTime?
   turno        String?
   // Valores turno: "A"|"B"|"C"|"D"|"E"|"F"|"ADMINISTRATIVO"|"FULL TIME"|"GUARDIA LARGA"|"SUPERIOR DE TURNO"
+  // Editable libremente para cualquier agente, sin importar tipoPersonal/perteneceETAC.
+  origenInstitucional         String? // OrigenInstitucional: "GOBIERNO"|"DMCA"|"911"|"OTRA_DEPENDENCIA"
+  origenInstitucionalDetalle  String? // Nombre de la dependencia cuando origenInstitucional = "OTRA_DEPENDENCIA"
 
   // Solo SEGURIDAD y TECNICO
   rangoId       String?
   rango         Rango?   @relation(fields: [rangoId], references: [id])
   anoEgreso     DateTime?
   perteneceETAC Boolean?
+  // Marca que el agente está haciendo el curso para ascender de rango; se
+  // limpia al confirmar el ascenso (o al cancelarlo). Solo ADMIN/SUPERADMIN
+  // la puede setear.
+  fechaInicioCursoAscenso DateTime?
 
   // Solo SEGURIDAD
   tipoArma           String?
@@ -108,6 +137,12 @@ model Agente {
   nroSeriePlacas     String?
   talleChaleco       String?
   vencimientoChaleco DateTime?
+
+  // Situación de revista: Tarea No Operativa (TNO) — arma retenida, pasa a
+  // tareas administrativas. Solo aplica a SEGURIDAD.
+  enTNO          Boolean?  @default(false)
+  motivoTNO      String?
+  fechaInicioTNO DateTime?
 
   // Licencia de conducir
   licenciaConducir    String?
@@ -137,6 +172,10 @@ model Agente {
   excepciones         ExcepcionTurno[]
   historialRangos     HistorialRango[]
   historialEstados    HistorialEstado[]
+  solicitudesFoto     SolicitudFoto[]
+  rolesOrganigrama    RolOrganigrama[]
+  diasComoSuperiorTurno DiaTurno[] @relation("SuperiorTurnoDias")
+  diasComoJefeFinDe     DiaTurno[] @relation("JefeFinDeDias")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -180,14 +219,38 @@ model Usuario {
   apellido     String?
   tipoPersonal String?  // TipoPersonal: igual que en Agente
   jerarquia    String?  // Nombre libre del rango/cargo
+  intentosCuil Int      @default(0) // Intentos fallidos de auto-vincular legajo por CUIL en /mi-legajo
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   agente            Agente?
   solicitudesEdicion SolicitudEdicion[]
+  solicitudesFoto    SolicitudFoto[]
   notificaciones    Notificacion[]
 
   @@map("usuarios")
+}
+
+// Cambiar/sacar la foto de perfil desde /perfil no aplica al toque para
+// personal no-admin: queda pendiente de revisión (para que la foto cumpla
+// los estándares del legajo) hasta que un admin la apruebe o la rechace.
+// Los admins cambian su propia foto directo, sin pasar por acá.
+model SolicitudFoto {
+  id                String    @id @default(cuid())
+  agenteId          String
+  agente            Agente    @relation(fields: [agenteId], references: [id])
+  usuarioId         String
+  usuario           Usuario   @relation(fields: [usuarioId], references: [id])
+  tipo              String    // TipoSolicitudFoto: "SUBIR"|"QUITAR"
+  fotoUrlPropuesta  String?   // URL pública de la foto a revisión (null si tipo = QUITAR)
+  fotoPathPropuesta String?   // Path dentro del bucket, para poder borrarla si se rechaza
+  fotoUrlAnterior   String?   // La que tenía el agente al momento de la solicitud (contexto para el admin)
+  estado            String    @default("PENDIENTE") // EstadoSolicitudFoto: "PENDIENTE"|"APROBADA"|"RECHAZADA"
+  motivoRechazo     String?
+  createdAt         DateTime  @default(now())
+  revisadoEn        DateTime?
+
+  @@map("solicitudes_foto")
 }
 
 model Turno {
@@ -215,6 +278,26 @@ model TurnoAgente {
   createdAt  DateTime @default(now())
 
   @@map("turnos_agentes")
+}
+
+// Calendario mensual de guardias: qué grupo rotativo está en servicio cada día
+// (1 = letras A·C·E, 2 = letras B·D·F — las letras y horarios ya están fijos en
+// Agente.turno, esto solo define qué grupo trabaja cada día), quién es el
+// Superior de Turno (20-8 hs) y quién es el Jefe de Fin de Semana. Un registro
+// por día para poder ver el histórico real, igual que Asistencia/HistorialEstado.
+model DiaTurno {
+  id              String   @id @default(cuid())
+  fecha           DateTime @unique
+  grupoTurno      Int?     // 1 = A·C·E en servicio, 2 = B·D·F en servicio; null = sin definir
+  superiorTurnoId String?
+  superiorTurno   Agente?  @relation("SuperiorTurnoDias", fields: [superiorTurnoId], references: [id])
+  jefeFinDeId     String?
+  jefeFinDe       Agente?  @relation("JefeFinDeDias", fields: [jefeFinDeId], references: [id])
+  observacion     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("dias_turno")
 }
 
 model ExcepcionTurno {
@@ -254,7 +337,7 @@ model Licencia {
   id          String   @id @default(cuid())
   agenteId    String
   agente      Agente   @relation(fields: [agenteId], references: [id])
-  tipo        String   // TipoLicencia: "ORDINARIA"|"MEDICA"|"CARPETA_MEDICA"|"ESPECIAL"|"SIN_GOCE_SUELDO"|"ARTICULO"|"SUSPENSION"|"ADSCRIPCION"
+  tipo        String   // TipoLicencia — ver LICENCIA_TIPOS_POR_CATEGORIA en src/types/index.ts (categorías: Ordinaria, Médica, Extraordinaria, Excepcional, Adscripción)
   estado      String   @default("PENDIENTE") // EstadoLicencia: "PENDIENTE"|"APROBADA"|"RECHAZADA"|"CANCELADA"
   fechaInicio DateTime
   fechaFin    DateTime
