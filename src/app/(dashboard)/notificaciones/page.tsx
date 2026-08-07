@@ -10,6 +10,10 @@ const TIPO_ICON: Record<string, string> = {
   LEGAJO_NUEVO: "🔔",
   LEGAJO_APROBADO: "✅",
   LEGAJO_RECHAZADO: "❌",
+  LEGAJO_VINCULADO_AUTO: "🔗",
+  SOLICITUD_FOTO_NUEVA: "🖼️",
+  FOTO_APROBADA: "✅",
+  FOTO_RECHAZADA: "❌",
 };
 
 const TIPO_HREF: Record<string, string> = {
@@ -20,6 +24,10 @@ const TIPO_HREF: Record<string, string> = {
   PERMISO_VENCIDO: "/mi-legajo",
   LEGAJO_APROBADO: "/mi-legajo",
   LEGAJO_RECHAZADO: "/mi-legajo",
+  LEGAJO_VINCULADO_AUTO: "/personal",
+  SOLICITUD_FOTO_NUEVA: "/configuracion/solicitudes",
+  FOTO_APROBADA: "/perfil",
+  FOTO_RECHAZADA: "/perfil",
 };
 
 export default async function NotificacionesPage() {
@@ -56,7 +64,7 @@ export default async function NotificacionesPage() {
         ) : (
           <ul className="divide-y divide-slate-800">
             {notificaciones.map((n) => {
-              const href = n.referenciaId && n.tipo === "LEGAJO_NUEVO"
+              const href = n.referenciaId && (n.tipo === "LEGAJO_NUEVO" || n.tipo === "LEGAJO_VINCULADO_AUTO")
                 ? `/personal/${n.referenciaId}`
                 : TIPO_HREF[n.tipo];
 

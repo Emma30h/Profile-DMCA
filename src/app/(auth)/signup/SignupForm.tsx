@@ -325,5 +325,7 @@ function mapError(message: string): string {
     return "El email ingresado no es válido.";
   if (message.includes("Password should be"))
     return "La contraseña debe tener al menos 8 caracteres.";
+  if (message.includes("rate limit"))
+    return "Se superó el límite de emails de confirmación. Esperá unos minutos y volvé a intentar.";
   return "Ocurrió un error al crear la cuenta. Intentá de nuevo.";
 }
