@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import type { TipoPersonal, EstadoAgente } from "@/types";
 import LegajoTabs from "../personal/[id]/LegajoTabs";
 import SolicitarEdicionBtn from "./SolicitarEdicionBtn";
+import AgenteAvatar from "@/components/AgenteAvatar";
+import VincularPorCuilForm from "./VincularPorCuilForm";
+
+const MAX_INTENTOS_CUIL = 3;
 
 const TIPO_BADGE: Record<TipoPersonal, string> = {
   SEGURIDAD: "bg-blue-500/15 text-blue-300",
@@ -85,8 +89,10 @@ export default async function MiLegajoPage() {
   const legajoBloqueado = usuario?.agente?.estado === "BAJA" || usuario?.agente?.estado === "PASE";
   const canEdit = esAdmin || (!legajoBloqueado && (tienePermisoActivo || legajoPendiente));
 
-  // Si el usuario no tiene agente vinculado, mostrar opción de carga
+  // Si el usuario no tiene agente vinculado, primero ofrecer vincularse con
+  // un legajo ya cargado (por CUIL) antes de mandarlo a cargar todo de cero.
   if (!usuario?.agente) {
+    const intentosRestantes = Math.max(0, MAX_INTENTOS_CUIL - (usuario?.intentosCuil ?? 0));
     return (
       <div className="space-y-5">
         <h2 className="text-xl font-semibold text-slate-100">Mi Legajo</h2>
@@ -94,15 +100,21 @@ export default async function MiLegajoPage() {
           <p className="text-5xl">📋</p>
           <p className="text-slate-200 font-semibold text-lg">Tu cuenta no tiene un legajo asociado</p>
           <p className="text-sm text-slate-400 max-w-sm mx-auto">
-            Podés cargar tus datos ahora para crear tu legajo digital.
-            Un administrador lo revisará y completará los datos restantes.
+            Si tu legajo ya fue cargado antes (por ejemplo, en el formulario de Google),
+            ingresá tu CUIL para vincularlo a tu cuenta.
           </p>
-          <a
-            href="/mi-legajo/crear"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors mt-2"
-          >
-            Cargar mis datos →
-          </a>
+          <VincularPorCuilForm intentosRestantesInicial={intentosRestantes} />
+          <div className="pt-4 border-t border-slate-800 max-w-sm mx-auto space-y-3">
+            <p className="text-sm text-slate-400">
+              ¿No tenés un legajo cargado todavía? Podés crearlo desde cero.
+            </p>
+            <a
+              href="/mi-legajo/crear"
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
+            >
+              Cargar mis datos →
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -161,7 +173,9 @@ export default async function MiLegajoPage() {
     fechaNacimiento: agente.fechaNacimiento?.toISOString() ?? null,
     fechaIngreso: agente.fechaIngreso?.toISOString() ?? null,
     anoEgreso: agente.anoEgreso?.toISOString() ?? null,
+    fechaInicioCursoAscenso: agente.fechaInicioCursoAscenso?.toISOString() ?? null,
     vencimientoChaleco: agente.vencimientoChaleco?.toISOString() ?? null,
+    fechaInicioTNO: agente.fechaInicioTNO?.toISOString() ?? null,
     licenciaEmision: agente.licenciaEmision?.toISOString() ?? null,
     licenciaVencimiento: agente.licenciaVencimiento?.toISOString() ?? null,
     createdAt: agente.createdAt.toISOString(),
@@ -181,8 +195,13 @@ export default async function MiLegajoPage() {
       {/* Header */}
       <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
         <div className="flex items-start gap-5">
-          <div className="shrink-0 w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-2xl text-slate-500 font-semibold border border-slate-700">
-            {agente.apellidos.charAt(0)}
+          <div className="shrink-0">
+            <AgenteAvatar
+              fotoUrl={agente.fotoUrl}
+              sexo={agente.sexo}
+              sizeClassName="w-16 h-16 rounded-full"
+              iconSizeClassName="h-8 w-8"
+            />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4 flex-wrap">
