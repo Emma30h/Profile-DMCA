@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { invalidateAgentesCache } from "@/lib/redis";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 
@@ -45,6 +47,8 @@ export interface DatosNuevoLegajo {
   rangoId: string;
   anoEgreso: string;
   perteneceETAC: boolean;
+  origenInstitucional: string;
+  origenInstitucionalDetalle: string;
   hijosCargo: number;
   poseeSepelio: boolean;
   empresaSepelio: string;
@@ -128,6 +132,10 @@ export async function crearLegajoPropio(data: DatosNuevoLegajo): Promise<{ agent
         ? new Date(parseInt(data.anoEgreso), 0, 1)
         : null,
       perteneceETAC: tieneJerarquia ? data.perteneceETAC : null,
+      origenInstitucional: str(data.origenInstitucional),
+      origenInstitucionalDetalle: data.origenInstitucional === "OTRA_DEPENDENCIA"
+        ? str(data.origenInstitucionalDetalle)
+        : null,
       grupoSanguineo: str(data.grupoSanguineo),
       alergias: str(data.alergias),
       enfermedadesCronicas: str(data.enfermedadesCronicas),
@@ -164,10 +172,80 @@ export async function crearLegajoPropio(data: DatosNuevoLegajo): Promise<{ agent
     });
   }
 
+  await invalidateAgentesCache();
+  revalidatePath("/mi-legajo");
+  revalidatePath("/personal");
+  revalidatePath("/dashboard");
+
+  return { agenteId: agente.id };
+}
+
+const MAX_INTENTOS_CUIL = 3;
+
+// Vinculación por autoservicio: el usuario ya confirmó su email y ahora
+// prueba emparentarse con un legajo cargado antes por otra vía (ej. Excel
+// del formulario de Google) que todavía no tiene usuario asignado. Se limita
+// la cantidad de intentos por cuenta para que no sirva como método de fuerza
+// bruta contra el CUIL (dato derivable del DNI) de otra persona.
+export async function vincularPorCuil(
+  cuilInput: string
+): Promise<{ vinculado: boolean; intentosRestantes: number }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const usuario = await prisma.usuario.findFirst({
+    where: { OR: [{ id: user.id }, { email: user.email! }] },
+    include: { agente: { select: { id: true } } },
+  });
+  if (!usuario) throw new Error("Usuario no encontrado");
+  if (usuario.agente) throw new Error("Ya tenés un legajo vinculado a tu cuenta");
+  if (usuario.intentosCuil >= MAX_INTENTOS_CUIL) {
+    throw new Error("Se agotaron los intentos para vincular por CUIL. Cargá tu legajo manualmente.");
+  }
+
+  const cuil = cuilInput.replace(/\D/g, "");
+  if (cuil.length !== 11) throw new Error("El CUIL debe tener exactamente 11 dígitos");
+
+  const agente = await prisma.agente.findFirst({
+    where: { cuil, usuarioId: null },
+    select: { id: true, nombres: true, apellidos: true },
+  });
+
+  if (!agente) {
+    const actualizado = await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { intentosCuil: { increment: 1 } },
+    });
+    revalidatePath("/mi-legajo");
+    return { vinculado: false, intentosRestantes: Math.max(0, MAX_INTENTOS_CUIL - actualizado.intentosCuil) };
+  }
+
+  await prisma.agente.update({
+    where: { id: agente.id },
+    data: { usuarioId: usuario.id },
+  });
+
+  const admins = await prisma.usuario.findMany({
+    where: { rol: { in: ROLES_ADMIN }, activo: true },
+    select: { id: true },
+  });
+  if (admins.length > 0) {
+    await prisma.notificacion.createMany({
+      data: admins.map((a) => ({
+        usuarioId: a.id,
+        tipo: "LEGAJO_VINCULADO_AUTO",
+        mensaje: `${agente.apellidos}, ${agente.nombres} se vinculó automáticamente por CUIL a la cuenta ${usuario.email}.`,
+        referenciaId: agente.id,
+      })),
+    });
+  }
+
+  await invalidateAgentesCache();
   revalidatePath("/mi-legajo");
   revalidatePath("/personal");
 
-  return { agenteId: agente.id };
+  return { vinculado: true, intentosRestantes: MAX_INTENTOS_CUIL - usuario.intentosCuil };
 }
 
 export async function actualizarFotoLegajo(agenteId: string, fotoUrl: string): Promise<void> {
@@ -187,8 +265,171 @@ export async function actualizarFotoLegajo(agenteId: string, fotoUrl: string): P
     data: { fotoUrl },
   });
 
+  await invalidateAgentesCache();
   revalidatePath("/mi-legajo");
+  revalidatePath("/perfil");
+  revalidatePath("/personal");
   revalidatePath(`/personal/${agenteId}`);
+}
+
+// Saca la propia foto (equivalente self-service de eliminarFotoLegajoAdmin).
+export async function eliminarFotoLegajo(agenteId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const usuario = await prisma.usuario.findFirst({
+    where: { OR: [{ id: user.id }, { email: user.email! }] },
+    include: { agente: { select: { id: true } } },
+  });
+  if (!usuario) throw new Error("Usuario no encontrado");
+  if (usuario.agente?.id !== agenteId) throw new Error("Sin permiso");
+
+  await prisma.agente.update({
+    where: { id: agenteId },
+    data: { fotoUrl: null },
+  });
+
+  await supabase.storage
+    .from("fotos-legajos")
+    .remove([`${agenteId}/foto.jpg`, `${agenteId}/foto.png`, `${agenteId}/foto.webp`]);
+
+  await invalidateAgentesCache();
+  revalidatePath("/mi-legajo");
+  revalidatePath("/perfil");
+  revalidatePath("/personal");
+  revalidatePath(`/personal/${agenteId}`);
+}
+
+// Variante para que un admin cargue/reemplace la foto de CUALQUIER legajo
+// (a diferencia de actualizarFotoLegajo, que solo permite al propio agente
+// tocar su foto). Se usa después de subir el archivo al storage desde el
+// cliente, cuando el admin elige "subir archivo" en vez de pegar un link.
+export async function actualizarFotoLegajoAdmin(agenteId: string, fotoUrl: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const usuario = await prisma.usuario.findFirst({
+    where: { OR: [{ id: user.id }, { email: user.email! }] },
+  });
+  if (!usuario || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+
+  await prisma.agente.update({
+    where: { id: agenteId },
+    data: { fotoUrl },
+  });
+
+  await invalidateAgentesCache();
+  revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
+}
+
+// Saca la foto ya guardada en el legajo (ej. se subió a un agente equivocado).
+export async function eliminarFotoLegajoAdmin(agenteId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const usuario = await prisma.usuario.findFirst({
+    where: { OR: [{ id: user.id }, { email: user.email! }] },
+  });
+  if (!usuario || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+
+  await prisma.agente.update({
+    where: { id: agenteId },
+    data: { fotoUrl: null },
+  });
+
+  await supabase.storage
+    .from("fotos-legajos")
+    .remove([`${agenteId}/foto.jpg`, `${agenteId}/foto.png`, `${agenteId}/foto.webp`]);
+
+  await invalidateAgentesCache();
+  revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
+}
+
+// Trae la imagen desde un link externo (ej. imgbox) y la guarda en el mismo
+// bucket que usa el autoservicio, para no depender de que el admin baje y
+// vuelva a subir el archivo a mano.
+export async function subirFotoLegajoDesdeUrl(
+  agenteId: string,
+  urlOrigen: string,
+  rotacionGrados = 0
+): Promise<void> {
+  if (![0, 90, 180, 270].includes(rotacionGrados)) {
+    throw new Error("Rotación inválida");
+  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const usuario = await prisma.usuario.findFirst({
+    where: { OR: [{ id: user.id }, { email: user.email! }] },
+  });
+  if (!usuario || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+
+  let url: URL;
+  try {
+    url = new URL(urlOrigen);
+  } catch {
+    throw new Error("El link no es una URL válida");
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("El link no es una URL válida");
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch {
+    throw new Error("No se pudo descargar la imagen desde el link");
+  }
+  if (!res.ok) throw new Error("No se pudo descargar la imagen desde el link");
+
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.startsWith("image/")) throw new Error("El link no apunta directamente a una imagen");
+
+  let buffer: ArrayBuffer;
+  try {
+    buffer = await res.arrayBuffer();
+  } catch {
+    throw new Error("Se cortó la descarga de la imagen antes de terminar. Probá de nuevo.");
+  }
+  let datosFinales: ArrayBuffer | Buffer = buffer;
+  let contentTypeFinal = contentType;
+
+  if (rotacionGrados !== 0) {
+    try {
+      datosFinales = await sharp(Buffer.from(buffer)).rotate(rotacionGrados).jpeg({ quality: 90 }).toBuffer();
+    } catch {
+      throw new Error("No se pudo rotar la imagen. Probá subirla como archivo en su lugar.");
+    }
+    contentTypeFinal = "image/jpeg";
+  }
+
+  const ext = contentTypeFinal.includes("png") ? "png" : contentTypeFinal.includes("webp") ? "webp" : "jpg";
+  const path = `${agenteId}/foto.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("fotos-legajos")
+    .upload(path, datosFinales, { contentType: contentTypeFinal, upsert: true });
+  if (error) throw new Error(`No se pudo guardar la imagen en el storage: ${error.message}`);
+
+  const { data } = supabase.storage.from("fotos-legajos").getPublicUrl(path);
+
+  await prisma.agente.update({
+    where: { id: agenteId },
+    // Cache-busting: la URL pública es siempre la misma para este agente
+    // (mismo path), así que sin un query param que cambie, el navegador/CDN
+    // sigue sirviendo la versión vieja cacheada después de reemplazar la foto.
+    data: { fotoUrl: `${data.publicUrl}?v=${Date.now()}` },
+  });
+
+  await invalidateAgentesCache();
+  revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
 }
 
 export async function aprobarLegajo(agenteId: string): Promise<void> {
@@ -218,9 +459,11 @@ export async function aprobarLegajo(agenteId: string): Promise<void> {
     });
   }
 
+  await invalidateAgentesCache();
   revalidatePath(`/personal/${agenteId}`);
   revalidatePath("/personal");
   revalidatePath("/mi-legajo");
+  revalidatePath("/dashboard");
 }
 
 export async function rechazarLegajo(agenteId: string, motivo: string): Promise<void> {
@@ -252,7 +495,9 @@ export async function rechazarLegajo(agenteId: string, motivo: string): Promise<
     });
   }
 
+  await invalidateAgentesCache();
   revalidatePath(`/personal/${agenteId}`);
   revalidatePath("/personal");
   revalidatePath("/mi-legajo");
+  revalidatePath("/dashboard");
 }

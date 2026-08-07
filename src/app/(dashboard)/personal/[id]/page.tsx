@@ -6,9 +6,10 @@ import LegajoTabs from "./LegajoTabs";
 import InvalidarAnclajeAnterior from "./InvalidarAnclajeAnterior";
 import ValidarLegajoBtn from "@/components/legajo/ValidarLegajoBtn";
 import CambiarEstadoBtn from "@/components/legajo/CambiarEstadoBtn";
-import PersonalMaster from "../PersonalMaster";
+import FotoLegajoBtn from "@/components/legajo/FotoLegajoBtn";
+import AgenteAvatar from "@/components/AgenteAvatar";
 import LimpiarFicheroButton from "../LimpiarFicheroButton";
-import { buildQueryString, type FiltrosPersonalParams } from "../lib";
+import { buildQueryString, type FiltrosPersonalParams } from "../queryString";
 
 const TIPO_LABELS: Record<TipoPersonal, string> = {
   SEGURIDAD: "Seguridad",
@@ -36,7 +37,7 @@ export default async function PersonalDetallePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<FiltrosPersonalParams & { tab?: string }>;
+  searchParams: Promise<FiltrosPersonalParams & { tab?: string; volver?: string }>;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -51,8 +52,14 @@ export default async function PersonalDetallePage({
 
   const { id } = await params;
   const sp = await searchParams;
+  // Cuando se llega al legajo desde otra sección (ej. el calendario de
+  // Licencias), "volver" debe mandar ahí y no a la lista de Personal — la
+  // propia sección de origen pasa a dónde volver por query string. Se valida
+  // que sea una ruta relativa propia (nunca "//host" ni una URL absoluta),
+  // para no abrir la puerta a un open redirect.
+  const volverExterno = sp.volver && sp.volver.startsWith("/") && !sp.volver.startsWith("//") ? sp.volver : null;
   const volverQueryString = buildQueryString(sp);
-  const volverHref = `/personal${volverQueryString ? `?${volverQueryString}` : ""}`;
+  const volverHref = volverExterno ?? `/personal${volverQueryString ? `?${volverQueryString}` : ""}`;
 
   const [agente, rangos, sectores, auditLogs, historialEstados, licencias, licenciasPendientes, feriados] = await Promise.all([
     prisma.agente.findUnique({
@@ -135,7 +142,9 @@ export default async function PersonalDetallePage({
     fechaNacimiento: agente.fechaNacimiento?.toISOString() ?? null,
     fechaIngreso: agente.fechaIngreso?.toISOString() ?? null,
     anoEgreso: agente.anoEgreso?.toISOString() ?? null,
+    fechaInicioCursoAscenso: agente.fechaInicioCursoAscenso?.toISOString() ?? null,
     vencimientoChaleco: agente.vencimientoChaleco?.toISOString() ?? null,
+    fechaInicioTNO: agente.fechaInicioTNO?.toISOString() ?? null,
     licenciaEmision: agente.licenciaEmision?.toISOString() ?? null,
     licenciaVencimiento: agente.licenciaVencimiento?.toISOString() ?? null,
     createdAt: agente.createdAt.toISOString(),
@@ -151,33 +160,28 @@ export default async function PersonalDetallePage({
   const subtitulo = [agente.rango?.nombre, TIPO_LABELS[tipo] ?? tipo].filter(Boolean).join(" - ");
 
   return (
-    <PersonalMaster searchParams={sp} selectedId={agente.id}>
+    <>
       <InvalidarAnclajeAnterior id={agente.id} />
       <div className="space-y-5">
         {/* Header del legajo */}
         <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-start lg:justify-end mb-4">
             <LimpiarFicheroButton href={volverHref} agenteId={agente.id} />
           </div>
 
           <div className="flex items-start gap-5">
             {/* Avatar */}
             <div className="relative shrink-0">
-              {agente.fotoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={agente.fotoUrl}
-                  alt=""
-                  className="w-16 h-16 rounded-xl object-cover border border-slate-700"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-xl bg-slate-800 flex items-center justify-center text-2xl text-slate-500 font-semibold border border-slate-700">
-                  {agente.apellidos.charAt(0)}
-                </div>
-              )}
+              <AgenteAvatar
+                fotoUrl={agente.fotoUrl}
+                sexo={agente.sexo}
+                sizeClassName="w-16 h-16 rounded-xl"
+                iconSizeClassName="h-8 w-8"
+              />
               {estado === "ACTIVO" && (
                 <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-green-500 border-2 border-slate-900" />
               )}
+              {canEdit && <FotoLegajoBtn agenteId={agente.id} fotoUrlActual={agente.fotoUrl} />}
             </div>
 
             {/* Info principal */}
@@ -206,6 +210,14 @@ export default async function PersonalDetallePage({
                   {agente.turno && (
                     <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-800 text-white">
                       {agente.turno}
+                    </span>
+                  )}
+                  {agente.enTNO && (
+                    <span
+                      title="Tarea No Operativa"
+                      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400"
+                    >
+                      TNO
                     </span>
                   )}
                 </div>
@@ -268,6 +280,6 @@ export default async function PersonalDetallePage({
           feriados={feriadosSerializados}
         />
       </div>
-    </PersonalMaster>
+    </>
   );
 }

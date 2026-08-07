@@ -26,6 +26,14 @@ const OPCIONES = [
 
 const REQUIERE_MOTIVO = ["BAJA", "PASE"];
 
+// Fecha local (no UTC) en formato yyyy-mm-dd, para precargar el input date
+// con el día de hoy tal como lo ve el usuario.
+function hoyLocalISO(): string {
+  const d = new Date();
+  const offsetMs = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offsetMs).toISOString().slice(0, 10);
+}
+
 interface Props {
   agenteId: string;
   estadoActual: string;
@@ -36,6 +44,7 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [nuevoEstado, setNuevoEstado] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [fecha, setFecha] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -44,6 +53,7 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual }: Props) {
   function handleAbrir() {
     setNuevoEstado(opciones[0]?.value ?? "");
     setMotivo("");
+    setFecha(hoyLocalISO());
     setError(null);
     setAbierto(true);
   }
@@ -60,10 +70,14 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual }: Props) {
       setError("El motivo es obligatorio para este cambio de estado.");
       return;
     }
+    if (!fecha) {
+      setError("La fecha es obligatoria.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
       try {
-        await cambiarEstadoAgente(agenteId, nuevoEstado, motivo.trim() || undefined);
+        await cambiarEstadoAgente(agenteId, nuevoEstado, motivo.trim() || undefined, fecha);
         setAbierto(false);
         router.refresh();
       } catch (e) {
@@ -122,6 +136,25 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual }: Props) {
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">
+                  Fecha efectiva
+                  <span className="text-red-500 ml-0.5">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => {
+                    setFecha(e.target.value);
+                    setError(null);
+                  }}
+                  className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-100 bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [color-scheme:dark]"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Podés poner una fecha pasada si estás cargando el cambio con demora — el dashboard usa esta fecha, no la de hoy.
+                </p>
               </div>
 
               <div>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { invalidateAgentesCache } from "@/lib/redis";
 
 const ROLES_PERMITIDOS = ["SUPERADMIN", "ADMIN"];
 
@@ -16,7 +17,8 @@ const ESTADO_LABELS: Record<string, string> = {
 export async function cambiarEstadoAgente(
   agenteId: string,
   nuevoEstado: string,
-  motivo?: string
+  motivo?: string,
+  fecha?: string
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -38,6 +40,15 @@ export async function cambiarEstadoAgente(
 
   if ((nuevoEstado === "BAJA" || nuevoEstado === "PASE") && !motivo?.trim()) {
     throw new Error("El motivo es obligatorio para este cambio de estado");
+  }
+
+  // Fecha efectiva del cambio (puede ser pasada, ej. una baja que se está
+  // cargando con demora): se guarda como el createdAt del HistorialEstado
+  // para que el flujo de personal del dashboard agrupe el movimiento en el
+  // mes real en que ocurrió, no en el mes en que se cargó al sistema.
+  const fechaEfectiva = fecha ? new Date(fecha) : new Date();
+  if (isNaN(fechaEfectiva.getTime())) {
+    throw new Error("Fecha inválida");
   }
 
   const agente = await prisma.agente.findUnique({
@@ -66,6 +77,7 @@ export async function cambiarEstadoAgente(
         estadoNuevo: nuevoEstado,
         motivo: motivo?.trim() || null,
         usuarioNombre,
+        createdAt: fechaEfectiva,
       },
     }),
   ]);
@@ -87,9 +99,11 @@ export async function cambiarEstadoAgente(
     });
   }
 
+  await invalidateAgentesCache();
   revalidatePath(`/personal/${agenteId}`);
   revalidatePath("/personal");
   revalidatePath("/mi-legajo");
+  revalidatePath("/dashboard");
 
   return {
     estadoAnteriorLabel: ESTADO_LABELS[estadoAnterior] ?? estadoAnterior,

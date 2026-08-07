@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import type { TipoPersonal } from "@/types";
 import type { AgenteResumen } from "./lib";
 import { useAgenteAnclado } from "@/lib/useAgenteAnclado";
+import AgenteAvatar from "@/components/AgenteAvatar";
+
+const PAGINA = 30;
 
 function cuilToDni(cuil: string): string {
   const digits = cuil.replace(/\D/g, "");
@@ -20,21 +24,9 @@ const TIPO_LABELS: Record<TipoPersonal, string> = {
 };
 
 function Avatar({ agente }: { agente: AgenteResumen }) {
-  const inicial = agente.apellidos.charAt(0).toUpperCase();
   return (
     <div className="relative shrink-0">
-      {agente.fotoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={agente.fotoUrl}
-          alt=""
-          className="h-11 w-11 rounded-full object-cover border border-slate-700"
-        />
-      ) : (
-        <div className="h-11 w-11 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-semibold text-slate-500">
-          {inicial}
-        </div>
-      )}
+      <AgenteAvatar fotoUrl={agente.fotoUrl} sexo={agente.sexo} sizeClassName="h-11 w-11 rounded-full" />
       {agente.estado === "ACTIVO" && (
         <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-slate-900" />
       )}
@@ -55,6 +47,18 @@ export default function ListaAgentes({
   onSelect?: (href: string) => void;
 }) {
   const { anclado, toggle } = useAgenteAnclado();
+  const [cantidadVisible, setCantidadVisible] = useState(PAGINA);
+  const [cargandoMas, setCargandoMas] = useState(false);
+
+  // Si cambian los filtros/búsqueda (reflejados en queryString), se vuelve a
+  // mostrar desde las primeras 30 filas. Se ajusta durante el render (en vez
+  // de en un efecto) para no violar la regla de este repo de no hacer
+  // setState dentro de efectos que sólo derivan un valor.
+  const [prevQueryString, setPrevQueryString] = useState(queryString);
+  if (queryString !== prevQueryString) {
+    setPrevQueryString(queryString);
+    setCantidadVisible(PAGINA);
+  }
 
   if (agentes.length === 0) {
     return (
@@ -71,9 +75,22 @@ export default function ListaAgentes({
     onSelect(href);
   }
 
+  // La lista ya está entera en memoria (no hay pedido de red real), así que
+  // sin este pequeño delay artificial el loader no llegaría a verse.
+  function cargarMas() {
+    setCargandoMas(true);
+    setTimeout(() => {
+      setCantidadVisible((c) => c + PAGINA);
+      setCargandoMas(false);
+    }, 400);
+  }
+
+  const agentesVisibles = agentes.slice(0, cantidadVisible);
+
   return (
+    <>
     <ul className="flex-1 overflow-y-auto divide-y divide-slate-800">
-      {agentes.map((a) => {
+      {agentesVisibles.map((a) => {
         const activo = a.id === selectedId;
         const subLabel = a.turno ?? TIPO_LABELS[a.tipoPersonal as TipoPersonal] ?? a.tipoPersonal;
         const href = `/personal/${a.id}${queryString ? `?${queryString}` : ""}`;
@@ -130,5 +147,24 @@ export default function ListaAgentes({
         );
       })}
     </ul>
+    {cantidadVisible < agentes.length && (
+      <div className="shrink-0 flex items-center justify-between border-t border-slate-800 px-4 py-2.5">
+        <span className="text-xs text-slate-500">
+          Mostrando {agentesVisibles.length} de {agentes.length}
+        </span>
+        <button
+          type="button"
+          onClick={cargarMas}
+          disabled={cargandoMas}
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 transition-colors disabled:opacity-70"
+        >
+          {cargandoMas && (
+            <span className="h-3 w-3 rounded-full border-2 border-slate-600 border-t-blue-500 animate-spin" />
+          )}
+          Cargar más
+        </button>
+      </div>
+    )}
+    </>
   );
 }

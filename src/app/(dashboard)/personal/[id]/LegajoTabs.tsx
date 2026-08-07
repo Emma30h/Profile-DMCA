@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef, useMemo } from "react";
-import { actualizarAgentePersonal, actualizarAgenteLaboral } from "@/app/actions/agentes";
+import {
+  actualizarAgentePersonal,
+  actualizarAgenteLaboral,
+  marcarEnCursoAscenso,
+  cancelarCursoAscenso,
+  confirmarAscenso,
+} from "@/app/actions/agentes";
 import type { DatosPersonales, DatosLaborales } from "@/app/actions/agentes";
 import { crearLicencia, actualizarLicencia, eliminarLicencia } from "@/app/actions/licencias";
 import {
@@ -11,7 +17,16 @@ import {
   registrarUso,
   eliminarUso,
 } from "@/app/actions/licenciasPendientes";
-import type { TipoLicencia, TipoLicenciaPendiente, UnidadDias } from "@/types";
+import type { TipoLicencia, TipoLicenciaPendiente, UnidadDias, OrigenInstitucional, CategoriaLicencia } from "@/types";
+import {
+  ORIGENES_INSTITUCIONALES,
+  CATEGORIAS_LICENCIA,
+  LICENCIA_TIPOS_POR_CATEGORIA,
+  LICENCIA_CATEGORIA_DE_TIPO,
+  CATEGORIA_LICENCIA_INFO,
+  TIPO_LICENCIA_LABELS,
+} from "@/types";
+import EstadisticasLicencias, { type AgenteInfoInforme } from "./EstadisticasLicencias";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -51,6 +66,9 @@ export interface AgenteDetalle {
   sectorId: string | null;
   anoEgreso: string | null;
   perteneceETAC: boolean | null;
+  fechaInicioCursoAscenso: string | null;
+  origenInstitucional: string | null;
+  origenInstitucionalDetalle: string | null;
   tipoArma: string | null;
   marcaPistola: string | null;
   modeloPistola: string | null;
@@ -60,6 +78,9 @@ export interface AgenteDetalle {
   nroSeriePlacas: string | null;
   talleChaleco: string | null;
   vencimientoChaleco: string | null;
+  enTNO: boolean | null;
+  motivoTNO: string | null;
+  fechaInicioTNO: string | null;
   licenciaConducir: string | null;
   licenciaEmision: string | null;
   licenciaVencimiento: string | null;
@@ -170,6 +191,8 @@ function cuilToDni(cuil: string): string {
 
 function initPersonal(a: AgenteDetalle): DatosPersonales {
   return {
+    nombres: a.nombres,
+    apellidos: a.apellidos,
     estadoCivil: a.estadoCivil ?? "",
     nacionalidad: a.nacionalidad ?? "",
     provinciaOrigen: a.provinciaOrigen ?? "",
@@ -200,6 +223,8 @@ function initLaboral(a: AgenteDetalle): DatosLaborales {
     sectorId: a.sectorId ?? "",
     rangoId: a.rangoId ?? "",
     perteneceETAC: a.perteneceETAC ?? false,
+    origenInstitucional: a.origenInstitucional ?? "",
+    origenInstitucionalDetalle: a.origenInstitucionalDetalle ?? "",
     tipoArma: a.tipoArma ?? "",
     marcaPistola: a.marcaPistola ?? "",
     modeloPistola: a.modeloPistola ?? "",
@@ -209,6 +234,9 @@ function initLaboral(a: AgenteDetalle): DatosLaborales {
     nroSeriePlacas: a.nroSeriePlacas ?? "",
     talleChaleco: a.talleChaleco ?? "",
     vencimientoChaleco: toDateInput(a.vencimientoChaleco),
+    enTNO: a.enTNO ?? false,
+    motivoTNO: a.motivoTNO ?? "",
+    fechaInicioTNO: toDateInput(a.fechaInicioTNO),
     licenciaConducir: a.licenciaConducir ?? "",
     licenciaEmision: toDateInput(a.licenciaEmision),
     licenciaVencimiento: toDateInput(a.licenciaVencimiento),
@@ -302,12 +330,205 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, value, full }: { label: string; value: string; full?: boolean }) {
+function Field({ label, value, full, icon }: { label: string; value: string; full?: boolean; icon?: React.ReactNode }) {
   return (
     <div className={full ? "col-span-full" : ""}>
-      <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+      <p className="flex items-center gap-1.5 text-xs text-slate-500 mb-0.5">
+        {icon && <span className="text-slate-600 shrink-0">{icon}</span>}
+        {label}
+      </p>
       <p className={`text-sm ${value === "—" ? "text-slate-600" : "text-slate-200"}`}>{value}</p>
     </div>
+  );
+}
+
+// ─── Íconos de campo (mismo estilo que /perfil, en tamaño chico) ──────────────
+
+function IconIdCard() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 15a2 2 0 012-2h0a2 2 0 012 2M8 10h.01M13 9h5m-5 3h5" />
+    </svg>
+  );
+}
+
+function IconPersonMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  );
+}
+
+function IconCakeMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 15a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2h14a2 2 0 012 2v4z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9V5m0 0a2 2 0 010-4 2 2 0 010 4z" />
+    </svg>
+  );
+}
+
+function IconHeartMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+    </svg>
+  );
+}
+
+function IconFlagMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 21V4m0 0l9-1 9 1v13l-9-1-9 1V4z" />
+    </svg>
+  );
+}
+
+function IconHomeMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  );
+}
+
+function IconDropMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 2C8 7 5 11 5 14a7 7 0 0014 0c0-3-3-7-7-12z" />
+    </svg>
+  );
+}
+
+function IconAlert() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v3.75m0 3.75h.008M10.29 3.86L1.82 18a1.5 1.5 0 001.29 2.25h17.78a1.5 1.5 0 001.29-2.25L13.71 3.86a1.5 1.5 0 00-2.42 0z" />
+    </svg>
+  );
+}
+
+function IconPulse() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12h4l2-7 4 14 2-7h6" />
+    </svg>
+  );
+}
+
+function IconPill() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6.5 17.5l11-11a4.243 4.243 0 10-6-6l-11 11a4.243 4.243 0 106 6z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.5 6.5l9 9" />
+    </svg>
+  );
+}
+
+function IconCross() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
+function IconMail() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+function IconPhoneMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+    </svg>
+  );
+}
+
+function IconUsersMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+function IconMapPinMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+function IconGift() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20 12v8a1 1 0 01-1 1H5a1 1 0 01-1-1v-8M22 7H2v4h20V7zM12 22V7m0 0c-1.5 0-4-1-4-3.5S9.5 1 12 3s4-1.5 4 1S13.5 7 12 7z" />
+    </svg>
+  );
+}
+
+function IconBuildingMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+    </svg>
+  );
+}
+
+function IconCheckCircle() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function IconCalendarMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+function IconClockMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function IconBadgeMini() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+    </svg>
+  );
+}
+
+function IconShield() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+    </svg>
+  );
+}
+
+function IconGraduation() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.741-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443" />
+    </svg>
   );
 }
 
@@ -317,50 +538,57 @@ function TabPersonal({ a }: { a: AgenteDetalle }) {
   return (
     <div className="space-y-8">
       <Section title="Identidad">
-        <Field label="DNI" value={cuilToDni(a.cuil)} />
-        <Field label="CUIL" value={a.cuil} />
-        <Field label="Sexo" value={val(a.sexo)} />
-        <Field label="Fecha de nacimiento" value={fmt(a.fechaNacimiento)} />
-        <Field label="Estado civil" value={val(a.estadoCivil)} />
-        <Field label="Nacionalidad" value={val(a.nacionalidad)} />
-        <Field label="Provincia de origen" value={val(a.provinciaOrigen)} />
-        <Field label="Ciudad de origen" value={val(a.ciudadOrigen)} />
+        <Field icon={<IconIdCard />} label="DNI" value={cuilToDni(a.cuil)} />
+        <Field icon={<IconIdCard />} label="CUIL" value={a.cuil} />
+        <Field icon={<IconPersonMini />} label="Sexo" value={val(a.sexo)} />
+        <Field icon={<IconCakeMini />} label="Fecha de nacimiento" value={fmt(a.fechaNacimiento)} />
+        <Field icon={<IconHeartMini />} label="Estado civil" value={val(a.estadoCivil)} />
+        <Field icon={<IconFlagMini />} label="Nacionalidad" value={val(a.nacionalidad)} />
+        <Field icon={<IconHomeMini />} label="Provincia de origen" value={val(a.provinciaOrigen)} />
+        <Field icon={<IconHomeMini />} label="Ciudad de origen" value={val(a.ciudadOrigen)} />
       </Section>
       <div className="border-t border-slate-800" />
       <Section title="Salud">
-        <Field label="Grupo sanguíneo" value={val(a.grupoSanguineo)} />
-        <Field label="Alergias" value={val(a.alergias)} />
-        <Field label="Enfermedades crónicas" value={val(a.enfermedadesCronicas)} />
-        <Field label="Medicamentos" value={val(a.medicamentos)} />
-        <Field label="Cirugías" value={val(a.cirugias)} />
+        <Field icon={<IconDropMini />} label="Grupo sanguíneo" value={val(a.grupoSanguineo)} />
+        <Field icon={<IconAlert />} label="Alergias" value={val(a.alergias)} />
+        <Field icon={<IconPulse />} label="Enfermedades crónicas" value={val(a.enfermedadesCronicas)} />
+        <Field icon={<IconPill />} label="Medicamentos" value={val(a.medicamentos)} />
+        <Field icon={<IconCross />} label="Cirugías" value={val(a.cirugias)} />
       </Section>
       <div className="border-t border-slate-800" />
       <Section title="Contacto">
-        <Field label="Email" value={val(a.email)} />
-        <Field label="Teléfono" value={val(a.telefono)} />
-        <Field label="Teléfono alternativo" value={val(a.telefonoAlternativo)} />
-        <Field label="Contacto de emergencia" value={val(a.contactoEmergencia)} full />
+        <Field icon={<IconMail />} label="Email" value={val(a.email)} />
+        <Field icon={<IconPhoneMini />} label="Teléfono" value={val(a.telefono)} />
+        <Field icon={<IconPhoneMini />} label="Teléfono alternativo" value={val(a.telefonoAlternativo)} />
+        <Field icon={<IconUsersMini />} label="Contacto de emergencia" value={val(a.contactoEmergencia)} full />
       </Section>
       <div className="border-t border-slate-800" />
       <Section title="Domicilio">
-        <Field label="Ciudad" value={val(a.ciudad)} />
-        <Field label="Barrio" value={val(a.barrio)} />
+        <Field icon={<IconMapPinMini />} label="Ciudad" value={val(a.ciudad)} />
+        <Field icon={<IconMapPinMini />} label="Barrio" value={val(a.barrio)} />
         {/* Espaciador: fuerza el salto de fila en md:grid-cols-3 para que
             Domicilio real, Número y Piso queden alineados en la misma línea. */}
         <div className="hidden md:block" aria-hidden="true" />
-        <Field label="Domicilio real" value={val(a.domicilioReal)} />
-        <Field label="Número" value={val(a.nroDomicilio)} />
-        <Field label="Piso" value={val(a.piso)} />
+        <Field icon={<IconMapPinMini />} label="Domicilio real" value={val(a.domicilioReal)} />
+        <Field icon={<IconMapPinMini />} label="Número" value={val(a.nroDomicilio)} />
+        <Field icon={<IconMapPinMini />} label="Piso" value={val(a.piso)} />
       </Section>
       <div className="border-t border-slate-800" />
       <Section title="Familia y beneficios">
-        <Field label="Hijos a cargo" value={String(a.hijosCargo)} />
-        <Field label="Posee servicio de sepelio" value={boolVal(a.poseeSepelio)} />
-        <Field label="Empresa de sepelio" value={val(a.empresaSepelio)} />
+        <Field icon={<IconUsersMini />} label="Hijos a cargo" value={String(a.hijosCargo)} />
+        <Field icon={<IconGift />} label="Posee servicio de sepelio" value={boolVal(a.poseeSepelio)} />
+        <Field icon={<IconBuildingMini />} label="Empresa de sepelio" value={val(a.empresaSepelio)} />
       </Section>
     </div>
   );
 }
+
+const ORIGEN_LABEL: Record<OrigenInstitucional, string> = {
+  GOBIERNO: "Gobierno",
+  DMCA: "DMCA",
+  "911": "911",
+  OTRA_DEPENDENCIA: "Otra dependencia",
+};
 
 function TabLaboral({ a }: { a: AgenteDetalle }) {
   const esSeguridad = a.tipoPersonal === "SEGURIDAD";
@@ -373,19 +601,26 @@ function TabLaboral({ a }: { a: AgenteDetalle }) {
   const estadoLabels: Record<string, string> = {
     PENDIENTE: "Pendiente", ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase",
   };
+  const origen = a.origenInstitucional as OrigenInstitucional | null;
+  const origenValue = origen
+    ? origen === "OTRA_DEPENDENCIA" && a.origenInstitucionalDetalle
+      ? `${ORIGEN_LABEL[origen]} (${a.origenInstitucionalDetalle})`
+      : ORIGEN_LABEL[origen]
+    : "—";
   return (
     <div className="space-y-8">
       <Section title="Información laboral">
-        <Field label="Tipo de personal" value={tipoLabels[a.tipoPersonal] ?? a.tipoPersonal} />
-        <Field label="Estado" value={estadoLabels[a.estado] ?? a.estado} />
-        <Field label="Fecha de ingreso" value={fmt(a.fechaIngreso)} />
-        <Field label="Turno" value={val(a.turno)} />
-        <Field label="Sector" value={val(a.sector?.nombre)} />
+        <Field icon={<IconBadgeMini />} label="Tipo de personal" value={tipoLabels[a.tipoPersonal] ?? a.tipoPersonal} />
+        <Field icon={<IconCheckCircle />} label="Estado" value={estadoLabels[a.estado] ?? a.estado} />
+        <Field icon={<IconCalendarMini />} label="Fecha de ingreso" value={fmt(a.fechaIngreso)} />
+        <Field icon={<IconClockMini />} label="Turno" value={val(a.turno)} />
+        <Field icon={<IconBuildingMini />} label="Sector" value={val(a.sector?.nombre)} />
+        <Field icon={<IconFlagMini />} label="Origen institucional" value={origenValue} />
         {tieneRango && (
           <>
-            <Field label="Jerarquía / Rango" value={val(a.rango?.nombre)} />
-            <Field label="Año de egreso" value={fmt(a.anoEgreso)} />
-            <Field label="Perteneció al E.T.A.C." value={boolVal(a.perteneceETAC)} />
+            <Field icon={<IconBadgeMini />} label="Jerarquía / Rango" value={val(a.rango?.nombre)} />
+            <Field icon={<IconCalendarMini />} label="Año de egreso" value={fmt(a.anoEgreso)} />
+            <Field icon={<IconCheckCircle />} label="Perteneció al E.T.A.C." value={boolVal(a.perteneceETAC)} />
           </>
         )}
       </Section>
@@ -393,76 +628,211 @@ function TabLaboral({ a }: { a: AgenteDetalle }) {
         <>
           <div className="border-t border-slate-800" />
           <Section title="Armamento">
-            <Field label="Tipo de arma" value={val(a.tipoArma)} />
-            <Field label="Marca de pistola" value={val(a.marcaPistola)} />
-            <Field label="Modelo de pistola" value={val(a.modeloPistola)} />
-            <Field label="Calibre" value={val(a.calibre)} />
+            <Field icon={<IconShield />} label="Tipo de arma" value={val(a.tipoArma)} />
+            <Field icon={<IconShield />} label="Marca de pistola" value={val(a.marcaPistola)} />
+            <Field icon={<IconShield />} label="Modelo de pistola" value={val(a.modeloPistola)} />
+            <Field icon={<IconShield />} label="Calibre" value={val(a.calibre)} />
           </Section>
           <div className="border-t border-slate-800" />
           <Section title="Chaleco">
-            <Field label="Chaleco provisto" value={boolVal(a.chalecoProvisto)} />
-            <Field label="Marca" value={val(a.marcaChaleco)} />
-            <Field label="N° de serie / Placas" value={val(a.nroSeriePlacas)} />
-            <Field label="Talle" value={val(a.talleChaleco)} />
-            <Field label="Vencimiento" value={fmt(a.vencimientoChaleco)} />
+            <Field icon={<IconShield />} label="Chaleco provisto" value={boolVal(a.chalecoProvisto)} />
+            <Field icon={<IconShield />} label="Marca" value={val(a.marcaChaleco)} />
+            <Field icon={<IconShield />} label="N° de serie / Placas" value={val(a.nroSeriePlacas)} />
+            <Field icon={<IconShield />} label="Talle" value={val(a.talleChaleco)} />
+            <Field icon={<IconCalendarMini />} label="Vencimiento" value={fmt(a.vencimientoChaleco)} />
+          </Section>
+          <div className="border-t border-slate-800" />
+          <Section title="Situación de revista">
+            <Field icon={<IconShield />} label="Tarea No Operativa (TNO)" value={boolVal(a.enTNO)} />
+            {a.enTNO && (
+              <>
+                <Field icon={<IconShield />} label="Motivo" value={val(a.motivoTNO)} />
+                <Field icon={<IconCalendarMini />} label="Desde" value={fmt(a.fechaInicioTNO)} />
+              </>
+            )}
           </Section>
         </>
       )}
       <div className="border-t border-slate-800" />
       <Section title="Licencia de conducir">
-        <Field label="Categoría" value={val(a.licenciaConducir)} />
-        <Field label="Fecha de emisión" value={fmt(a.licenciaEmision)} />
-        <Field label="Fecha de vencimiento" value={fmt(a.licenciaVencimiento)} />
+        <Field icon={<IconIdCard />} label="Categoría" value={val(a.licenciaConducir)} />
+        <Field icon={<IconCalendarMini />} label="Fecha de emisión" value={fmt(a.licenciaEmision)} />
+        <Field icon={<IconCalendarMini />} label="Fecha de vencimiento" value={fmt(a.licenciaVencimiento)} />
       </Section>
       <div className="border-t border-slate-800" />
       <Section title="Nivel académico">
-        <Field label="Primario" value={val(a.nivelPrimario)} />
-        <Field label="Secundario" value={val(a.nivelSecundario)} />
-        <Field label="Terciario" value={val(a.nivelTerciario)} />
-        <Field label="Universitario" value={val(a.nivelUniversitario)} />
-        <Field label="Superior" value={val(a.nivelSuperior)} />
-        {a.detalleTitulos && <Field label="Detalle de títulos / estudios" value={val(a.detalleTitulos)} full />}
+        <Field icon={<IconGraduation />} label="Primario" value={val(a.nivelPrimario)} />
+        <Field icon={<IconGraduation />} label="Secundario" value={val(a.nivelSecundario)} />
+        <Field icon={<IconGraduation />} label="Terciario" value={val(a.nivelTerciario)} />
+        <Field icon={<IconGraduation />} label="Universitario" value={val(a.nivelUniversitario)} />
+        <Field icon={<IconGraduation />} label="Superior" value={val(a.nivelSuperior)} />
+        {a.detalleTitulos && <Field icon={<IconGraduation />} label="Detalle de títulos / estudios" value={val(a.detalleTitulos)} full />}
       </Section>
     </div>
   );
 }
 
-function TabHistorial({ historialRangos, tipoPersonal }: {
-  historialRangos: AgenteDetalle["historialRangos"]; tipoPersonal: string;
+function CondicionAscenso({ agenteId, fechaInicioCursoAscenso, canEdit }: {
+  agenteId: string; fechaInicioCursoAscenso: string | null; canEdit: boolean;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
+
+  function handleMarcar() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await marcarEnCursoAscenso(agenteId);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Error al marcar el curso de ascenso");
+      }
+    });
+  }
+
+  function handleCancelar() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await cancelarCursoAscenso(agenteId);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Error al cancelar el curso de ascenso");
+      }
+    });
+  }
+
+  function handleConfirmar() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await confirmarAscenso(agenteId);
+        setConfirmando(false);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Error al confirmar el ascenso");
+      }
+    });
+  }
+
+  return (
+    <div className="mb-6 pb-6 border-b border-slate-800">
+      {fechaInicioCursoAscenso ? (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 text-amber-400 px-3 py-1 text-xs font-medium">
+            🎓 En curso de ascenso desde {fmt(fechaInicioCursoAscenso)}
+          </span>
+          {canEdit && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCancelar}
+                disabled={pending}
+                className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors disabled:opacity-50"
+              >
+                Cancelar curso
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmando(true)}
+                disabled={pending}
+                className="rounded-lg bg-green-600 hover:bg-green-700 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50"
+              >
+                Confirmar ascenso
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        canEdit && (
+          <button
+            type="button"
+            onClick={handleMarcar}
+            disabled={pending}
+            className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors disabled:opacity-50"
+          >
+            🎓 Marcar en curso de ascenso
+          </button>
+        )
+      )}
+      {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+
+      {confirmando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => !pending && setConfirmando(false)} />
+          <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="text-base font-semibold text-slate-100">Confirmar ascenso</h3>
+            <p className="text-sm text-slate-400">
+              El agente va a pasar al siguiente rango de su cuerpo y se va a cerrar el curso de ascenso. Esta acción queda registrada en el historial.
+            </p>
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmando(false)}
+                disabled={pending}
+                className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmar}
+                disabled={pending}
+                className="rounded-lg bg-green-600 hover:bg-green-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+              >
+                {pending ? "Confirmando..." : "Sí, ascender"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TabHistorial({ agenteId, historialRangos, tipoPersonal, fechaInicioCursoAscenso, canEdit }: {
+  agenteId: string;
+  historialRangos: AgenteDetalle["historialRangos"];
+  tipoPersonal: string;
+  fechaInicioCursoAscenso: string | null;
+  canEdit: boolean;
 }) {
   const tieneJerarquia = tipoPersonal === "SEGURIDAD" || tipoPersonal === "TECNICO";
   if (!tieneJerarquia) {
     return <div className="py-12 text-center text-slate-500 text-sm">El personal civil no tiene historial de jerarquía.</div>;
   }
-  if (historialRangos.length === 0) {
-    return <div className="py-12 text-center text-slate-500 text-sm">No hay registros de ascensos cargados aún.</div>;
-  }
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-slate-800">
-            {["Rango", "Cuerpo", "Desde", "Hasta", "Observación"].map((h) => (
-              <th key={h} className="text-left py-2 pr-6 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800">
-          {historialRangos.map((h) => (
-            <tr key={h.id}>
-              <td className="py-3 pr-6 font-medium text-slate-200">{h.rango.nombre}</td>
-              <td className="py-3 pr-6 text-slate-400 capitalize">{h.rango.cuerpo.toLowerCase()}</td>
-              <td className="py-3 pr-6 text-slate-400">{fmt(h.fechaDesde)}</td>
-              <td className="py-3 pr-6 text-slate-400">
-                {h.fechaHasta ? fmt(h.fechaHasta) : (
-                  <span className="inline-flex items-center rounded-full bg-green-500/15 text-green-400 px-2 py-0.5 text-xs font-medium">Actual</span>
-                )}
-              </td>
-              <td className="py-3 text-slate-400">{val(h.observacion)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      <CondicionAscenso agenteId={agenteId} fechaInicioCursoAscenso={fechaInicioCursoAscenso} canEdit={canEdit} />
+      {historialRangos.length === 0 ? (
+        <div className="py-12 text-center text-slate-500 text-sm">No hay registros de ascensos cargados aún.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-800">
+                {["Rango", "Cuerpo", "Desde", "Hasta", "Observación"].map((h) => (
+                  <th key={h} className="text-left py-2 pr-6 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {historialRangos.map((h) => (
+                <tr key={h.id}>
+                  <td className="py-3 pr-6 font-medium text-slate-200">{h.rango.nombre}</td>
+                  <td className="py-3 pr-6 text-slate-400 capitalize">{h.rango.cuerpo.toLowerCase()}</td>
+                  <td className="py-3 pr-6 text-slate-400">{fmt(h.fechaDesde)}</td>
+                  <td className="py-3 pr-6 text-slate-400">
+                    {h.fechaHasta ? fmt(h.fechaHasta) : (
+                      <span className="inline-flex items-center rounded-full bg-green-500/15 text-green-400 px-2 py-0.5 text-xs font-medium">Actual</span>
+                    )}
+                  </td>
+                  <td className="py-3 text-slate-400">{val(h.observacion)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -613,7 +983,9 @@ function EditTabPersonal({ form, setForm }: {
   return (
     <div className="space-y-8">
       <Section title="Identidad">
-        {/* Sexo y fechaNacimiento son inmutables — solo lectura */}
+        {/* CUIL, sexo y fechaNacimiento son inmutables — solo lectura */}
+        <InputEdit label="Nombres" value={form.nombres} onChange={set("nombres")} />
+        <InputEdit label="Apellidos" value={form.apellidos} onChange={set("apellidos")} />
         <SelectEdit label="Estado civil" value={form.estadoCivil} onChange={set("estadoCivil")} options={ESTADO_CIVIL_OPTIONS} />
         <InputEdit label="Nacionalidad" value={form.nacionalidad} onChange={set("nacionalidad")} />
         <InputEdit label="Provincia de origen" value={form.provinciaOrigen} onChange={set("provinciaOrigen")} />
@@ -710,6 +1082,19 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
             />
           </>
         )}
+        <SelectEdit
+          label="Origen institucional"
+          value={form.origenInstitucional}
+          onChange={set("origenInstitucional")}
+          options={ORIGENES_INSTITUCIONALES.map((o) => ({ value: o, label: ORIGEN_LABEL[o] }))}
+        />
+        {form.origenInstitucional === "OTRA_DEPENDENCIA" && (
+          <InputEdit
+            label="Especificar dependencia"
+            value={form.origenInstitucionalDetalle}
+            onChange={set("origenInstitucionalDetalle")}
+          />
+        )}
       </Section>
 
       {esSeguridad && (
@@ -729,6 +1114,17 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
             <InputEdit label="N° de serie / Placas" value={form.nroSeriePlacas} onChange={set("nroSeriePlacas")} />
             <InputEdit label="Talle" value={form.talleChaleco} onChange={set("talleChaleco")} />
             <InputEdit label="Vencimiento del chaleco" value={form.vencimientoChaleco} onChange={set("vencimientoChaleco")} type="date" />
+          </Section>
+
+          <div className="border-t border-slate-800" />
+          <Section title="Situación de revista">
+            <CheckEdit label="Tarea No Operativa (TNO)" checked={form.enTNO} onChange={set("enTNO")} />
+            {form.enTNO && (
+              <>
+                <InputEdit label="Motivo" value={form.motivoTNO} onChange={set("motivoTNO")} />
+                <InputEdit label="Desde" value={form.fechaInicioTNO} onChange={set("fechaInicioTNO")} type="date" />
+              </>
+            )}
           </Section>
         </>
       )}
@@ -1038,7 +1434,7 @@ export default function LegajoTabs({
               {errorEdit && <p className="text-sm text-red-400">{errorEdit}</p>}
               {editando && !errorEdit && (
                 <p className="text-xs text-slate-500">
-                  Los campos marcados con fondo azul son editables. Los datos de identidad no se pueden modificar.
+                  El CUIL, sexo y fecha de nacimiento no se pueden modificar.
                 </p>
               )}
             </div>
@@ -1089,12 +1485,26 @@ export default function LegajoTabs({
             : <TabLaboral a={agente} />
         )}
         {activeTab === "historial" && (
-          <TabHistorial historialRangos={agente.historialRangos} tipoPersonal={agente.tipoPersonal} />
+          <TabHistorial
+            agenteId={agente.id}
+            historialRangos={agente.historialRangos}
+            tipoPersonal={agente.tipoPersonal}
+            fechaInicioCursoAscenso={agente.fechaInicioCursoAscenso}
+            canEdit={canEdit}
+          />
         )}
         {activeTab === "cambios" && <TabCambios auditLogs={auditLogs} historialEstados={historialEstados} />}
         {activeTab === "licencias" && (
           <TabLicencias
             agenteId={agente.id}
+            agenteInfo={{
+              nombreCompleto: `${agente.apellidos}, ${agente.nombres}`,
+              cuil: agente.cuil,
+              rango: agente.rango?.nombre ?? null,
+              sector: agente.sector?.nombre ?? null,
+              fotoUrl: agente.fotoUrl,
+              sexo: agente.sexo,
+            }}
             licencias={licencias}
             licenciasPendientes={licenciasPendientes}
             canManage={canManageLicencias}
@@ -1109,38 +1519,55 @@ export default function LegajoTabs({
 
 // ─── Tab Licencias y Ausentismo ───────────────────────────────────────────────
 
-const TIPO_LICENCIA_LABELS: Record<string, string> = {
-  ORDINARIA: "Ordinaria",
-  MEDICA: "Licencia Médica",
-  CARPETA_MEDICA: "Carpeta Médica",
-  ESPECIAL: "Especial",
-  SIN_GOCE_SUELDO: "Sin goce de sueldo",
-  ARTICULO: "Artículo",
-  SUSPENSION: "Suspensión",
-  ADSCRIPCION: "Adscripción",
-};
+const TIPO_LICENCIA_BADGE: Record<string, string> = Object.fromEntries(
+  Object.entries(LICENCIA_CATEGORIA_DE_TIPO).map(([tipo, categoria]) => [tipo, CATEGORIA_LICENCIA_INFO[categoria].badge])
+);
 
-const TIPO_LICENCIA_BADGE: Record<string, string> = {
-  ORDINARIA: "bg-blue-500/15 text-blue-300",
-  MEDICA: "bg-red-500/15 text-red-400",
-  CARPETA_MEDICA: "bg-orange-500/15 text-orange-400",
-  ESPECIAL: "bg-purple-500/15 text-purple-400",
-  SIN_GOCE_SUELDO: "bg-slate-800 text-slate-400",
-  ARTICULO: "bg-teal-500/15 text-teal-400",
-  SUSPENSION: "bg-fuchsia-500/15 text-fuchsia-400",
-  ADSCRIPCION: "bg-indigo-500/15 text-indigo-400",
-};
+const TIPO_LICENCIA_EMOJI: Record<string, string> = Object.fromEntries(
+  Object.entries(LICENCIA_CATEGORIA_DE_TIPO).map(([tipo, categoria]) => [tipo, CATEGORIA_LICENCIA_INFO[categoria].emoji])
+);
 
-const TIPO_LICENCIA_EMOJI: Record<string, string> = {
-  ORDINARIA: "🏖️",
-  MEDICA: "🏥",
-  CARPETA_MEDICA: "🏥",
-  ESPECIAL: "⭐",
-  SIN_GOCE_SUELDO: "💰",
-  ARTICULO: "👨‍👩‍👧‍👦",
-  SUSPENSION: "🚫",
-  ADSCRIPCION: "🔄",
-};
+// Selector en cascada (categoría → subtipo) para el <select name="tipo"> de
+// los formularios de licencia. El segundo select sigue siendo *uncontrolled*
+// (se lee por FormData en el submit, igual que el resto del form) — el
+// key={categoria} fuerza a React a remontarlo y reaplicar su defaultValue
+// cada vez que cambia la categoría elegida.
+function SelectorTipoLicencia({ defaultValue }: { defaultValue?: TipoLicencia }) {
+  const [categoria, setCategoria] = useState<CategoriaLicencia>(
+    defaultValue ? LICENCIA_CATEGORIA_DE_TIPO[defaultValue] : CATEGORIAS_LICENCIA[0].value
+  );
+
+  return (
+    <>
+      <div>
+        <label className="block text-xs font-medium text-slate-400 mb-1">Categoría</label>
+        <select
+          value={categoria}
+          onChange={(e) => setCategoria(e.target.value as CategoriaLicencia)}
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {CATEGORIAS_LICENCIA.map((c) => (
+            <option key={c.value} value={c.value}>{c.label}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
+        <select
+          key={categoria}
+          name="tipo"
+          required
+          defaultValue={defaultValue && LICENCIA_CATEGORIA_DE_TIPO[defaultValue] === categoria ? defaultValue : undefined}
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {LICENCIA_TIPOS_POR_CATEGORIA[categoria].map((t) => (
+            <option key={t.value} value={t.value}>{t.label}</option>
+          ))}
+        </select>
+      </div>
+    </>
+  );
+}
 
 const TIPO_PENDIENTE_LABELS: Record<string, string> = {
   ANUAL_ORDINARIA: "Anual Ordinaria",
@@ -1251,18 +1678,20 @@ function calcularFechaFinCorrida(fechaInicioISO: string, dias: number): string {
 
 function TabLicencias({
   agenteId,
+  agenteInfo,
   licencias,
   licenciasPendientes,
   canManage,
   feriados,
 }: {
   agenteId: string;
+  agenteInfo: AgenteInfoInforme;
   licencias: LicenciaEntry[];
   licenciasPendientes: LicenciaPendienteEntry[];
   canManage: boolean;
   feriados: Feriado[];
 }) {
-  const [subTab, setSubTab] = useState<"licencias" | "pendientes">("licencias");
+  const [subTab, setSubTab] = useState<"licencias" | "pendientes" | "estadisticas">("licencias");
   const [mostrarForm, setMostrarForm] = useState(false);
   const [abriendoFormLicencia, setAbriendoFormLicencia] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -1490,8 +1919,8 @@ function TabLicencias({
   return (
     <div className="space-y-4">
       {/* Sub-pestañas */}
-      <div className="flex items-center justify-between">
-        <div className="flex border border-slate-700 rounded-lg overflow-hidden">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex border border-slate-700 rounded-lg overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => {
@@ -1499,7 +1928,7 @@ function TabLicencias({
               setAbriendoFormLicencia(false);
               setSubTab("licencias"); setMostrarForm(false); setEditandoId(null); setError(null);
             }}
-            className={`px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "licencias" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"}`}
+            className={`shrink-0 whitespace-nowrap px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "licencias" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"}`}
           >
             Licencias
             <span className="ml-1.5 text-xs opacity-70">({licencias.length})</span>
@@ -1511,20 +1940,31 @@ function TabLicencias({
               setAbriendoFormLicencia(false);
               setSubTab("pendientes"); setMostrarForm(false); setEditandoId(null); setError(null);
             }}
-            className={`px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "pendientes" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"}`}
+            className={`shrink-0 whitespace-nowrap px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "pendientes" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"}`}
           >
             Licencias Pendientes
             <span className="ml-1.5 text-xs opacity-70">({licenciasPendientes.length})</span>
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (abrirFormTimeout.current) clearTimeout(abrirFormTimeout.current);
+              setAbriendoFormLicencia(false);
+              setSubTab("estadisticas"); setMostrarForm(false); setEditandoId(null); setError(null);
+            }}
+            className={`shrink-0 whitespace-nowrap px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "estadisticas" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"}`}
+          >
+            Estadísticas
+          </button>
         </div>
 
-        {canManage && !mostrarForm && !abriendoFormLicencia && (
+        {canManage && !mostrarForm && !abriendoFormLicencia && subTab !== "estadisticas" && (
           <button
             type="button"
             onClick={handleAbrirNuevo}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-sm font-medium text-white transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-sm font-medium text-white transition-colors w-full sm:w-auto shrink-0"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             {subTab === "licencias" ? "Nueva licencia" : "Nuevo pendiente"}
@@ -1545,14 +1985,7 @@ function TabLicencias({
         <form onSubmit={handleCrearLicencia} className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4 space-y-3">
           <p className="text-sm font-medium text-slate-300">Nueva licencia</p>
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
-              <select name="tipo" required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                {Object.entries(TIPO_LICENCIA_LABELS).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
-            </div>
+            <SelectorTipoLicencia />
             <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2">
               <button
                 type="button"
@@ -1720,12 +2153,7 @@ function TabLicencias({
                   <form onSubmit={(e) => handleEditarLicencia(e, l.id)} className="rounded-xl border border-yellow-500/25 bg-yellow-500/10 p-4 space-y-3">
                     <p className="text-sm font-medium text-slate-300">Editar licencia</p>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="col-span-2">
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
-                        <select name="tipo" defaultValue={l.tipo} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                          {Object.entries(TIPO_LICENCIA_LABELS).map(([v, lab]) => <option key={v} value={v}>{lab}</option>)}
-                        </select>
-                      </div>
+                      <SelectorTipoLicencia defaultValue={l.tipo as TipoLicencia} />
                       <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1">Fecha inicio</label>
                         <input type="date" name="fechaInicio" defaultValue={l.fechaInicio.slice(0, 10)} required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -1749,9 +2177,9 @@ function TabLicencias({
                     </div>
                   </form>
                 ) : (
-                  <div className={`flex items-start justify-between gap-4 rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 ${pending ? "opacity-50" : ""}`}>
-                    <div className="flex items-start gap-3 min-w-0">
-                      <span className={`mt-0.5 inline-flex items-center justify-between gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-slate-800 text-slate-400"}`}>
+                  <div className={`flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 ${pending ? "opacity-50" : ""}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-1.5 sm:gap-3 min-w-0">
+                      <span className={`mt-0.5 inline-flex items-center justify-between gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium shrink-0 self-start ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-slate-800 text-slate-400"}`}>
                         {TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}
                         <span>{TIPO_LICENCIA_EMOJI[l.tipo]}</span>
                       </span>
@@ -1765,7 +2193,7 @@ function TabLicencias({
                       </div>
                     </div>
                     {canManage && (
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0 self-end sm:self-start">
                         <button type="button" onClick={() => { setEditandoId(l.id); setMostrarForm(false); setError(null); }} className="rounded-lg p-1.5 text-slate-500 hover:text-slate-400 hover:bg-slate-700 transition-colors" title="Editar">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
@@ -1781,6 +2209,8 @@ function TabLicencias({
           </div>
         )
       )}
+
+      {subTab === "estadisticas" && <EstadisticasLicencias licencias={licencias} agente={agenteInfo} />}
 
       {/* Lista licencias pendientes */}
       {subTab === "pendientes" && (
@@ -1863,9 +2293,9 @@ function TabLicencias({
                     </form>
                   ) : (
                     <div className={`rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 ${pending ? "opacity-50" : ""}`}>
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <span className={`mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${TIPO_PENDIENTE_BADGE[p.tipo] ?? "bg-slate-800 text-slate-400"}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-1.5 sm:gap-3 min-w-0">
+                          <span className={`mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 self-start ${TIPO_PENDIENTE_BADGE[p.tipo] ?? "bg-slate-800 text-slate-400"}`}>
                             {tipoLabel}
                           </span>
                           <div className="min-w-0">
@@ -1881,7 +2311,7 @@ function TabLicencias({
                             {p.referencia && <p className="text-xs text-slate-400 mt-0.5">{p.referencia}</p>}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0 self-end sm:self-start">
                           {canManage && estado !== "USADA" && (
                             <button type="button" onClick={() => { setUsoFormId(usoFormId === p.id ? null : p.id); setError(null); }} className="rounded-lg px-2 py-1 text-xs font-medium text-blue-400 hover:bg-blue-500/10 transition-colors">
                               Registrar uso

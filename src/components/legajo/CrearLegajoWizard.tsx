@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { crearLegajoPropio, actualizarFotoLegajo, type DatosNuevoLegajo } from "@/app/actions/legajo";
-import { createClient } from "@/lib/supabase/client";
+import { subirFotoStorage } from "@/lib/fotoLegajo";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -63,6 +63,7 @@ const inicial: FormData = {
   domicilioReal: "", ciudad: "", barrio: "", nroDomicilio: "", piso: "",
   turno: "", fechaIngreso: "", tipoPersonal: "",
   rangoId: "", anoEgreso: "", perteneceETAC: false,
+  origenInstitucional: "", origenInstitucionalDetalle: "",
   hijosCargo: 0, poseeSepelio: false, empresaSepelio: "",
   grupoSanguineo: "", alergias: "", enfermedadesCronicas: "",
   medicamentos: "", cirugias: "",
@@ -119,41 +120,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 // ─── Compresión de foto ───────────────────────────────────────────────────────
-
-async function comprimirFoto(file: File): Promise<Blob> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const MAX = 800;
-      const scale = Math.min(MAX / img.width, MAX / img.height, 1);
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.85);
-    };
-    img.src = url;
-  });
-}
-
-async function subirFotoStorage(file: File, agenteId: string): Promise<string | null> {
-  try {
-    const blob = await comprimirFoto(file);
-    const path = `${agenteId}/foto.jpg`;
-    const supabase = createClient();
-    const { error } = await supabase.storage
-      .from("fotos-legajos")
-      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
-    if (error) return null;
-    const { data } = supabase.storage.from("fotos-legajos").getPublicUrl(path);
-    return data.publicUrl;
-  } catch {
-    return null;
-  }
-}
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
@@ -492,6 +458,23 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
             </div>
           </>
         )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Origen institucional">
+            <Select value={form.origenInstitucional} onChange={(e) => set("origenInstitucional", e.target.value)}>
+              <option value="">Seleccionar...</option>
+              <option value="GOBIERNO">Gobierno</option>
+              <option value="DMCA">DMCA</option>
+              <option value="911">911</option>
+              <option value="OTRA_DEPENDENCIA">Otra dependencia (especificar)</option>
+            </Select>
+          </Field>
+          {form.origenInstitucional === "OTRA_DEPENDENCIA" && (
+            <Field label="Especificar dependencia">
+              <Input value={form.origenInstitucionalDetalle} onChange={(e) => set("origenInstitucionalDetalle", e.target.value)} placeholder="Ej: Policía Caminera" />
+            </Field>
+          )}
+        </div>
 
         <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2 pt-2">Información Complementaria</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

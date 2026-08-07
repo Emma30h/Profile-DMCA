@@ -1,10 +1,17 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { createContext, useContext, useEffect, useMemo, useState, useTransition } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import ListaAgentes from "./ListaAgentes";
+import FiltrosPersonal from "./FiltrosPersonal";
 import type { AgenteResumen } from "./lib";
+import { buildQueryString } from "./queryString";
 import { useAgenteAnclado } from "@/lib/useAgenteAnclado";
+import type { RolUsuario } from "@/types";
+
+const ROLES_ADMIN: RolUsuario[] = ["SUPERADMIN", "ADMIN"];
 
 type PersonalNavContextValue = {
   limpiarFicha: (href: string) => void;
@@ -62,11 +69,21 @@ function LegajoSkeleton() {
 function EmptyState({ fitViewport }: { fitViewport: boolean }) {
   return (
     <div
-      className={`bg-slate-900 rounded-xl border border-slate-700 px-8 text-center flex flex-col items-center justify-center ${
+      // min-h-[420px] siempre: red de seguridad para que la tarjeta se vea
+      // aunque la cadena de h-full/flex-1 hacia arriba (main -> ... -> acá)
+      // no llegue a resolver una altura real — sin esto, un h-full contra un
+      // ancestro con alto "auto" colapsa a 0 y la tarjeta queda invisible.
+      className={`bg-slate-900 rounded-xl border border-slate-700 px-8 text-center flex flex-col items-center justify-center min-h-[420px] ${
         fitViewport ? "h-full" : "py-20"
       }`}
     >
-      <p className="text-5xl mb-4">👤</p>
+      <Image
+        src="/logo-ojos-en-alerta-blanco.png"
+        alt=""
+        width={320}
+        height={245}
+        className="mb-5"
+      />
       <p className="text-slate-300 font-semibold">Seleccioná un agente</p>
       <p className="text-sm text-slate-500 mt-1">
         Elegí un agente de la lista para ver su legajo completo.
@@ -78,7 +95,7 @@ function EmptyState({ fitViewport }: { fitViewport: boolean }) {
 function EmptyStateSkeleton({ fitViewport }: { fitViewport: boolean }) {
   return (
     <div
-      className={`bg-slate-900 rounded-xl border border-slate-700 px-8 flex flex-col items-center justify-center ${
+      className={`bg-slate-900 rounded-xl border border-slate-700 px-8 flex flex-col items-center justify-center min-h-[420px] ${
         fitViewport ? "h-full" : "py-20"
       }`}
     >
@@ -91,24 +108,114 @@ function EmptyStateSkeleton({ fitViewport }: { fitViewport: boolean }) {
 
 type PendingKind = "select" | "clear" | null;
 
+// La mayoría de las navegaciones acá resuelven casi al instante (la lista y
+// el legajo salen de la caché de Redis), así que mostrar el skeleton de
+// entrada producía un parpadeo: viejo contenido -> skeleton un instante ->
+// contenido nuevo. Al esperar un poco antes de mostrarlo, las transiciones
+// rápidas pasan directo de un legajo al otro sin ese destello, y las lentas
+// (cache fría) siguen mostrando el loading como corresponde.
+function useMostrarConRetraso(activo: boolean, delayMs: number): boolean {
+  const [mostrar, setMostrar] = useState(false);
+  // El apagado es inmediato: se deriva durante el render (en vez de en el
+  // efecto) apenas "activo" pasa a false, siguiendo el mismo patrón que ya
+  // usa el resto de la app para no hacer setState directo dentro de un
+  // efecto. El efecto de abajo sólo programa el *encendido* con retraso.
+  const [prevActivo, setPrevActivo] = useState(activo);
+  if (activo !== prevActivo) {
+    setPrevActivo(activo);
+    if (!activo) setMostrar(false);
+  }
+  useEffect(() => {
+    if (!activo) return;
+    const id = setTimeout(() => setMostrar(true), delayMs);
+    return () => clearTimeout(id);
+  }, [activo, delayMs]);
+  return mostrar;
+}
+
+function parseLista(valor: string): string[] {
+  return valor ? valor.split(",").filter(Boolean) : [];
+}
+
+interface SectorOption {
+  id: string;
+  nombre: string;
+}
+
 export default function PersonalMasterShell({
-  filtros,
-  contador,
-  agentes,
-  selectedId,
-  queryString,
-  fitViewport,
+  agentesCompletos,
+  sectores,
+  turnos,
+  rol,
   children,
 }: {
-  filtros: React.ReactNode;
-  contador: React.ReactNode;
-  agentes: AgenteResumen[];
-  selectedId?: string;
-  queryString: string;
-  fitViewport: boolean;
+  agentesCompletos: AgenteResumen[];
+  sectores: SectorOption[];
+  turnos: string[];
+  rol: RolUsuario;
   children?: React.ReactNode;
 }) {
   const router = useRouter();
+  // Vía hooks del cliente (no props del servidor): así esta pantalla no
+  // depende de que la page vuelva a renderizar para enterarse del agente o
+  // los filtros actuales — vive en el layout y se mantiene montada entre
+  // navegaciones dentro de /personal.
+  const params = useParams<{ id?: string }>();
+  const selectedId = params?.id;
+  const searchParams = useSearchParams();
+
+  const q = searchParams.get("q") ?? "";
+  const tipoValue = searchParams.get("tipo") ?? "";
+  const estadoValue = searchParams.get("estado") ?? "";
+  const turnoValue = searchParams.get("turno") ?? "";
+  const sectorValue = searchParams.get("sector") ?? "";
+  const idsValue = searchParams.get("ids") ?? "";
+  const sexoValue = searchParams.get("sexo") ?? "";
+  const etacValue = searchParams.get("etac") ?? "";
+
+  const queryString = buildQueryString({
+    q, tipo: tipoValue, estado: estadoValue, turno: turnoValue, sector: sectorValue, ids: idsValue, sexo: sexoValue, etac: etacValue,
+  });
+
+  // Filtrado en el cliente sobre la lista completa (ya cargada una vez desde
+  // el layout): con ~170 agentes es instantáneo, y evita el viaje al
+  // servidor que antes disparaba, en cada tecla/filtro, un re-render de todo
+  // este árbol.
+  const agentes = useMemo(() => {
+    const qDigits = q.replace(/\D/g, "");
+    const qLower = q.toLowerCase();
+    const tipos = parseLista(tipoValue);
+    const estados = parseLista(estadoValue);
+    const turnosSel = parseLista(turnoValue);
+    const sectorIds = parseLista(sectorValue);
+    const ids = parseLista(idsValue);
+    const sexos = parseLista(sexoValue);
+    const etac = parseLista(etacValue);
+
+    return agentesCompletos.filter((a) => {
+      if (q) {
+        const matchTexto =
+          a.nombres.toLowerCase().includes(qLower) ||
+          a.apellidos.toLowerCase().includes(qLower) ||
+          (qDigits.length > 0 && a.cuil.includes(qDigits));
+        if (!matchTexto) return false;
+      }
+      if (tipos.length > 0 && !tipos.includes(a.tipoPersonal)) return false;
+      if (estados.length > 0 && !estados.includes(a.estado)) return false;
+      if (turnosSel.length > 0 && (!a.turno || !turnosSel.includes(a.turno))) return false;
+      if (sectorIds.length > 0 && (!a.sector || !sectorIds.includes(a.sector.id))) return false;
+      // Drill-down puntual desde las alertas del dashboard (ids explícitos de
+      // agentes en la situación denunciada), no un filtro editable desde FiltrosPersonal.
+      if (ids.length > 0 && !ids.includes(a.id)) return false;
+      if (sexos.length > 0 && !sexos.includes(a.sexo)) return false;
+      if (etac.length > 0) {
+        const valor = a.perteneceETAC ? "SI" : "NO";
+        if (!etac.includes(valor)) return false;
+      }
+      return true;
+    });
+  }, [agentesCompletos, q, tipoValue, estadoValue, turnoValue, sectorValue, idsValue, sexoValue, etacValue]);
+
   const [isPending, startTransition] = useTransition();
   const [pendingKind, setPendingKind] = useState<PendingKind>(null);
   // Transición separada de la de arriba: la de arriba reemplaza todo el panel
@@ -123,6 +230,17 @@ export default function PersonalMasterShell({
     });
   }
 
+  // Una vez que la transición de navigate() asienta, se olvida qué tipo era
+  // — así un pendingKind viejo ("clear"/"select") no puede quedar pegado y
+  // seguir matcheando ramas de carga si algo más adelante vuelve a poner
+  // isPending en true por otro motivo. Ajuste en el render (mismo patrón que
+  // useMostrarConRetraso más abajo) en vez de setState dentro de un efecto.
+  const [prevIsPending, setPrevIsPending] = useState(isPending);
+  if (isPending !== prevIsPending) {
+    setPrevIsPending(isPending);
+    if (!isPending) setPendingKind(null);
+  }
+
   // Si se llega "de cero" a /personal (sin un agente ya elegido por otro
   // camino: clic en la lista, o entrando directo a /personal/[id]) y hay uno
   // anclado, se abre directo su legajo en vez de la pantalla vacía. Se deriva
@@ -133,23 +251,35 @@ export default function PersonalMasterShell({
   const ancladoId = anclado?.id;
   const pendienteAnclado = !selectedId && Boolean(ancladoId);
 
+  // Transición propia (no la de navigate()): si compartiera la misma que
+  // "Limpiar fichero"/selección manual, un agente anclado DISTINTO al que se
+  // acaba de dejar podía disparar este redirect justo cuando pendingKind
+  // seguía en "clear" — la pantalla quedaba con el skeleton de "vacío" para
+  // siempre porque isPending nunca volvía a asentarse en el par compartido.
+  const [, startAncladoTransition] = useTransition();
+
   useEffect(() => {
     if (!pendienteAnclado) return;
-    startTransition(() => {
+    startAncladoTransition(() => {
       router.replace(`/personal/${ancladoId}${queryString ? `?${queryString}` : ""}`);
     });
   }, [pendienteAnclado, ancladoId, queryString, router]);
 
   const hadSelection = Boolean(selectedId);
+  const fitViewport = !hadSelection;
+  const mostrarPending = useMostrarConRetraso(isPending, 150);
 
   let contenido: React.ReactNode;
-  if (isPending && pendingKind === "clear") {
+  if (mostrarPending && pendingKind === "clear") {
     contenido = <EmptyStateSkeleton fitViewport={fitViewport} />;
-  } else if (isPending && pendienteAnclado) {
+  } else if (mostrarPending && pendienteAnclado) {
     contenido = <LegajoSkeleton />;
-  } else if (isPending && pendingKind === "select") {
+  } else if (mostrarPending && pendingKind === "select") {
     contenido = hadSelection ? <LegajoSkeleton /> : <SelectSpinner />;
   } else {
+    // Mientras la transición no llegue al umbral de arriba, se sigue
+    // mostrando el contenido anterior (React lo mantiene vigente hasta que
+    // el nuevo llega) en vez de saltar a un estado de carga intermedio.
     contenido = children ?? <EmptyState fitViewport={fitViewport} />;
   }
 
@@ -161,35 +291,73 @@ export default function PersonalMasterShell({
         filtrosPendientes: filtrosPending,
       }}
     >
-      <div
-        className={`grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-5 ${
-          fitViewport ? "lg:h-full" : "items-start"
-        }`}
-      >
-        <aside
-          className={`bg-slate-900 rounded-xl border border-slate-700 overflow-hidden flex flex-col ${
-            fitViewport ? "lg:h-full" : "lg:sticky lg:top-0 lg:h-[calc(100vh-6rem)]"
+      <div className="flex flex-col gap-5 h-full">
+        <div className="shrink-0 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-100">Personal</h2>
+          </div>
+          {ROLES_ADMIN.includes(rol) && (
+            <Link
+              href="/configuracion/importar-legajos"
+              className="shrink-0 inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              📥 Importar legajos
+            </Link>
+          )}
+        </div>
+
+        <div
+          className={`flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-5 ${
+            fitViewport ? "lg:h-full" : "items-start"
           }`}
         >
-          {filtros}
-          <div className="relative flex-1 min-h-0 flex flex-col">
-            {contador}
-            <ListaAgentes
-              key="lista-agentes"
-              agentes={agentes}
+          {/* Maestro-detalle: en mobile, la lista y el legajo elegido no
+              pueden convivir en pantalla (no entran) — se muestra solo uno de
+              los dos por vez, igual que cualquier patrón lista/detalle en
+              mobile. En desktop (lg:) siempre conviven lado a lado, como antes. */}
+          <aside
+            className={`bg-slate-900 rounded-xl border border-slate-700 overflow-hidden flex-col ${
+              hadSelection ? "hidden lg:flex" : "flex"
+            } ${fitViewport ? "lg:h-full" : "lg:sticky lg:top-0 lg:h-[calc(100vh-6rem)]"}`}
+          >
+            <FiltrosPersonal
+              qValue={q}
+              tipoValue={tipoValue}
+              estadoValue={estadoValue}
+              turnoValue={turnoValue}
+              sectorValue={sectorValue}
+              etacValue={etacValue}
+              sectores={sectores}
+              turnos={turnos}
               selectedId={selectedId}
-              queryString={queryString}
-              onSelect={(href) => navigate(href, "select")}
             />
-            {filtrosPending && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/80">
-                <span className="h-8 w-8 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin" />
+            <div className="relative flex-1 min-h-0 flex flex-col">
+              <div className="px-4 py-2 text-xs text-slate-500 border-b border-slate-800">
+                {agentes.length} {agentes.length === 1 ? "agente encontrado" : "agentes encontrados"}
               </div>
-            )}
-          </div>
-        </aside>
+              <ListaAgentes
+                key="lista-agentes"
+                agentes={agentes}
+                selectedId={selectedId}
+                queryString={queryString}
+                onSelect={(href) => navigate(href, "select")}
+              />
+              {filtrosPending && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/80">
+                  <span className="h-8 w-8 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin" />
+                </div>
+              )}
+            </div>
+          </aside>
 
-        <div className={`min-w-0 ${fitViewport ? "lg:h-full" : ""}`}>{contenido}</div>
+          {/* Antes se ocultaba en mobile sin selección con "hidden lg:block"
+              para no hacer scrollear al usuario 210 agentes hasta llegar a la
+              tarjeta vacía — pero terminaba sin pintar nada, ni el fondo ni
+              el borde de la tarjeta, en ningún tamaño de pantalla. Se muestra
+              siempre: en mobile queda debajo de la lista, que es un costo
+              menor comparado con el panel quedando completamente vacío. */}
+          <div className={`min-w-0 ${fitViewport ? "lg:h-full" : ""}`}>{contenido}</div>
+        </div>
       </div>
     </PersonalNavContext.Provider>
   );

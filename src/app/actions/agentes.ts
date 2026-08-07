@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { invalidateAgentesCache } from "@/lib/redis";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 
@@ -114,6 +115,8 @@ function diffD(label: string, anterior: Date | null, nuevoStr: string, acc: Camb
 // ─── Datos personales ─────────────────────────────────────────────────────────
 
 export interface DatosPersonales {
+  nombres: string;
+  apellidos: string;
   estadoCivil: string;
   nacionalidad: string;
   provinciaOrigen: string;
@@ -143,9 +146,13 @@ export async function actualizarAgentePersonal(
 ) {
   const { usuarioId, usuarioNombre } = await verificarPermiso(agenteId);
 
+  if (!data.nombres.trim()) throw new Error("El nombre es obligatorio");
+  if (!data.apellidos.trim()) throw new Error("El apellido es obligatorio");
+
   const anterior = await prisma.agente.findUnique({
     where: { id: agenteId },
     select: {
+      nombres: true, apellidos: true,
       estadoCivil: true, nacionalidad: true, provinciaOrigen: true, ciudadOrigen: true,
       grupoSanguineo: true, alergias: true, enfermedadesCronicas: true, medicamentos: true,
       cirugias: true, email: true, telefono: true, telefonoAlternativo: true,
@@ -157,6 +164,8 @@ export async function actualizarAgentePersonal(
   await prisma.agente.update({
     where: { id: agenteId },
     data: {
+      nombres: data.nombres.trim(),
+      apellidos: data.apellidos.trim(),
       estadoCivil: str(data.estadoCivil),
       nacionalidad: str(data.nacionalidad),
       provinciaOrigen: str(data.provinciaOrigen),
@@ -183,6 +192,8 @@ export async function actualizarAgentePersonal(
 
   if (anterior) {
     const cambios: Cambio[] = [];
+    diffS("Nombres", anterior.nombres, data.nombres.trim(), cambios);
+    diffS("Apellidos", anterior.apellidos, data.apellidos.trim(), cambios);
     diffS("Estado civil", anterior.estadoCivil, str(data.estadoCivil), cambios);
     diffS("Nacionalidad", anterior.nacionalidad, str(data.nacionalidad), cambios);
     diffS("Provincia de origen", anterior.provinciaOrigen, str(data.provinciaOrigen), cambios);
@@ -213,8 +224,11 @@ export async function actualizarAgentePersonal(
   }
 
   await notificarAdminsSiPendiente(agenteId, usuarioNombre);
+  await invalidateAgentesCache();
   revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
   revalidatePath("/mi-legajo");
+  revalidatePath("/dashboard");
 }
 
 // ─── Datos laborales ──────────────────────────────────────────────────────────
@@ -224,6 +238,8 @@ export interface DatosLaborales {
   sectorId: string;
   rangoId: string;
   perteneceETAC: boolean;
+  origenInstitucional: string;
+  origenInstitucionalDetalle: string;
   tipoArma: string;
   marcaPistola: string;
   modeloPistola: string;
@@ -233,6 +249,9 @@ export interface DatosLaborales {
   nroSeriePlacas: string;
   talleChaleco: string;
   vencimientoChaleco: string;
+  enTNO: boolean;
+  motivoTNO: string;
+  fechaInicioTNO: string;
   licenciaConducir: string;
   licenciaEmision: string;
   licenciaVencimiento: string;
@@ -256,9 +275,12 @@ export async function actualizarAgenteLaboral(
       tipoPersonal: true, estado: true, turno: true,
       sectorId: true, sector: { select: { nombre: true } },
       rangoId: true, rango: { select: { nombre: true } },
-      perteneceETAC: true, tipoArma: true, marcaPistola: true, modeloPistola: true,
+      perteneceETAC: true, origenInstitucional: true, origenInstitucionalDetalle: true,
+      tipoArma: true, marcaPistola: true, modeloPistola: true,
       calibre: true, chalecoProvisto: true, marcaChaleco: true, nroSeriePlacas: true,
-      talleChaleco: true, vencimientoChaleco: true, licenciaConducir: true,
+      talleChaleco: true, vencimientoChaleco: true,
+      enTNO: true, motivoTNO: true, fechaInicioTNO: true,
+      licenciaConducir: true,
       licenciaEmision: true, licenciaVencimiento: true, nivelPrimario: true,
       nivelSecundario: true, nivelTerciario: true, nivelUniversitario: true,
       nivelSuperior: true, detalleTitulos: true,
@@ -283,6 +305,10 @@ export async function actualizarAgenteLaboral(
       sectorId: str(data.sectorId),
       rangoId: tieneRango ? str(data.rangoId) : undefined,
       perteneceETAC: tieneRango ? data.perteneceETAC : null,
+      origenInstitucional: str(data.origenInstitucional),
+      origenInstitucionalDetalle: data.origenInstitucional === "OTRA_DEPENDENCIA"
+        ? str(data.origenInstitucionalDetalle)
+        : null,
       tipoArma: esSeguridad ? str(data.tipoArma) : null,
       marcaPistola: esSeguridad ? str(data.marcaPistola) : null,
       modeloPistola: esSeguridad ? str(data.modeloPistola) : null,
@@ -292,6 +318,9 @@ export async function actualizarAgenteLaboral(
       nroSeriePlacas: esSeguridad ? str(data.nroSeriePlacas) : null,
       talleChaleco: esSeguridad ? str(data.talleChaleco) : null,
       vencimientoChaleco: esSeguridad ? fecha(data.vencimientoChaleco) : null,
+      enTNO: esSeguridad ? data.enTNO : null,
+      motivoTNO: esSeguridad && data.enTNO ? str(data.motivoTNO) : null,
+      fechaInicioTNO: esSeguridad && data.enTNO ? fecha(data.fechaInicioTNO) : null,
       licenciaConducir: str(data.licenciaConducir),
       licenciaEmision: fecha(data.licenciaEmision),
       licenciaVencimiento: fecha(data.licenciaVencimiento),
@@ -324,6 +353,12 @@ export async function actualizarAgenteLaboral(
       diffB("Perteneció al E.T.A.C.", agenteActual.perteneceETAC, data.perteneceETAC, cambios);
     }
 
+    const nuevoOrigenInstitucional = str(data.origenInstitucional);
+    diffS("Origen institucional", agenteActual.origenInstitucional, nuevoOrigenInstitucional, cambios);
+    if (nuevoOrigenInstitucional === "OTRA_DEPENDENCIA") {
+      diffS("Dependencia de origen", agenteActual.origenInstitucionalDetalle, str(data.origenInstitucionalDetalle), cambios);
+    }
+
     if (esSeguridad) {
       diffS("Tipo de arma", agenteActual.tipoArma, str(data.tipoArma), cambios);
       diffS("Marca de pistola", agenteActual.marcaPistola, str(data.marcaPistola), cambios);
@@ -334,6 +369,11 @@ export async function actualizarAgenteLaboral(
       diffS("N° de serie / Placas", agenteActual.nroSeriePlacas, str(data.nroSeriePlacas), cambios);
       diffS("Talle de chaleco", agenteActual.talleChaleco, str(data.talleChaleco), cambios);
       diffD("Vencimiento del chaleco", agenteActual.vencimientoChaleco, data.vencimientoChaleco, cambios);
+      diffB("Tarea No Operativa (TNO)", agenteActual.enTNO, data.enTNO, cambios);
+      if (data.enTNO) {
+        diffS("Motivo de TNO", agenteActual.motivoTNO, str(data.motivoTNO), cambios);
+        diffD("Inicio de TNO", agenteActual.fechaInicioTNO, data.fechaInicioTNO, cambios);
+      }
     }
 
     diffS("Licencia de conducir", agenteActual.licenciaConducir, str(data.licenciaConducir), cambios);
@@ -354,6 +394,120 @@ export async function actualizarAgenteLaboral(
   }
 
   await notificarAdminsSiPendiente(agenteId, usuarioNombre);
+  await invalidateAgentesCache();
   revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
   revalidatePath("/mi-legajo");
+  revalidatePath("/dashboard");
+}
+
+// ─── Condición de ascenso (solo Seguridad/Técnico, solo ADMIN/SUPERADMIN) ─────
+
+async function verificarAdmin(): Promise<{ usuarioId: string; usuarioNombre: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const current = await prisma.usuario.findFirst({
+    where: { OR: [{ id: user.id }, { email: user.email! }] },
+    select: { id: true, rol: true, nombre: true, apellido: true },
+  });
+  if (!current) throw new Error("Usuario no encontrado");
+  if (!ROLES_ADMIN.includes(current.rol)) throw new Error("Sin permiso");
+
+  return {
+    usuarioId: current.id,
+    usuarioNombre: [current.nombre, current.apellido].filter(Boolean).join(" ") || user.email!,
+  };
+}
+
+function verificarTieneRango(tipoPersonal: string) {
+  if (tipoPersonal !== "SEGURIDAD" && tipoPersonal !== "TECNICO") {
+    throw new Error("Solo Seguridad y Técnico pueden estar en condición de ascenso");
+  }
+}
+
+export async function marcarEnCursoAscenso(agenteId: string): Promise<void> {
+  await verificarAdmin();
+
+  const agente = await prisma.agente.findUnique({ where: { id: agenteId }, select: { tipoPersonal: true } });
+  if (!agente) throw new Error("Agente no encontrado");
+  verificarTieneRango(agente.tipoPersonal);
+
+  await prisma.agente.update({
+    where: { id: agenteId },
+    data: { fechaInicioCursoAscenso: new Date() },
+  });
+
+  revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
+}
+
+export async function cancelarCursoAscenso(agenteId: string): Promise<void> {
+  await verificarAdmin();
+
+  await prisma.agente.update({
+    where: { id: agenteId },
+    data: { fechaInicioCursoAscenso: null },
+  });
+
+  revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
+}
+
+export async function confirmarAscenso(agenteId: string): Promise<void> {
+  const { usuarioId, usuarioNombre } = await verificarAdmin();
+
+  const agente = await prisma.agente.findUnique({
+    where: { id: agenteId },
+    select: {
+      tipoPersonal: true,
+      fechaInicioCursoAscenso: true,
+      rango: { select: { id: true, nombre: true, cuerpo: true, orden: true } },
+    },
+  });
+  if (!agente) throw new Error("Agente no encontrado");
+  verificarTieneRango(agente.tipoPersonal);
+  if (!agente.fechaInicioCursoAscenso) throw new Error("El agente no está en curso de ascenso");
+  if (!agente.rango) throw new Error("El agente no tiene un rango cargado");
+
+  const siguienteRango = await prisma.rango.findFirst({
+    where: { cuerpo: agente.rango.cuerpo, orden: { gt: agente.rango.orden } },
+    orderBy: { orden: "asc" },
+  });
+  if (!siguienteRango) throw new Error("Ya está en el rango más alto de su cuerpo");
+
+  const ahora = new Date();
+
+  await prisma.$transaction([
+    prisma.agente.update({
+      where: { id: agenteId },
+      data: { rangoId: siguienteRango.id, fechaInicioCursoAscenso: null },
+    }),
+    // Cierra cualquier tramo de rango que hubiera quedado abierto (no debería
+    // haber más de uno) antes de abrir el del rango nuevo.
+    prisma.historialRango.updateMany({
+      where: { agenteId, fechaHasta: null },
+      data: { fechaHasta: ahora },
+    }),
+    prisma.historialRango.create({
+      data: { agenteId, rangoId: siguienteRango.id, fechaDesde: ahora },
+    }),
+    prisma.auditLog.create({
+      data: {
+        agenteId,
+        usuarioId,
+        usuarioNombre,
+        seccion: "LABORAL",
+        cambios: JSON.stringify([
+          { campo: "Jerarquía / Rango", anterior: agente.rango.nombre, nuevo: siguienteRango.nombre },
+        ]),
+      },
+    }),
+  ]);
+
+  await invalidateAgentesCache();
+  revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
+  revalidatePath("/dashboard");
 }

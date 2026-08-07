@@ -27,10 +27,16 @@ function leerAnclado(): AgenteAnclado | null {
 // pestaña —p. ej. el botón de anclar en la lista y el chip del Header—
 // sin necesidad de un Context que los conecte.
 export function useAgenteAnclado() {
-  const [anclado, setAnclado] = useState<AgenteAnclado | null>(() => leerAnclado());
+  // Arranca en null en vez de leer localStorage en el inicializador: el
+  // servidor siempre renderiza null (no tiene localStorage), así que si el
+  // cliente arrancara con el valor real, la primera renderización no
+  // coincidiría con el HTML del servidor (hydration mismatch). Se completa
+  // recién en el efecto, después de que React ya hidrató con null.
+  const [anclado, setAnclado] = useState<AgenteAnclado | null>(null);
 
   useEffect(() => {
     const actualizar = () => setAnclado(leerAnclado());
+    actualizar();
     window.addEventListener(EVENTO_CAMBIO, actualizar);
     window.addEventListener("storage", actualizar);
     return () => {
