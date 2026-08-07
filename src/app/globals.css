@@ -114,6 +114,38 @@ textarea::placeholder {
   }
 }
 
+/* Fondo "aurora" de las pantallas de login/registro: manchas de luz muy
+   difuminadas (mismos azul/violeta del glow del Sidebar) que derivan
+   lentísimo de un lado a otro detrás de la tarjeta — da sensación de
+   movimiento ambiental sin llamar la atención sobre el formulario. */
+@keyframes aurora-drift-a {
+  0%, 100% { transform: translate(-8%, -6%) scale(1); }
+  50% { transform: translate(10%, 6%) scale(1.15); }
+}
+@keyframes aurora-drift-b {
+  0%, 100% { transform: translate(6%, 8%) scale(1.1); }
+  50% { transform: translate(-10%, -8%) scale(0.95); }
+}
+@keyframes aurora-drift-c {
+  0%, 100% { transform: translate(0%, 4%) scale(1.05); }
+  50% { transform: translate(-9%, -10%) scale(1.2); }
+}
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.55;
+  will-change: transform;
+}
+.aurora-blob-a { animation: aurora-drift-a 20s ease-in-out infinite; }
+.aurora-blob-b { animation: aurora-drift-b 24s ease-in-out infinite; }
+.aurora-blob-c { animation: aurora-drift-c 28s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob-a, .aurora-blob-b, .aurora-blob-c {
+    animation: none;
+  }
+}
+
 /* Panel colapsable del dashboard (p. ej. "Atención requerida"): en vez de
    medir la altura por JS, se anima grid-template-rows entre 0fr y 1fr — el
    contenido interno necesita overflow-hidden + min-height:0 para poder
