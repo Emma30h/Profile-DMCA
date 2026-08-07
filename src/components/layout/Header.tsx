@@ -1,3 +1,4 @@
+import { Geist } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import NotificacionesBell from "./NotificacionesBell";
@@ -6,6 +7,10 @@ import AgenteAncladoChip from "./AgenteAncladoChip";
 import MobileMenuButton from "./MobileMenuButton";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
+
+// Look técnico/geométrico solo para el título institucional del header —
+// el resto de la app sigue con la tipografía por defecto.
+const geist = Geist({ subsets: ["latin"], weight: ["600"] });
 
 export default async function Header() {
   const supabase = await createClient();
@@ -58,6 +63,9 @@ export default async function Header() {
   return (
     <header className="h-14 bg-slate-900 border-b border-slate-700 flex items-center px-4 lg:px-6">
       <MobileMenuButton />
+      <h1 className={`${geist.className} ml-2 lg:ml-0 text-sm lg:text-base font-semibold tracking-wide text-slate-100 truncate`}>
+        Dirección Monitoreo Cordobeses en Alerta
+      </h1>
       <div className="ml-auto flex items-center gap-3">
         <AgenteAncladoChip />
         <NotificacionesBell notificaciones={notificaciones} />
