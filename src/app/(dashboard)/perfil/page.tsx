@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import type { RolUsuario } from "@/types";
-import AgenteAvatar from "@/components/AgenteAvatar";
 import FotoPerfilBtn from "@/components/legajo/FotoPerfilBtn";
+import AvatarConVerFoto from "@/components/legajo/AvatarConVerFoto";
 import EventosResumenMobile from "@/app/(dashboard)/dashboard/EventosResumenMobile";
 
 const ROL_LABELS: Record<RolUsuario, string> = {
@@ -146,18 +146,12 @@ export default async function PerfilPage() {
           {/* Avatar posicionado absolutamente sobre el borde inferior del banner */}
           <div className="absolute left-6 bottom-0 translate-y-1/2 z-10">
             <div className="relative">
-              {agente ? (
-                <AgenteAvatar
-                  fotoUrl={agente.fotoUrl}
-                  sexo={agente.sexo}
-                  sizeClassName="w-20 h-20 rounded-full border-4 border-slate-900 shadow"
-                  iconSizeClassName="h-8 w-8"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-blue-700 border-4 border-slate-900 flex items-center justify-center text-white text-2xl font-bold shadow">
-                  {inicial}
-                </div>
-              )}
+              <AvatarConVerFoto
+                fotoUrl={agente?.fotoUrl ?? null}
+                sexo={agente?.sexo}
+                inicial={!agente ? inicial : undefined}
+                nombreCompleto={nombreCompleto}
+              />
               {agente && (
                 <FotoPerfilBtn
                   agenteId={agente.id}
@@ -189,7 +183,7 @@ export default async function PerfilPage() {
             </span>
             {solicitudFotoPendiente && (
               <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400">
-                ⏳ {solicitudFotoPendiente.tipo === "SUBIR" ? "Foto nueva en revisión" : "Solicitud para sacar tu foto en revisión"}
+                <span className="hourglass-flip">⏳</span> {solicitudFotoPendiente.tipo === "SUBIR" ? "Foto nueva en revisión" : "Solicitud para sacar tu foto en revisión"}
               </span>
             )}
           </div>
@@ -202,6 +196,32 @@ export default async function PerfilPage() {
           </p>
         </div>
       </div>
+
+      {/* Sin legajo vinculado: única forma de llegar a /mi-legajo para un
+          READONLY, porque el Sidebar le oculta toda la navegación. */}
+      {!agente && (
+        <div className="bg-slate-900 rounded-xl border border-slate-700 p-6 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-100">Todavía no tenés un legajo vinculado</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Vinculalo con un legajo ya cargado o cargá tus datos desde cero.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/mi-legajo"
+            className="shrink-0 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 transition-colors"
+          >
+            Ir a Mi Legajo
+          </a>
+        </div>
+      )}
 
       {/* Datos personales + Información laboral — lado a lado solo desde lg;
           en mobile, 2 columnas dejaba cada tarjeta con ~160px de ancho y

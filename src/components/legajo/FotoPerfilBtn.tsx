@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { actualizarFotoLegajo, eliminarFotoLegajo } from "@/app/actions/legajo";
 import { solicitarCambioFoto, solicitarQuitarFoto } from "@/app/actions/solicitudesFoto";
 import { subirFotoStorage } from "@/lib/fotoLegajo";
+import { esDispositivoMobil } from "@/lib/device";
+import CapturarFotoModal from "./CapturarFotoModal";
 
 interface Props {
   agenteId: string;
@@ -38,7 +40,9 @@ function RotarIcon({ className = "w-3 h-3" }: { className?: string }) {
 export default function FotoPerfilBtn({ agenteId, fotoUrlActual, esAdmin, tieneSolicitudPendiente }: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputCamaraRef = useRef<HTMLInputElement>(null);
   const [abierto, setAbierto] = useState(false);
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
   const [archivo, setArchivo] = useState<File | null>(null);
   const [previewArchivo, setPreviewArchivo] = useState<string | null>(null);
   const [previewCargada, setPreviewCargada] = useState(false);
@@ -56,13 +60,32 @@ export default function FotoPerfilBtn({ agenteId, fotoUrlActual, esAdmin, tieneS
     setPreviewArchivo(null);
   }
 
-  function handleArchivoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
+  function aplicarArchivo(file: File | null) {
     limpiarPreview();
     setPreviewCargada(false);
     setRotacion(0);
     setArchivo(file);
     setPreviewArchivo(file ? URL.createObjectURL(file) : null);
+  }
+
+  function handleArchivoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    aplicarArchivo(e.target.files?.[0] ?? null);
+  }
+
+  function handleFotoCapturada(file: File) {
+    aplicarArchivo(file);
+    setCamaraAbierta(false);
+  }
+
+  // En mobile dispara el input oculto (cámara nativa del SO, vía
+  // capture="user"); en desktop abre el modal con getUserMedia, porque ahí
+  // el atributo capture no hace nada.
+  function handleTomarFoto() {
+    if (esDispositivoMobil()) {
+      inputCamaraRef.current?.click();
+    } else {
+      setCamaraAbierta(true);
+    }
   }
 
   function handleQuitarArchivo() {
@@ -80,12 +103,14 @@ export default function FotoPerfilBtn({ agenteId, fotoUrlActual, esAdmin, tieneS
     setRotacion(0);
     setError(null);
     setEnviado(null);
+    setCamaraAbierta(false);
     setAbierto(true);
   }
 
   function handleCerrar() {
     if (pending) return;
     setAbierto(false);
+    setCamaraAbierta(false);
     limpiarPreview();
     setError(null);
     if (enviado) router.refresh();
@@ -158,7 +183,7 @@ export default function FotoPerfilBtn({ agenteId, fotoUrlActual, esAdmin, tieneS
           <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-md p-6 space-y-5">
             {enviado ? (
               <div className="text-center space-y-3 py-4">
-                <div className="text-4xl">📨</div>
+                <div className="text-4xl envelope-fly">📨</div>
                 <h2 className="text-base font-semibold text-slate-100">Solicitud enviada</h2>
                 <p className="text-sm text-slate-400">
                   {enviado === "subir"
@@ -187,13 +212,38 @@ export default function FotoPerfilBtn({ agenteId, fotoUrlActual, esAdmin, tieneS
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs text-slate-400 mb-1">Imagen</label>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleArchivoChange}
-                      className="w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-200 hover:file:bg-slate-700"
-                    />
+                    <div className="flex flex-wrap gap-2">
+                      <label
+                        htmlFor="foto-perfil-input"
+                        className="inline-flex items-center gap-2 cursor-pointer bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        📎 Seleccionar foto
+                      </label>
+                      <input
+                        ref={fileInputRef}
+                        id="foto-perfil-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleArchivoChange}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleTomarFoto}
+                        className="inline-flex items-center gap-2 cursor-pointer bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        📷 Tomar foto
+                      </button>
+                      <input
+                        ref={inputCamaraRef}
+                        id="foto-perfil-camara-input"
+                        type="file"
+                        accept="image/*"
+                        capture="user"
+                        onChange={handleArchivoChange}
+                        className="hidden"
+                      />
+                    </div>
                   </div>
                   {previewArchivo && (
                     <div className="relative w-24 h-24">
@@ -279,6 +329,14 @@ export default function FotoPerfilBtn({ agenteId, fotoUrlActual, esAdmin, tieneS
             )}
           </div>
         </div>,
+        document.body
+      )}
+
+      {camaraAbierta && createPortal(
+        <CapturarFotoModal
+          onCapturar={handleFotoCapturada}
+          onCerrar={() => setCamaraAbierta(false)}
+        />,
         document.body
       )}
     </>

@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { aprobarSolicitudFoto, rechazarSolicitudFoto } from "@/app/actions/solicitudesFoto";
+import { formatFechaHora } from "@/lib/fecha";
+import PreviewFoto from "@/components/PreviewFoto";
 
 interface SolicitudFotoItem {
   id: string;
@@ -50,16 +52,19 @@ function nombreSolicitud(s: SolicitudFotoItem) {
 }
 
 function formatFecha(iso: string) {
-  return new Date(iso).toLocaleDateString("es-AR", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
+  return formatFechaHora(iso);
 }
 
-function Miniatura({ src, label }: { src: string | null; label: string }) {
+function Miniatura({ src, label, onClick }: { src: string | null; label: string; onClick?: () => void }) {
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className="w-14 h-14 rounded-lg border border-slate-700 bg-slate-950 overflow-hidden flex items-center justify-center">
+      <div
+        onClick={src ? onClick : undefined}
+        title={src ? "Ver en detalle" : undefined}
+        className={`w-14 h-14 rounded-lg border border-slate-700 bg-slate-950 overflow-hidden flex items-center justify-center ${
+          src ? "cursor-pointer hover:border-blue-400 transition-colors" : ""
+        }`}
+      >
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={src} alt="" className="w-full h-full object-cover" />
@@ -79,6 +84,7 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudFotoItem }) {
   const [modalRechazo, setModalRechazo] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ src: string; label: string } | null>(null);
 
   function handleAprobar() {
     setError(null);
@@ -113,8 +119,18 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudFotoItem }) {
         <td className="px-4 py-3 text-sm text-slate-400">{TIPO_LABELS[solicitud.tipo] ?? solicitud.tipo}</td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
-            <Miniatura src={solicitud.fotoUrlAnterior} label="Actual" />
-            {solicitud.tipo === "SUBIR" && <Miniatura src={solicitud.fotoUrlPropuesta} label="Propuesta" />}
+            <Miniatura
+              src={solicitud.fotoUrlAnterior}
+              label="Actual"
+              onClick={() => solicitud.fotoUrlAnterior && setPreview({ src: solicitud.fotoUrlAnterior, label: "Foto actual" })}
+            />
+            {solicitud.tipo === "SUBIR" && (
+              <Miniatura
+                src={solicitud.fotoUrlPropuesta}
+                label="Propuesta"
+                onClick={() => solicitud.fotoUrlPropuesta && setPreview({ src: solicitud.fotoUrlPropuesta, label: `Foto propuesta por ${nombreSolicitud(solicitud)}` })}
+              />
+            )}
           </div>
         </td>
         <td className="px-4 py-3 text-sm text-slate-400">{formatFecha(solicitud.createdAt)}</td>
@@ -188,6 +204,14 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudFotoItem }) {
                 </div>
               </div>
             </div>
+          </td>
+        </tr>
+      )}
+
+      {preview && (
+        <tr>
+          <td colSpan={5} className="p-0">
+            <PreviewFoto src={preview.src} label={preview.label} onCerrar={() => setPreview(null)} />
           </td>
         </tr>
       )}

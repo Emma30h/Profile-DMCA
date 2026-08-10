@@ -18,6 +18,7 @@ async function getUsuarioPropietario(agenteId: string) {
     include: { agente: { select: { id: true, fotoUrl: true } } },
   });
   if (!usuario) throw new Error("Usuario no encontrado");
+  if (!usuario.activo) throw new Error("Sin permiso");
   if (usuario.agente?.id !== agenteId) throw new Error("Sin permiso");
   if (ROLES_ADMIN.includes(usuario.rol)) {
     throw new Error("Los administradores cambian su foto directamente, sin solicitud");
@@ -33,7 +34,7 @@ async function verificarAdmin() {
   const usuario = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
   });
-  if (!usuario || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+  if (!usuario || !usuario.activo || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
   return usuario;
 }
 
