@@ -242,14 +242,17 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
     const finde = esFinDeSemana(anio, mes, dia);
     const compact = variant === "grid";
 
+    // disabled:appearance-none saca la flechita nativa del <select> cuando
+    // el rol no puede editar (ej. Supervisor) — con la flechita puesta
+    // parece clickeable/editable aunque no lo sea.
     const grupoClass = compact
-      ? `w-full rounded px-1 py-0.5 text-[10px] font-semibold border disabled:opacity-80 ${info.grupoTurno ? GRUPO_BADGE[info.grupoTurno] : "bg-slate-800 text-slate-500 border-slate-700"}`
-      : `w-full rounded-lg px-2 py-1.5 text-xs font-semibold border disabled:opacity-80 ${info.grupoTurno ? GRUPO_BADGE[info.grupoTurno] : "bg-slate-800 text-slate-500 border-slate-700"}`;
+      ? `w-full rounded px-1 py-0.5 text-[10px] font-semibold border disabled:opacity-80 disabled:appearance-none ${info.grupoTurno ? GRUPO_BADGE[info.grupoTurno] : "bg-slate-800 text-slate-500 border-slate-700"}`
+      : `w-full rounded-lg px-2 py-1.5 text-xs font-semibold border disabled:opacity-80 disabled:appearance-none ${info.grupoTurno ? GRUPO_BADGE[info.grupoTurno] : "bg-slate-800 text-slate-500 border-slate-700"}`;
     const superiorClass = compact
-      ? "w-full rounded px-1 py-0.5 text-[9px] bg-slate-800 text-slate-300 border border-slate-700 disabled:opacity-80"
+      ? "w-full rounded px-1 py-0.5 text-[9px] bg-slate-800 text-slate-300 border border-slate-700 disabled:opacity-80 disabled:appearance-none"
       : "w-full rounded-lg px-2 py-1.5 text-xs bg-slate-800 text-slate-300 border border-slate-700 disabled:opacity-80";
     const jefeClass = compact
-      ? "w-full rounded px-1 py-0.5 text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/30 disabled:opacity-80"
+      ? "w-full rounded px-1 py-0.5 text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/30 disabled:opacity-80 disabled:appearance-none"
       : "w-full rounded-lg px-2 py-1.5 text-xs bg-amber-500/10 text-amber-300 border border-amber-500/30 disabled:opacity-80";
 
     return (
