@@ -195,7 +195,7 @@ function CamposRol({
           />
         )
       ) : (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <input
             type="text"
             value={draft.rangoLibre}
@@ -433,7 +433,7 @@ export default function GestorOrganigrama({
         <div
           key={sector.id}
           className="bg-slate-900 rounded-xl border border-slate-700 p-4 space-y-3"
-          style={{ marginLeft: sector.nivel * 28 }}
+          style={{ marginLeft: Math.min(sector.nivel, 2) * 20 }}
         >
           <div className="flex items-center gap-2.5">
             <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${ESTILO_TIPO[sector.tipo] ?? "bg-slate-700 text-slate-200"}`}>

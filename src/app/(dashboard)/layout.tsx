@@ -8,6 +8,7 @@ import { MobileSidebarProvider } from "@/components/layout/MobileSidebarContext"
 import EventosAsideShell from "@/components/layout/EventosAsideShell";
 import EventosAsideContent from "./dashboard/EventosAsideContent";
 import EventosAsideSkeleton from "./dashboard/EventosAsideSkeleton";
+import { autoVincularLegajo } from "@/lib/vincularLegajoAuto";
 import type { RolUsuario } from "@/types";
 
 async function ensureUsuario(): Promise<RolUsuario> {
@@ -84,6 +85,16 @@ async function ensureUsuario(): Promise<RolUsuario> {
         tipoPersonal: meta.tipoPersonal ?? null,
         jerarquia: meta.jerarquia ?? null,
       },
+    });
+
+    // Legajo cargado antes (ej. Excel) con el mismo CUIL declarado en el
+    // registro o, si no matchea, el mismo email → vincular solo (mismo
+    // criterio que /auth/callback).
+    await autoVincularLegajo(user.id, {
+      cuil: meta.cuil,
+      email: userEmail,
+      nombre: meta.nombre,
+      apellido: meta.apellido,
     });
   } catch (e: unknown) {
     // Carrera entre requests concurrentes — ignorar duplicado

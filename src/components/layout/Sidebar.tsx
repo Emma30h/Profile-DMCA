@@ -72,7 +72,7 @@ export default function Sidebar({ rol }: { rol: RolUsuario }) {
           <button
             type="button"
             onClick={cerrar}
-            className="lg:hidden absolute right-3 top-3 shrink-0 rounded p-1 text-slate-500 hover:text-slate-300"
+            className="lg:hidden absolute right-3 top-3 shrink-0 rounded p-2.5 text-slate-500 hover:text-slate-300"
             aria-label="Cerrar menú"
           >
             <X className="w-4 h-4" strokeWidth={1.75} />
@@ -86,9 +86,9 @@ export default function Sidebar({ rol }: { rol: RolUsuario }) {
           />
         </div>
 
-      {/* Nav principal — oculto para READONLY */}
+      {/* Nav principal — READONLY solo ve Organigrama (consulta libre, sin edición) */}
       <nav className="flex-1 px-2.5 py-3 space-y-0.5">
-        {esReadonly ? null : navItems.map((item) => {
+        {(esReadonly ? navItems.filter((item) => item.href === "/organigrama") : navItems).map((item) => {
           const Icon = item.icon;
 
           if (item.disabled) {

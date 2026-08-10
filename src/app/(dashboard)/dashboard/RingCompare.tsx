@@ -28,7 +28,7 @@ function Ring({ side, iconSize }: { side: RingSide; iconSize: number }) {
   return (
     <div className="flex flex-col items-center gap-3.5 flex-1 min-w-0">
       <div
-        className={`relative w-[124px] h-[124px] transition-transform duration-150 ${
+        className={`relative w-24 h-24 sm:w-[124px] sm:h-[124px] transition-transform duration-150 ${
           clickable ? "cursor-pointer hover:scale-110" : ""
         }`}
         onDoubleClick={() => {
@@ -71,9 +71,9 @@ export default function RingCompare({
   iconSize?: number;
 }) {
   return (
-    <div className="flex items-center justify-center py-1.5">
+    <div className="flex flex-wrap items-center justify-center py-1.5">
       <Ring side={left} iconSize={iconSize} />
-      <div className="flex flex-col items-center gap-2.5 px-5 self-stretch">
+      <div className="flex flex-col items-center gap-2.5 px-2 sm:px-5 self-stretch">
         <span className="w-px flex-1 bg-slate-800" />
         <span className="w-8 h-8 rounded-full bg-slate-950 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 tracking-wide shrink-0">
           VS

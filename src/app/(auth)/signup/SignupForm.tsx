@@ -46,6 +46,7 @@ export default function SignupForm({ rangos }: { rangos: Rango[] }) {
   const [confirmar, setConfirmar] = useState("");
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
+  const [cuil, setCuil] = useState("");
   const [tipoPersonal, setTipoPersonal] = useState<TipoPersonal | "">("");
   const [jerarquia, setJerarquia] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,6 +64,11 @@ export default function SignupForm({ rangos }: { rangos: Rango[] }) {
 
     if (!isSupabaseConfigured()) {
       setError("Supabase no está configurado en este entorno. Completá las variables de entorno.");
+      return;
+    }
+
+    if (cuil.length !== 11) {
+      setError("El CUIL debe tener exactamente 11 dígitos.");
       return;
     }
 
@@ -86,6 +92,7 @@ export default function SignupForm({ rangos }: { rangos: Rango[] }) {
         data: {
           nombre: capitalizar(nombre),
           apellido: capitalizar(apellido),
+          cuil,
           tipoPersonal: tipoPersonal || null,
           jerarquia: jerarquia.trim() || null,
         },
@@ -116,7 +123,7 @@ export default function SignupForm({ rangos }: { rangos: Rango[] }) {
       )}
 
       {/* Nombre y Apellido */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="nombre" className="block text-sm font-medium text-slate-300 mb-1">
             Nombre
@@ -147,6 +154,29 @@ export default function SignupForm({ rangos }: { rangos: Rango[] }) {
             className="w-full rounded-lg border border-slate-700 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
           />
         </div>
+      </div>
+
+      {/* CUIL — con esto cruzamos si ya existe un legajo cargado antes (ej.
+          import de Excel) y lo vinculamos solo a la cuenta nueva. */}
+      <div>
+        <label htmlFor="cuil" className="block text-sm font-medium text-slate-300 mb-1">
+          CUIL
+        </label>
+        <input
+          id="cuil"
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          required
+          maxLength={11}
+          value={cuil}
+          onChange={(e) => setCuil(e.target.value.replace(/\D/g, "").slice(0, 11))}
+          placeholder="Sin puntos ni guiones"
+          className="w-full rounded-lg border border-slate-700 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+        />
+        <p className="text-xs text-slate-500 mt-1">
+          Si ya tenías un legajo cargado, lo vinculamos automáticamente a tu cuenta.
+        </p>
       </div>
 
       {/* Tipo de personal */}

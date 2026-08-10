@@ -20,7 +20,7 @@ export default async function PersonalLayout({ children }: { children: React.Rea
     where: { OR: [{ id: user.id }, { email: user.email! }] },
     select: { rol: true },
   });
-  if (currentUser?.rol === "READONLY") redirect("/mi-legajo");
+  if (currentUser?.rol === "READONLY") redirect("/perfil");
 
   // Se trae la lista completa una sola vez (sin filtros): son ~170 agentes,
   // así que filtrar en el cliente sobre este set ya cargado es instantáneo y

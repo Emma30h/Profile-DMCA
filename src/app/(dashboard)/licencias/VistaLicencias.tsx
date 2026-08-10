@@ -1106,7 +1106,47 @@ export default function VistaLicencias({
       )}
       {mainTab === "licencias" && !vistaPending && vista === "lista" && (
         <div key={vista} className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden animate-fade-in">
-          <div className="overflow-x-auto">
+          {/* Mobile: la tabla de 6 columnas no entra en un teléfono sin
+              scroll horizontal permanente — mismo criterio que el resto de
+              la app (calendario/agenda), acá una tarjeta por licencia. */}
+          <div className="lg:hidden divide-y divide-slate-800">
+            {licenciasFiltradas.length === 0 ? (
+              <p className="px-6 py-12 text-center text-sm text-slate-500">No hay licencias.</p>
+            ) : (
+              licenciasVisibles.map((l) => (
+                <div key={l.id} className="px-4 py-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <Link href={`/personal/${l.agente.id}?tab=licencias&volver=${encodeURIComponent("/licencias")}`} className="font-medium text-slate-100 hover:text-blue-400 transition-colors truncate">
+                      {l.agente.apellidos}, {l.agente.nombres}
+                    </Link>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-slate-800 text-slate-400"}`}>
+                      {TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}
+                      <span>{TIPO_LICENCIA_EMOJI[l.tipo]}</span>
+                    </span>
+                  </div>
+                  {!esSupervisor && l.agente.sector && (
+                    <p className="text-xs text-slate-400">{l.agente.sector}</p>
+                  )}
+                  <div className="flex items-center justify-between gap-2 text-xs text-slate-300">
+                    <span className="inline-flex items-center gap-1.5">
+                      {!soloVigentes && estadoVigencia(l) && (
+                        <span
+                          className={`inline-block h-2 w-2 rounded-full shrink-0 ${VIGENCIA_COLOR[estadoVigencia(l)!]}`}
+                          title={VIGENCIA_LABEL[estadoVigencia(l)!]}
+                        />
+                      )}
+                      {fmt(l.fechaInicio)} → {fmt(l.fechaFin)}
+                    </span>
+                    <span className="text-slate-400">{l.diasHabiles} días</span>
+                  </div>
+                  {l.motivo && (
+                    <p className="text-xs text-slate-500 truncate">{l.motivo}</p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+          <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-950 border-b border-slate-700">

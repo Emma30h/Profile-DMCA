@@ -192,7 +192,7 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
 
             <div
               ref={attachViewport}
-              className="flex-1 min-w-0 overflow-x-auto no-scrollbar cursor-grab active:cursor-grabbing"
+              className="flex-1 min-w-0 overflow-x-auto no-scrollbar cursor-grab active:cursor-grabbing touch-pan-y"
               onPointerDown={(e) => {
                 panState.current = { panning: true, moved: false, startX: e.clientX, startScroll: viewportRef.current!.scrollLeft };
                 (e.target as HTMLElement).setPointerCapture(e.pointerId);

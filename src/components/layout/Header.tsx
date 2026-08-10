@@ -63,10 +63,11 @@ export default async function Header() {
   return (
     <header className="h-14 bg-slate-900 border-b border-slate-700 flex items-center px-4 lg:px-6">
       <MobileMenuButton />
-      <h1 className={`${geist.className} ml-2 lg:ml-0 text-sm lg:text-base font-semibold tracking-wide text-slate-100 truncate`}>
-        Dirección Monitoreo Cordobeses en Alerta
+      <h1 className={`${geist.className} ml-2 lg:ml-0 min-w-0 flex-1 text-sm lg:text-base font-semibold tracking-wide text-slate-100 truncate`}>
+        <span className="lg:hidden">DMCA</span>
+        <span className="hidden lg:inline">Dirección Monitoreo Cordobeses en Alerta</span>
       </h1>
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-3 shrink-0">
         <AgenteAncladoChip />
         <NotificacionesBell notificaciones={notificaciones} />
         {user && (
