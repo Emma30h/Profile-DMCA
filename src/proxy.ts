@@ -16,6 +16,14 @@ function isSupabaseConfigured(): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+  // Las Server Actions POSTean a la URL actual (ej. una action llamada desde
+  // /login justo después de un login recién hecho, donde Supabase ya ve al
+  // usuario autenticado aunque nuestra tabla lo tenga como inactivo). Si acá
+  // las redirigimos, el cliente recibe una respuesta HTML común en vez del
+  // formato que espera el protocolo de Server Actions y explota con
+  // "unexpected response was received from the server". Cada action ya
+  // valida sesión/rol por su cuenta, así que alcanza con dejarlas pasar.
+  const isServerAction = request.headers.get("next-action") !== null;
 
   // Si Supabase no está configurado (variables placeholder), permitir todo el tráfico
   // pero redirigir rutas protegidas a /login para que el dev vea la UI.
@@ -54,14 +62,16 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Usuario autenticado intenta acceder a /login → redirigir al dashboard
-  if (user && pathname.startsWith("/login")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
+  if (!isServerAction) {
+    // Usuario autenticado intenta acceder a /login → redirigir al dashboard
+    if (user && pathname.startsWith("/login")) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
 
-  // Usuario no autenticado intenta acceder a ruta protegida → redirigir al login
-  if (!user && !isPublicRoute) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    // Usuario no autenticado intenta acceder a ruta protegida → redirigir al login
+    if (!user && !isPublicRoute) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
   }
 
   return supabaseResponse;
