@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { marcarNotificacionesLeidas } from "@/app/actions/solicitudes";
 import { createClient } from "@/lib/supabase/client";
+import { iconoNotificacion, hrefNotificacion } from "@/lib/notificaciones";
+import { formatFechaHora } from "@/lib/fecha";
 
 interface Notif {
   id: string;
@@ -18,40 +20,6 @@ interface Notif {
 interface Props {
   notificaciones: Notif[];
 }
-
-const TIPO_ICON: Record<string, string> = {
-  SOLICITUD_NUEVA: "📋",
-  APROBADA: "✅",
-  RECHAZADA: "❌",
-  PERMISO_VENCIDO: "⏰",
-  LEGAJO_NUEVO: "🔔",
-  LEGAJO_APROBADO: "✅",
-  LEGAJO_RECHAZADO: "❌",
-  LEGAJO_VINCULADO_AUTO: "🔗",
-  ESTADO_CAMBIADO: "🔄",
-  LICENCIA_NUEVA: "📅",
-  LICENCIA_PENDIENTE_NUEVA: "🏖️",
-  SOLICITUD_FOTO_NUEVA: "🖼️",
-  FOTO_APROBADA: "✅",
-  FOTO_RECHAZADA: "❌",
-};
-
-const TIPO_HREF: Record<string, string> = {
-  SOLICITUD_NUEVA: "/configuracion/solicitudes",
-  LEGAJO_NUEVO: "/personal",
-  APROBADA: "/mi-legajo",
-  RECHAZADA: "/mi-legajo",
-  PERMISO_VENCIDO: "/mi-legajo",
-  LEGAJO_APROBADO: "/mi-legajo",
-  LEGAJO_RECHAZADO: "/mi-legajo",
-  LEGAJO_VINCULADO_AUTO: "/personal",
-  ESTADO_CAMBIADO: "/mi-legajo",
-  LICENCIA_NUEVA: "/mi-legajo",
-  LICENCIA_PENDIENTE_NUEVA: "/mi-legajo",
-  SOLICITUD_FOTO_NUEVA: "/configuracion/solicitudes",
-  FOTO_APROBADA: "/perfil",
-  FOTO_RECHAZADA: "/perfil",
-};
 
 export default function NotificacionesBell({ notificaciones: inicial }: Props) {
   const router = useRouter();
@@ -140,7 +108,7 @@ export default function NotificacionesBell({ notificaciones: inicial }: Props) {
           />
 
           {/* Panel */}
-          <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border border-slate-700 bg-slate-900 shadow-lg overflow-hidden">
+          <div className="absolute right-0 top-full mt-2 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-700 bg-slate-900 shadow-lg overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
               <span className="text-sm font-semibold text-slate-100">Notificaciones</span>
               {noLeidas > 0 && !pending && (
@@ -155,19 +123,14 @@ export default function NotificacionesBell({ notificaciones: inicial }: Props) {
                 </div>
               ) : (
                 notificaciones.map((n) => {
-                  const href = n.referenciaId && (n.tipo === "LEGAJO_NUEVO" || n.tipo === "LEGAJO_VINCULADO_AUTO")
-                    ? `/personal/${n.referenciaId}`
-                    : TIPO_HREF[n.tipo];
+                  const href = hrefNotificacion(n.tipo, n.referenciaId);
                   const inner = (
                     <>
-                      <span className="shrink-0 text-base leading-5">{TIPO_ICON[n.tipo] ?? "🔔"}</span>
+                      <span className="shrink-0 text-base leading-5">{iconoNotificacion(n.tipo)}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-slate-300 leading-snug">{n.mensaje}</p>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          {new Date(n.createdAt).toLocaleDateString("es-AR", {
-                            day: "2-digit", month: "2-digit", year: "numeric",
-                            hour: "2-digit", minute: "2-digit",
-                          })}
+                          {formatFechaHora(n.createdAt)}
                         </p>
                       </div>
                     </>
