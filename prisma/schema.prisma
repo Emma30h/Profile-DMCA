@@ -112,7 +112,7 @@ model Agente {
   motivoRechazo     String? // Motivo del último rechazo de validación
   fechaIngreso DateTime?
   turno        String?
-  // Valores turno: "A"|"B"|"C"|"D"|"E"|"F"|"ADMINISTRATIVO"|"FULL TIME"|"GUARDIA LARGA"|"SUPERIOR DE TURNO"
+  // Valores turno: "A"|"B"|"C"|"D"|"E"|"F"|"ADMINISTRATIVO"|"FULL TIME"|"GUARDIA LARGA"|"SUPERIOR DE TURNO"|"PERSONAL INGRESANTE"
   // Editable libremente para cualquier agente, sin importar tipoPersonal/perteneceETAC.
   origenInstitucional         String? // OrigenInstitucional: "GOBIERNO"|"DMCA"|"911"|"OTRA_DEPENDENCIA"
   origenInstitucionalDetalle  String? // Nombre de la dependencia cuando origenInstitucional = "OTRA_DEPENDENCIA"

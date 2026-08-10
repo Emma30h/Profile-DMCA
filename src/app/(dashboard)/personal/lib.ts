@@ -86,7 +86,7 @@ export async function getAgentesResumen(
 
 // Turnos rotativos agrupados primero, luego los especiales (en vez de orden alfabético,
 // que intercala "ADMINISTRATIVO" entre "A" y "B").
-const ORDEN_TURNOS = ["A", "B", "C", "D", "E", "F", "ADMINISTRATIVO", "FULL TIME", "GUARDIA LARGA", "SUPERIOR DE TURNO"];
+const ORDEN_TURNOS = ["A", "B", "C", "D", "E", "F", "ADMINISTRATIVO", "FULL TIME", "GUARDIA LARGA", "SUPERIOR DE TURNO", "PERSONAL INGRESANTE"];
 
 export function compararTurnos(a: string, b: string): number {
   const ia = ORDEN_TURNOS.indexOf(a);

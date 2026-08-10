@@ -971,7 +971,7 @@ function TabCambios({ auditLogs, historialEstados }: { auditLogs: AuditLogEntry[
 const ESTADO_CIVIL_OPTIONS = ["Soltero/a", "Casado/a", "Divorciado/a", "Viudo/a", "Conviviente", "Separado/a"].map((v) => ({ value: v, label: v }));
 const GRUPO_SANGUINEO_OPTIONS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "0+", "0-"].map((v) => ({ value: v, label: v }));
 const NIVEL_OPTIONS = ["Completo", "Incompleto", "En curso"].map((v) => ({ value: v, label: v }));
-const TURNO_OPTIONS = ["A","B","C","D","E","F","ADMINISTRATIVO","FULL TIME","GUARDIA LARGA","SUPERIOR DE TURNO"].map((v) => ({ value: v, label: v }));
+const TURNO_OPTIONS = ["A","B","C","D","E","F","ADMINISTRATIVO","FULL TIME","GUARDIA LARGA","SUPERIOR DE TURNO","PERSONAL INGRESANTE"].map((v) => ({ value: v, label: v }));
 
 function EditTabPersonal({ form, setForm }: {
   form: DatosPersonales;
