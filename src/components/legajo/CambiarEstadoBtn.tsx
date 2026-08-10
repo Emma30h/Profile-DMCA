@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { cambiarEstadoAgente } from "@/app/actions/estado";
+import { cambiarEstadoAgente, actualizarFechaVigenciaEstado } from "@/app/actions/estado";
+import { formatFechaHora } from "@/lib/fecha";
 
 const ESTADO_BADGE: Record<string, string> = {
   PENDIENTE: "bg-yellow-500/15 text-yellow-400",
@@ -37,9 +38,12 @@ function hoyLocalISO(): string {
 interface Props {
   agenteId: string;
   estadoActual: string;
+  /** ISO del último cambio hacia el estado actual, o null si no hay registro. */
+  desde?: string | null;
+  motivo?: string | null;
 }
 
-export default function CambiarEstadoBtn({ agenteId, estadoActual }: Props) {
+export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo: motivoVigente }: Props) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [nuevoEstado, setNuevoEstado] = useState("");
@@ -48,6 +52,15 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const [editandoFecha, setEditandoFecha] = useState(false);
+  const [nuevaFechaVigencia, setNuevaFechaVigencia] = useState("");
+  const [errorFecha, setErrorFecha] = useState<string | null>(null);
+  const [pendingFecha, startTransitionFecha] = useTransition();
+  // Se pisa apenas se confirma el guardado, para que el texto se actualice
+  // al instante sin esperar el round-trip de router.refresh() al servidor.
+  const [desdeOverride, setDesdeOverride] = useState<string | null>(null);
+  const desdeMostrado = desdeOverride ?? desde ?? null;
+
   const opciones = OPCIONES.filter((o) => o.value !== estadoActual);
 
   function handleAbrir() {
@@ -55,6 +68,7 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual }: Props) {
     setMotivo("");
     setFecha(hoyLocalISO());
     setError(null);
+    setEditandoFecha(false);
     setAbierto(true);
   }
 
@@ -62,6 +76,33 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual }: Props) {
     if (pending) return;
     setAbierto(false);
     setError(null);
+  }
+
+  function handleAbrirEditarFecha() {
+    // desdeMostrado está en formato ISO de medianoche UTC (viene de un input
+    // date sin hora), así que tomar los primeros 10 caracteres reproduce
+    // exactamente el yyyy-mm-dd que se cargó originalmente.
+    setNuevaFechaVigencia(desdeMostrado ? desdeMostrado.slice(0, 10) : "");
+    setErrorFecha(null);
+    setEditandoFecha(true);
+  }
+
+  function handleGuardarFecha() {
+    if (!nuevaFechaVigencia) return;
+    setErrorFecha(null);
+    startTransitionFecha(async () => {
+      try {
+        await actualizarFechaVigenciaEstado(agenteId, nuevaFechaVigencia);
+        // new Date("yyyy-mm-dd") interpreta el string como medianoche UTC,
+        // igual que el server action — así el texto queda consistente con
+        // lo que va a devolver el próximo fetch.
+        setDesdeOverride(new Date(nuevaFechaVigencia).toISOString());
+        setEditandoFecha(false);
+        router.refresh();
+      } catch (e) {
+        setErrorFecha(e instanceof Error ? e.message : "Error al actualizar la fecha.");
+      }
+    });
   }
 
   function handleConfirmar() {
@@ -119,6 +160,52 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual }: Props) {
                   {ESTADO_LABELS[estadoActual] ?? estadoActual}
                 </span>
               </p>
+              {desdeMostrado && (
+                editandoFecha ? (
+                  <div className="mt-2 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={nuevaFechaVigencia}
+                        onChange={(e) => {
+                          setNuevaFechaVigencia(e.target.value);
+                          setErrorFecha(null);
+                        }}
+                        className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-100 bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [color-scheme:dark]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleGuardarFecha}
+                        disabled={pendingFecha || !nuevaFechaVigencia}
+                        className="text-xs font-medium text-blue-400 hover:text-blue-300 disabled:opacity-50"
+                      >
+                        {pendingFecha ? "Guardando..." : "Guardar"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setEditandoFecha(false); setErrorFecha(null); }}
+                        disabled={pendingFecha}
+                        className="text-xs font-medium text-slate-500 hover:text-slate-300 disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                    {errorFecha && <p className="text-xs text-red-400">{errorFecha}</p>}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 mt-1.5">
+                    Vigente desde {formatFechaHora(desdeMostrado, { utc: true, separador: " " })}
+                    {motivoVigente && <> — <span className="text-slate-400">{motivoVigente}</span></>}{" "}
+                    <button
+                      type="button"
+                      onClick={handleAbrirEditarFecha}
+                      className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                    >
+                      editar fecha
+                    </button>
+                  </p>
+                )
+              )}
             </div>
 
             <div className="space-y-4">

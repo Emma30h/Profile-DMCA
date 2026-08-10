@@ -8,6 +8,8 @@ import ValidarLegajoBtn from "@/components/legajo/ValidarLegajoBtn";
 import CambiarEstadoBtn from "@/components/legajo/CambiarEstadoBtn";
 import FotoLegajoBtn from "@/components/legajo/FotoLegajoBtn";
 import AgenteAvatar from "@/components/AgenteAvatar";
+import VerFotoTrigger from "@/components/legajo/VerFotoTrigger";
+import EstadoBadgeInfo from "@/components/legajo/EstadoBadgeInfo";
 import LimpiarFicheroButton from "../LimpiarFicheroButton";
 import { buildQueryString, type FiltrosPersonalParams } from "../queryString";
 
@@ -16,20 +18,6 @@ const TIPO_LABELS: Record<TipoPersonal, string> = {
   TECNICO: "Técnico",
   CIVIL_BECARIO: "Civil Becario",
   CIVIL_POLICIAL: "Civil Policial",
-};
-
-const ESTADO_BADGE: Record<EstadoAgente, string> = {
-  PENDIENTE: "bg-yellow-500/15 text-yellow-400",
-  ACTIVO: "bg-green-500/15 text-green-400",
-  BAJA: "bg-slate-800 text-slate-400",
-  PASE: "bg-blue-500/15 text-blue-300",
-};
-
-const ESTADO_LABELS: Record<EstadoAgente, string> = {
-  PENDIENTE: "Pendiente",
-  ACTIVO: "Activo",
-  BAJA: "Baja",
-  PASE: "Pase",
 };
 
 export default async function PersonalDetallePage({
@@ -136,6 +124,13 @@ export default async function PersonalDetallePage({
   const tipo = agente.tipoPersonal as TipoPersonal;
   const estado = agente.estado as EstadoAgente;
 
+  // Último registro de historial cuyo estadoNuevo coincide con el estado
+  // vigente — es el "desde cuándo" que se muestra al hacer click en el
+  // badge (historialEstadosSerialized viene ordenado desc por createdAt).
+  const ultimoCambioEstado = historialEstadosSerialized.find((h) => h.estadoNuevo === estado) ?? null;
+  const estadoDesde = ultimoCambioEstado?.createdAt ?? null;
+  const estadoMotivo = ultimoCambioEstado?.motivo ?? null;
+
   // Serializar fechas para pasar al Client Component
   const agenteSerializado = {
     ...agente,
@@ -172,12 +167,14 @@ export default async function PersonalDetallePage({
           <div className="flex items-start gap-5">
             {/* Avatar */}
             <div className="relative shrink-0">
-              <AgenteAvatar
-                fotoUrl={agente.fotoUrl}
-                sexo={agente.sexo}
-                sizeClassName="w-16 h-16 rounded-xl"
-                iconSizeClassName="h-8 w-8"
-              />
+              <VerFotoTrigger fotoUrl={agente.fotoUrl} nombreCompleto={`${agente.apellidos}, ${agente.nombres}`}>
+                <AgenteAvatar
+                  fotoUrl={agente.fotoUrl}
+                  sexo={agente.sexo}
+                  sizeClassName="w-16 h-16 rounded-xl"
+                  iconSizeClassName="h-8 w-8"
+                />
+              </VerFotoTrigger>
               {estado === "ACTIVO" && (
                 <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-green-500 border-2 border-slate-900" />
               )}
@@ -197,15 +194,9 @@ export default async function PersonalDetallePage({
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {canEdit && estado !== "PENDIENTE" ? (
-                    <CambiarEstadoBtn agenteId={agente.id} estadoActual={estado} />
+                    <CambiarEstadoBtn agenteId={agente.id} estadoActual={estado} desde={estadoDesde} motivo={estadoMotivo} />
                   ) : (
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        ESTADO_BADGE[estado] ?? "bg-slate-800 text-slate-400"
-                      }`}
-                    >
-                      {ESTADO_LABELS[estado] ?? estado}
-                    </span>
+                    <EstadoBadgeInfo estado={estado} desde={estadoDesde} motivo={estadoMotivo} />
                   )}
                   {agente.turno && (
                     <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-800 text-white">

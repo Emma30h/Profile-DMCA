@@ -110,3 +110,47 @@ export async function cambiarEstadoAgente(
     estadoNuevoLabel: ESTADO_LABELS[nuevoEstado] ?? nuevoEstado,
   };
 }
+
+/** Corrige la fecha de vigencia del estado actual (el registro de
+ *  HistorialEstado más reciente cuyo estadoNuevo coincide con el estado
+ *  vigente), sin disparar un cambio de estado nuevo. */
+export async function actualizarFechaVigenciaEstado(agenteId: string, nuevaFecha: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const current = await prisma.usuario.findFirst({
+    where: { OR: [{ id: user.id }, { email: user.email! }] },
+    select: { rol: true, activo: true },
+  });
+  if (!current) throw new Error("Usuario no encontrado");
+  if (!current.activo || !ROLES_PERMITIDOS.includes(current.rol)) {
+    throw new Error("Sin permiso para editar la fecha del estado");
+  }
+
+  const fecha = new Date(nuevaFecha);
+  if (isNaN(fecha.getTime())) throw new Error("Fecha inválida");
+
+  const agente = await prisma.agente.findUnique({
+    where: { id: agenteId },
+    select: { estado: true },
+  });
+  if (!agente) throw new Error("Agente no encontrado");
+
+  const ultimoCambio = await prisma.historialEstado.findFirst({
+    where: { agenteId, estadoNuevo: agente.estado },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!ultimoCambio) throw new Error("No hay un registro de vigencia para editar");
+
+  await prisma.historialEstado.update({
+    where: { id: ultimoCambio.id },
+    data: { createdAt: fecha },
+  });
+
+  await invalidateAgentesCache();
+  revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
+  revalidatePath("/mi-legajo");
+  revalidatePath("/dashboard");
+}
