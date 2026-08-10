@@ -173,6 +173,7 @@ model Agente {
   historialRangos     HistorialRango[]
   historialEstados    HistorialEstado[]
   solicitudesFoto     SolicitudFoto[]
+  solicitudesVinculacion SolicitudVinculacion[]
   rolesOrganigrama    RolOrganigrama[]
   diasComoSuperiorTurno DiaTurno[] @relation("SuperiorTurnoDias")
   diasComoJefeFinDe     DiaTurno[] @relation("JefeFinDeDias")
@@ -226,6 +227,7 @@ model Usuario {
   agente            Agente?
   solicitudesEdicion SolicitudEdicion[]
   solicitudesFoto    SolicitudFoto[]
+  solicitudesVinculacion SolicitudVinculacion[]
   notificaciones    Notificacion[]
 
   @@map("usuarios")
@@ -251,6 +253,26 @@ model SolicitudFoto {
   revisadoEn        DateTime?
 
   @@map("solicitudes_foto")
+}
+
+// Cuando el registro o el autoservicio en /mi-legajo encuentran un legajo
+// candidato (por CUIL, DNI embebido o email) para vincular a una cuenta
+// nueva, no se vincula al toque: queda pendiente acá hasta que un admin lo
+// confirme. Evita que alcance con saber el DNI de otra persona para acceder
+// a su legajo completo (domicilio, salud, familia) apenas registrándose.
+model SolicitudVinculacion {
+  id            String    @id @default(cuid())
+  usuarioId     String
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id])
+  agenteId      String
+  agente        Agente    @relation(fields: [agenteId], references: [id])
+  criterio      String    // "CUIL" | "DNI" | "EMAIL"
+  estado        String    @default("PENDIENTE") // "PENDIENTE" | "APROBADA" | "RECHAZADA"
+  motivoRechazo String?
+  createdAt     DateTime  @default(now())
+  revisadoEn    DateTime?
+
+  @@map("solicitudes_vinculacion")
 }
 
 model Turno {
@@ -390,6 +412,7 @@ model SolicitudEdicion {
   usuarioId      String
   usuario        Usuario   @relation(fields: [usuarioId], references: [id])
   estado         String    @default("PENDIENTE") // "PENDIENTE" | "APROBADA" | "RECHAZADA"
+  motivo         String? // por qué el agente pide editar — opcional, lo escribe él mismo
   motivoRechazo  String?
   permisoHasta   DateTime?
   createdAt      DateTime  @default(now())
@@ -432,6 +455,24 @@ model ResetToken {
   createdAt DateTime @default(now())
 
   @@map("reset_tokens")
+}
+
+// Confirmación en 3 pasos para eliminar un usuario desde /configuracion/usuarios:
+// el código va al mail del admin que pide el borrado (no al del usuario objetivo,
+// que puede no tener ya ni cuenta), y queda scopeado a ese par admin/objetivo para
+// que no sirva para borrar a otra persona.
+model ConfirmacionEliminarUsuario {
+  id               String   @id @default(cuid())
+  adminId          String
+  objetivoId       String
+  code             String
+  expiresAt        DateTime
+  attempts         Int      @default(0) // intentos fallidos del código
+  intentosPassword Int      @default(0) // intentos fallidos de contraseña
+  verified         Boolean  @default(false) // código verificado, falta la contraseña
+  createdAt        DateTime @default(now())
+
+  @@map("confirmaciones_eliminar_usuario")
 }
 
 model AuditLog {

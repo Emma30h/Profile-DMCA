@@ -15,10 +15,10 @@ async function verificarAdmin() {
 
   const current = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
-    select: { rol: true },
+    select: { rol: true, activo: true },
   });
 
-  if (!current || !ROLES_ADMIN.includes(current.rol as RolUsuario)) {
+  if (!current || !current.activo || !ROLES_ADMIN.includes(current.rol as RolUsuario)) {
     throw new Error("Sin permiso");
   }
 }

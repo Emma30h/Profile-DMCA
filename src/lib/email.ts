@@ -94,6 +94,72 @@ export async function enviarPermisoVencido(to: string, nombreCompleto: string): 
   );
 }
 
+export async function enviarLegajoAprobado(to: string, nombreCompleto: string): Promise<void> {
+  await enviarEmail(
+    to,
+    `[${APP_NAME}] Tu legajo fue aprobado`,
+    `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
+      <h2 style="margin:0 0 8px;font-size:20px;color:#111827">Legajo aprobado</h2>
+      <p style="margin:0 0 16px;color:#6b7280;font-size:14px">
+        Hola <strong>${nombreCompleto}</strong>, tu legajo fue <strong style="color:#16a34a">aprobado</strong>.
+        Ya podés acceder a todos tus datos desde "Mi Legajo".
+      </p>
+    </div>
+    `,
+  );
+}
+
+export async function enviarLegajoRechazado(to: string, nombreCompleto: string, motivo: string): Promise<void> {
+  await enviarEmail(
+    to,
+    `[${APP_NAME}] Tu legajo fue rechazado`,
+    `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
+      <h2 style="margin:0 0 8px;font-size:20px;color:#111827">Legajo rechazado</h2>
+      <p style="margin:0 0 16px;color:#6b7280;font-size:14px">
+        Hola <strong>${nombreCompleto}</strong>, tu legajo fue auditado por un administrador, siendo el mismo <strong style="color:#dc2626">rechazado</strong>.
+      </p>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:20px;margin-bottom:24px">
+        <p style="margin:0 0 6px;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em">Motivo</p>
+        <p style="margin:0;font-size:14px;color:#7f1d1d">${motivo}</p>
+      </div>
+      <p style="margin:0;font-size:12px;color:#9ca3af">
+        Ingresá a la aplicación y dirigite a "Mi Legajo" para corregir la información.
+      </p>
+    </div>
+    `,
+  );
+}
+
+export async function enviarCodigoEliminarUsuario(to: string, codigo: string, nombreObjetivo: string): Promise<void> {
+  await enviarEmail(
+    to,
+    `[${APP_NAME}] Código para eliminar una cuenta`,
+    `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
+      <h2 style="margin:0 0 8px;font-size:20px;color:#111827">Confirmá la eliminación de una cuenta</h2>
+      <p style="margin:0 0 24px;color:#6b7280;font-size:14px">
+        Pediste eliminar la cuenta de <strong>${nombreObjetivo}</strong> en <strong>${APP_NAME}</strong>.
+        Usá este código para confirmarlo.
+      </p>
+      <div style="background:#fef2f2;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
+        <p style="margin:0 0 8px;font-size:12px;color:#7f1d1d;text-transform:uppercase;letter-spacing:0.05em">
+          Código de verificación
+        </p>
+        <p style="margin:0;font-size:36px;font-weight:700;letter-spacing:0.15em;color:#111827;font-family:monospace">
+          ${codigo}
+        </p>
+        <p style="margin:8px 0 0;font-size:12px;color:#9ca3af">Válido por 15 minutos</p>
+      </div>
+      <p style="margin:0;font-size:12px;color:#9ca3af">
+        Si no fuiste vos, ignorá este correo — la cuenta no se va a eliminar.
+      </p>
+    </div>
+    `,
+  );
+}
+
 export async function enviarCodigoReset(to: string, codigo: string): Promise<void> {
   const response = await fetch(BREVO_API_URL, {
     method: "POST",

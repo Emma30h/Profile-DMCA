@@ -22,7 +22,7 @@ async function verificarAdmin() {
   const usuario = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
   });
-  if (!usuario || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+  if (!usuario || !usuario.activo || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
   return usuario;
 }
 

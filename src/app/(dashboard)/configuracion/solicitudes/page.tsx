@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import GestorSolicitudes from "./GestorSolicitudes";
 import GestorSolicitudesFoto from "./GestorSolicitudesFoto";
+import GestorSolicitudesVinculacion from "./GestorSolicitudesVinculacion";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 
@@ -38,6 +39,7 @@ export default async function SolicitudesPage() {
   const serialized = solicitudes.map((s) => ({
     id: s.id,
     estado: s.estado,
+    motivo: s.motivo,
     motivoRechazo: s.motivoRechazo,
     permisoHasta: s.permisoHasta?.toISOString() ?? null,
     createdAt: s.createdAt.toISOString(),
@@ -92,6 +94,32 @@ export default async function SolicitudesPage() {
   const fotoPendientes = fotoSerialized.filter((s) => s.estado === "PENDIENTE");
   const fotoHistorial = fotoSerialized.filter((s) => s.estado !== "PENDIENTE");
 
+  const solicitudesVinculacion = await prisma.solicitudVinculacion.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      usuario: { select: { id: true, email: true, nombre: true, apellido: true } },
+      agente: { select: { nombres: true, apellidos: true, cuil: true } },
+    },
+  });
+
+  const vinculacionSerialized = solicitudesVinculacion.map((s) => ({
+    id: s.id,
+    criterio: s.criterio,
+    estado: s.estado,
+    motivoRechazo: s.motivoRechazo,
+    createdAt: s.createdAt.toISOString(),
+    usuario: {
+      id: s.usuario.id,
+      email: s.usuario.email,
+      nombre: s.usuario.nombre,
+      apellido: s.usuario.apellido,
+    },
+    agente: { nombres: s.agente.nombres, apellidos: s.agente.apellidos, cuil: s.agente.cuil },
+  }));
+
+  const vinculacionPendientes = vinculacionSerialized.filter((s) => s.estado === "PENDIENTE");
+  const vinculacionHistorial = vinculacionSerialized.filter((s) => s.estado !== "PENDIENTE");
+
   return (
     <div className="space-y-5">
       <div>
@@ -111,6 +139,16 @@ export default async function SolicitudesPage() {
       </div>
 
       <GestorSolicitudesFoto pendientes={fotoPendientes} historial={fotoHistorial} />
+
+      <div>
+        <h2 className="text-xl font-semibold text-slate-100">Vinculaciones de cuenta</h2>
+        <p className="text-sm text-slate-400 mt-0.5">
+          Confirmá que la cuenta corresponda de verdad al legajo candidato antes de aprobar — el
+          match es automático (CUIL, DNI o email), pero el acceso a los datos queda en tus manos.
+        </p>
+      </div>
+
+      <GestorSolicitudesVinculacion pendientes={vinculacionPendientes} historial={vinculacionHistorial} />
     </div>
   );
 }

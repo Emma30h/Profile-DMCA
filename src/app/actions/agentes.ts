@@ -21,11 +21,12 @@ async function verificarPermiso(agenteId: string): Promise<{ usuarioId: string; 
   const current = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
     select: {
-      id: true, rol: true, nombre: true, apellido: true,
+      id: true, rol: true, activo: true, nombre: true, apellido: true,
       agente: { select: { id: true } },
     },
   });
   if (!current) throw new Error("Usuario no encontrado");
+  if (!current.activo) throw new Error("Sin permiso");
 
   const nombreDisplay =
     [current.nombre, current.apellido].filter(Boolean).join(" ") || user.email!;
@@ -410,10 +411,10 @@ async function verificarAdmin(): Promise<{ usuarioId: string; usuarioNombre: str
 
   const current = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
-    select: { id: true, rol: true, nombre: true, apellido: true },
+    select: { id: true, rol: true, activo: true, nombre: true, apellido: true },
   });
   if (!current) throw new Error("Usuario no encontrado");
-  if (!ROLES_ADMIN.includes(current.rol)) throw new Error("Sin permiso");
+  if (!current.activo || !ROLES_ADMIN.includes(current.rol)) throw new Error("Sin permiso");
 
   return {
     usuarioId: current.id,

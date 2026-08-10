@@ -6,6 +6,7 @@ import LegajoTabs from "../personal/[id]/LegajoTabs";
 import SolicitarEdicionBtn from "./SolicitarEdicionBtn";
 import AgenteAvatar from "@/components/AgenteAvatar";
 import VincularPorCuilForm from "./VincularPorCuilForm";
+import CargarMisDatosBtn from "./CargarMisDatosBtn";
 
 const MAX_INTENTOS_CUIL = 3;
 
@@ -41,9 +42,8 @@ export default async function MiLegajoPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Sin Supabase configurado (dev), redirigir al dashboard
   if (!user) {
-    redirect("/dashboard");
+    redirect("/login");
   }
 
   const usuario = await prisma.usuario.findFirst({
@@ -92,6 +92,26 @@ export default async function MiLegajoPage() {
   // Si el usuario no tiene agente vinculado, primero ofrecer vincularse con
   // un legajo ya cargado (por CUIL) antes de mandarlo a cargar todo de cero.
   if (!usuario?.agente) {
+    const solicitudPendiente = await prisma.solicitudVinculacion.findFirst({
+      where: { usuarioId: usuario!.id, estado: "PENDIENTE" },
+    });
+
+    if (solicitudPendiente) {
+      return (
+        <div className="space-y-5">
+          <h2 className="text-xl font-semibold text-slate-100">Mi Legajo</h2>
+          <div className="bg-slate-900 rounded-xl border border-slate-700 px-8 py-16 text-center space-y-4">
+            <p className="text-5xl"><span className="hourglass-flip">⏳</span></p>
+            <p className="text-slate-200 font-semibold text-lg">Tu solicitud de vinculación está pendiente</p>
+            <p className="text-sm text-slate-400 max-w-sm mx-auto">
+              Un administrador va a revisar y confirmar tu vinculación al legajo antes de darte acceso.
+              Te avisamos apenas se resuelva.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     const intentosRestantes = Math.max(0, MAX_INTENTOS_CUIL - (usuario?.intentosCuil ?? 0));
     return (
       <div className="space-y-5">
@@ -108,12 +128,7 @@ export default async function MiLegajoPage() {
             <p className="text-sm text-slate-400">
               ¿No tenés un legajo cargado todavía? Podés crearlo desde cero.
             </p>
-            <a
-              href="/mi-legajo/crear"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
-            >
-              Cargar mis datos →
-            </a>
+            <CargarMisDatosBtn />
           </div>
         </div>
       </div>
@@ -256,7 +271,7 @@ export default async function MiLegajoPage() {
             </div>
           ) : (
             <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl px-5 py-4">
-              <p className="text-sm font-semibold text-yellow-300">⏳ Tu legajo está en revisión</p>
+              <p className="text-sm font-semibold text-yellow-300"><span className="hourglass-flip">⏳</span> Tu legajo está en revisión</p>
               <p className="text-sm text-yellow-400 mt-0.5">Un administrador lo revisará y lo activará a la brevedad. Podés editar tus datos mientras tanto.</p>
             </div>
           )}

@@ -15,7 +15,7 @@ export default async function TurnosPage() {
     where: { OR: [{ id: user.id }, { email: user.email! }] },
     select: { rol: true },
   });
-  if (currentUser?.rol === "READONLY") redirect("/mi-legajo");
+  if (currentUser?.rol === "READONLY") redirect("/perfil");
 
   const canEdit = ROLES_ADMIN.includes(currentUser?.rol ?? "");
 

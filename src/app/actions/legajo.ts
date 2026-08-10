@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { invalidateAgentesCache } from "@/lib/redis";
+import { enviarLegajoAprobado, enviarLegajoRechazado } from "@/lib/email";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 
@@ -85,12 +86,22 @@ export async function crearLegajoPropio(data: DatosNuevoLegajo): Promise<{ agent
   if (!usuario) throw new Error("Usuario no encontrado");
   if (usuario.agente) throw new Error("Ya tenés un legajo vinculado a tu cuenta");
 
+  const solicitudPendiente = await prisma.solicitudVinculacion.findFirst({
+    where: { usuarioId: usuario.id, estado: "PENDIENTE" },
+  });
+  if (solicitudPendiente) {
+    throw new Error("Tenés una solicitud de vinculación pendiente de aprobación. Esperá la revisión antes de cargar un legajo nuevo.");
+  }
+
   // Validaciones
   const cuil = data.cuil.replace(/\D/g, "");
   if (cuil.length !== 11) throw new Error("El CUIL debe tener exactamente 11 dígitos");
 
   const existeCuil = await prisma.agente.findUnique({ where: { cuil } });
   if (existeCuil) throw new Error("Ya existe un legajo registrado con ese CUIL");
+
+  const existeEmail = await prisma.agente.findUnique({ where: { email: user.email! } });
+  if (existeEmail) throw new Error("Ya existe un legajo registrado con ese email. Probá vincularte por CUIL en vez de cargar uno nuevo.");
 
   if (!data.apellidos.trim()) throw new Error("El apellido es obligatorio");
   if (!data.nombres.trim()) throw new Error("El nombre es obligatorio");
@@ -186,10 +197,13 @@ const MAX_INTENTOS_CUIL = 3;
 // prueba emparentarse con un legajo cargado antes por otra vía (ej. Excel
 // del formulario de Google) que todavía no tiene usuario asignado. Se limita
 // la cantidad de intentos por cuenta para que no sirva como método de fuerza
-// bruta contra el CUIL (dato derivable del DNI) de otra persona.
+// bruta contra el CUIL (dato derivable del DNI) de otra persona. El match no
+// se aplica solo: queda como SolicitudVinculacion pendiente hasta que un
+// admin la confirme (ver src/lib/vincularLegajoAuto.ts para el mismo
+// criterio en el registro).
 export async function vincularPorCuil(
   cuilInput: string
-): Promise<{ vinculado: boolean; intentosRestantes: number }> {
+): Promise<{ pendiente: boolean; intentosRestantes: number }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -202,6 +216,13 @@ export async function vincularPorCuil(
   if (usuario.agente) throw new Error("Ya tenés un legajo vinculado a tu cuenta");
   if (usuario.intentosCuil >= MAX_INTENTOS_CUIL) {
     throw new Error("Se agotaron los intentos para vincular por CUIL. Cargá tu legajo manualmente.");
+  }
+
+  const solicitudPendiente = await prisma.solicitudVinculacion.findFirst({
+    where: { usuarioId: usuario.id, estado: "PENDIENTE" },
+  });
+  if (solicitudPendiente) {
+    throw new Error("Ya tenés una solicitud de vinculación pendiente de aprobación.");
   }
 
   const cuil = cuilInput.replace(/\D/g, "");
@@ -218,12 +239,11 @@ export async function vincularPorCuil(
       data: { intentosCuil: { increment: 1 } },
     });
     revalidatePath("/mi-legajo");
-    return { vinculado: false, intentosRestantes: Math.max(0, MAX_INTENTOS_CUIL - actualizado.intentosCuil) };
+    return { pendiente: false, intentosRestantes: Math.max(0, MAX_INTENTOS_CUIL - actualizado.intentosCuil) };
   }
 
-  await prisma.agente.update({
-    where: { id: agente.id },
-    data: { usuarioId: usuario.id },
+  const solicitud = await prisma.solicitudVinculacion.create({
+    data: { usuarioId: usuario.id, agenteId: agente.id, criterio: "CUIL" },
   });
 
   const admins = await prisma.usuario.findMany({
@@ -234,18 +254,16 @@ export async function vincularPorCuil(
     await prisma.notificacion.createMany({
       data: admins.map((a) => ({
         usuarioId: a.id,
-        tipo: "LEGAJO_VINCULADO_AUTO",
-        mensaje: `${agente.apellidos}, ${agente.nombres} se vinculó automáticamente por CUIL a la cuenta ${usuario.email}.`,
-        referenciaId: agente.id,
+        tipo: "VINCULACION_PENDIENTE",
+        mensaje: `${usuario.email} pidió vincularse por CUIL al legajo de ${agente.apellidos}, ${agente.nombres} — pendiente de tu confirmación.`,
+        referenciaId: solicitud.id,
       })),
     });
   }
 
-  await invalidateAgentesCache();
   revalidatePath("/mi-legajo");
-  revalidatePath("/personal");
 
-  return { vinculado: true, intentosRestantes: MAX_INTENTOS_CUIL - usuario.intentosCuil };
+  return { pendiente: true, intentosRestantes: MAX_INTENTOS_CUIL - usuario.intentosCuil };
 }
 
 export async function actualizarFotoLegajo(agenteId: string, fotoUrl: string): Promise<void> {
@@ -313,7 +331,7 @@ export async function actualizarFotoLegajoAdmin(agenteId: string, fotoUrl: strin
   const usuario = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
   });
-  if (!usuario || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+  if (!usuario || !usuario.activo || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
 
   await prisma.agente.update({
     where: { id: agenteId },
@@ -334,7 +352,7 @@ export async function eliminarFotoLegajoAdmin(agenteId: string): Promise<void> {
   const usuario = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
   });
-  if (!usuario || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+  if (!usuario || !usuario.activo || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
 
   await prisma.agente.update({
     where: { id: agenteId },
@@ -368,7 +386,7 @@ export async function subirFotoLegajoDesdeUrl(
   const usuario = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
   });
-  if (!usuario || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+  if (!usuario || !usuario.activo || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
 
   let url: URL;
   try {
@@ -440,12 +458,12 @@ export async function aprobarLegajo(agenteId: string): Promise<void> {
   const usuario = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
   });
-  if (!usuario || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+  if (!usuario || !usuario.activo || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
 
   const agente = await prisma.agente.update({
     where: { id: agenteId },
     data: { estado: "ACTIVO", motivoRechazo: null },
-    include: { usuario: { select: { id: true } } },
+    include: { usuario: { select: { id: true, email: true } } },
   });
 
   if (agente.usuario?.id) {
@@ -457,6 +475,12 @@ export async function aprobarLegajo(agenteId: string): Promise<void> {
         referenciaId: agenteId,
       },
     });
+
+    try {
+      await enviarLegajoAprobado(agente.usuario.email, `${agente.apellidos}, ${agente.nombres}`);
+    } catch {
+      // No interrumpir el flujo si falla el email
+    }
   }
 
   await invalidateAgentesCache();
@@ -474,14 +498,14 @@ export async function rechazarLegajo(agenteId: string, motivo: string): Promise<
   const usuario = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
   });
-  if (!usuario || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+  if (!usuario || !usuario.activo || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
 
   if (!motivo.trim()) throw new Error("El motivo de rechazo es obligatorio");
 
   const agente = await prisma.agente.update({
     where: { id: agenteId },
     data: { estado: "PENDIENTE", motivoRechazo: motivo.trim() },
-    include: { usuario: { select: { id: true } } },
+    include: { usuario: { select: { id: true, email: true } } },
   });
 
   if (agente.usuario?.id) {
@@ -493,6 +517,12 @@ export async function rechazarLegajo(agenteId: string, motivo: string): Promise<
         referenciaId: agenteId,
       },
     });
+
+    try {
+      await enviarLegajoRechazado(agente.usuario.email, `${agente.apellidos}, ${agente.nombres}`, motivo.trim());
+    } catch {
+      // No interrumpir el flujo si falla el email
+    }
   }
 
   await invalidateAgentesCache();
@@ -500,4 +530,29 @@ export async function rechazarLegajo(agenteId: string, motivo: string): Promise<
   revalidatePath("/personal");
   revalidatePath("/mi-legajo");
   revalidatePath("/dashboard");
+}
+
+// Deshace un rechazo cargado por error — a diferencia de aprobarLegajo, no
+// activa el legajo (el admin puede no haberlo terminado de revisar), solo
+// borra el motivo y lo deja como pendiente sin observaciones. No depende de
+// que el agente haga nada.
+export async function deshacerRechazoLegajo(agenteId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const usuario = await prisma.usuario.findFirst({
+    where: { OR: [{ id: user.id }, { email: user.email! }] },
+  });
+  if (!usuario || !usuario.activo || !ROLES_ADMIN.includes(usuario.rol)) throw new Error("Sin permiso");
+
+  await prisma.agente.update({
+    where: { id: agenteId },
+    data: { motivoRechazo: null },
+  });
+
+  await invalidateAgentesCache();
+  revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
+  revalidatePath("/mi-legajo");
 }

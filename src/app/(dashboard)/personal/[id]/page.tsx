@@ -236,7 +236,7 @@ export default async function PersonalDetallePage({
 
         {/* Validación de legajo pendiente */}
         {canEdit && estado === "PENDIENTE" && (
-          <ValidarLegajoBtn agenteId={agente.id} />
+          <ValidarLegajoBtn agenteId={agente.id} motivoRechazo={agente.motivoRechazo} />
         )}
 
         {/* Tabs con todo el legajo */}

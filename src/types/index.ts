@@ -145,6 +145,7 @@ export const ESTADOS_ASISTENCIA: EstadoAsistencia[] = [
 ];
 
 export type TipoNotificacion =
+  | "USUARIO_NUEVO"
   | "SOLICITUD_NUEVA"
   | "APROBADA"
   | "RECHAZADA"
@@ -158,4 +159,7 @@ export type TipoNotificacion =
   | "LICENCIA_PENDIENTE_NUEVA"
   | "SOLICITUD_FOTO_NUEVA"
   | "FOTO_APROBADA"
-  | "FOTO_RECHAZADA";
+  | "FOTO_RECHAZADA"
+  | "VINCULACION_PENDIENTE"
+  | "VINCULACION_APROBADA"
+  | "VINCULACION_RECHAZADA";
