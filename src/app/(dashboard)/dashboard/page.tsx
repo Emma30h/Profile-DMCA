@@ -37,7 +37,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <NovedadesDrawer novedades={stats.novedades} tno={stats.tno} />
+      <NovedadesDrawer novedades={stats.novedades} tno={stats.tno} cursoAscenso={stats.cursoAscenso} />
 
       <EventosResumenMobile />
 

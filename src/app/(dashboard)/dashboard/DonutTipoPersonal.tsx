@@ -48,9 +48,17 @@ export default function DonutTipoPersonal({ data, total }: Props) {
     router.push(`/personal?tipo=${tipo}&estado=ACTIVO`);
   }
 
+  // Largo del arco a partir de la fracción exacta (count/total), no del pct
+  // ya redondeado a entero — sumar pcts redondeados por separado puede dar
+  // 101% o 99%, y ese desvío corre el offset acumulado del último segmento
+  // hasta coincidir con el del primero, tapándolo por completo. Además, un
+  // mínimo de largo visible evita que un tipo con muy pocos agentes (ej. 1%)
+  // quede como una franja de menos de un píxel, invisible en la práctica.
+  const MIN_LARGO = 6;
   const segmentos = data.reduce<Array<TipoPersonalStats & { largo: number; offset: number }>>((acc, d) => {
     const acumulado = acc.length > 0 ? -acc[acc.length - 1].offset + acc[acc.length - 1].largo : 0;
-    const largo = (d.pct / 100) * CIRCUNFERENCIA;
+    const fraccion = total > 0 ? d.count / total : 0;
+    const largo = d.count > 0 ? Math.max(fraccion * CIRCUNFERENCIA, MIN_LARGO) : 0;
     return [...acc, { ...d, largo, offset: -acumulado }];
   }, []);
 

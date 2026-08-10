@@ -134,6 +134,7 @@ export interface FlujoPersonalStats {
 export interface NovedadTipoStats {
   tipo: TipoLicencia;
   count: number;
+  ids: string[];
 }
 
 export interface TnoStats {
@@ -145,6 +146,7 @@ export interface DashboardStats {
   kpi: KpiStats;
   alertas: AlertaStats;
   tno: TnoStats;
+  cursoAscenso: TnoStats;
   totalActivos: number;
   turno: ConteoLabel[];
   dependencia: ConteoConIds[];
@@ -266,6 +268,7 @@ async function calcularStats(): Promise<DashboardStats> {
     chalecoVencidoRows,
     chalecoTotal,
     tnoRows,
+    cursoAscensoRows,
     totalActivos,
     porTurno,
     agentesPorSector,
@@ -300,11 +303,12 @@ async function calcularStats(): Promise<DashboardStats> {
       orderBy: { fechaFin: "asc" },
     }),
     // "Novedades administrativas" (cajón del dashboard): mismo criterio de
-    // "vigente hoy" que licenciasActivasHoy, desglosado por tipo.
-    prisma.licencia.groupBy({
-      by: ["tipo"],
+    // "vigente hoy" que licenciasActivasHoy, desglosado por tipo. findMany
+    // (no groupBy) para poder ofrecer el drill-down a /personal con los
+    // agentes puntuales de cada tipo, igual que el resto de las tarjetas.
+    prisma.licencia.findMany({
       where: { estado: "APROBADA", fechaInicio: { lte: hoy }, fechaFin: { gte: hoy }, agente: { estado: "ACTIVO" } },
-      _count: { _all: true },
+      select: { tipo: true, agenteId: true },
     }),
     prisma.agente.findMany({
       where: { estado: "ACTIVO", tipoPersonal: { in: ["SEGURIDAD", "TECNICO"] }, licenciaVencimiento: { lt: hoy } },
@@ -319,6 +323,10 @@ async function calcularStats(): Promise<DashboardStats> {
     }),
     prisma.agente.findMany({
       where: { estado: "ACTIVO", tipoPersonal: "SEGURIDAD", enTNO: true },
+      select: { id: true },
+    }),
+    prisma.agente.findMany({
+      where: { estado: "ACTIVO", fechaInicioCursoAscenso: { not: null } },
       select: { id: true },
     }),
     prisma.agente.count({ where: { estado: "ACTIVO" } }),
@@ -415,15 +423,16 @@ async function calcularStats(): Promise<DashboardStats> {
   // ── Novedades administrativas: con 15 tipos posibles, solo se muestran los
   // que tienen actividad hoy (mostrar los 15 siempre, la mayoría en 0, dejó de
   // ser "de un vistazo" como cuando eran 8) ──
-  const conteoPorTipoLicencia = Object.fromEntries(TIPOS_LICENCIA.map((t) => [t, 0])) as Record<TipoLicencia, number>;
+  const idsPorTipoLicencia = Object.fromEntries(TIPOS_LICENCIA.map((t) => [t, [] as string[]])) as Record<TipoLicencia, string[]>;
   for (const n of novedadesPorTipo) {
-    conteoPorTipoLicencia[n.tipo as TipoLicencia] = n._count._all;
+    idsPorTipoLicencia[n.tipo as TipoLicencia].push(n.agenteId);
   }
   const novedades: NovedadTipoStats[] = TIPOS_LICENCIA
-    .map((tipo) => ({ tipo, count: conteoPorTipoLicencia[tipo] }))
+    .map((tipo) => ({ tipo, count: idsPorTipoLicencia[tipo].length, ids: idsPorTipoLicencia[tipo] }))
     .filter((n) => n.count > 0);
 
   const tno: TnoStats = { count: tnoRows.length, ids: tnoRows.map((a) => a.id) };
+  const cursoAscenso: TnoStats = { count: cursoAscensoRows.length, ids: cursoAscensoRows.map((a) => a.id) };
 
   // ── Tipo de personal: todos los tipos presentes aunque tengan 0 ──
   const conteoPorTipo = Object.fromEntries(TIPOS_PERSONAL.map((t) => [t, 0])) as Record<TipoPersonal, number>;
@@ -494,6 +503,7 @@ async function calcularStats(): Promise<DashboardStats> {
       chalecoTotal,
     },
     tno,
+    cursoAscenso,
     totalActivos,
     turno,
     dependencia,
