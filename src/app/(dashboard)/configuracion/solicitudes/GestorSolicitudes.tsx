@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { aprobarSolicitud, rechazarSolicitud } from "@/app/actions/solicitudes";
+import { formatFechaHora } from "@/lib/fecha";
 
 interface SolicitudItem {
   id: string;
   estado: string;
+  motivo: string | null;
   motivoRechazo: string | null;
   permisoHasta: string | null;
   createdAt: string;
@@ -43,10 +45,7 @@ function nombreSolicitud(s: SolicitudItem) {
 }
 
 function formatFecha(iso: string) {
-  return new Date(iso).toLocaleDateString("es-AR", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
+  return formatFechaHora(iso);
 }
 
 // ─── Fila pendiente ───────────────────────────────────────────────────────────
@@ -86,6 +85,9 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudItem }) {
         <td className="px-4 py-3">
           <p className="font-medium text-slate-100">{nombreSolicitud(solicitud)}</p>
           <p className="text-xs text-slate-500">{solicitud.usuario.email}</p>
+          {solicitud.motivo && (
+            <p className="text-xs text-slate-400 italic mt-1">&ldquo;{solicitud.motivo}&rdquo;</p>
+          )}
         </td>
         <td className="px-4 py-3 text-sm text-slate-400">{formatFecha(solicitud.createdAt)}</td>
         <td className="px-4 py-3">
@@ -221,6 +223,9 @@ function TablaHistorial({ solicitudes }: { solicitudes: SolicitudItem[] }) {
                 <td className="px-4 py-3">
                   <p className="font-medium text-slate-100">{nombreSolicitud(s)}</p>
                   <p className="text-xs text-slate-500">{s.usuario.email}</p>
+                  {s.motivo && (
+                    <p className="text-xs text-slate-400 italic mt-1">&ldquo;{s.motivo}&rdquo;</p>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-slate-400">{formatFecha(s.createdAt)}</td>
                 <td className="px-4 py-3">

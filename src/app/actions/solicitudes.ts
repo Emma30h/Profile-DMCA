@@ -8,6 +8,7 @@ import {
   enviarRechazoEdicion,
   enviarPermisoVencido,
 } from "@/lib/email";
+import { verificarPassword } from "@/lib/verificarPassword";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 const HORAS_PERMISO = 48;
@@ -19,9 +20,10 @@ async function getUsuarioActual() {
 
   const usuario = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
-    select: { id: true, rol: true, nombre: true, apellido: true, email: true },
+    select: { id: true, rol: true, activo: true, nombre: true, apellido: true, email: true },
   });
   if (!usuario) throw new Error("Usuario no encontrado");
+  if (!usuario.activo) throw new Error("Sin permiso");
 
   return usuario;
 }
@@ -34,12 +36,15 @@ async function verificarAdmin() {
 
 // ─── Crear solicitud ──────────────────────────────────────────────────────────
 
-export async function crearSolicitudEdicion() {
+export async function crearSolicitudEdicion(password: string, motivo?: string) {
   const usuario = await getUsuarioActual();
 
   if (ROLES_ADMIN.includes(usuario.rol)) {
     throw new Error("Los administradores no necesitan solicitar permiso");
   }
+
+  const passwordOk = await verificarPassword(usuario.email, password);
+  if (!passwordOk) throw new Error("Contraseña incorrecta.");
 
   // Verificar que no tenga una solicitud pendiente o permiso activo
   const existente = await prisma.solicitudEdicion.findFirst({
@@ -57,7 +62,7 @@ export async function crearSolicitudEdicion() {
   }
 
   await prisma.solicitudEdicion.create({
-    data: { usuarioId: usuario.id, estado: "PENDIENTE" },
+    data: { usuarioId: usuario.id, estado: "PENDIENTE", motivo: motivo?.trim() || null },
   });
 
   // Notificar a todos los admins
