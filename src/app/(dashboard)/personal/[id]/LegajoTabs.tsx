@@ -27,6 +27,7 @@ import {
   TIPO_LICENCIA_LABELS,
 } from "@/types";
 import EstadisticasLicencias, { type AgenteInfoInforme } from "./EstadisticasLicencias";
+import { formatFechaHora } from "@/lib/fecha";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -325,7 +326,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div>
       <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{title}</h3>
-      <div className="grid grid-cols-2 gap-x-8 gap-y-3 md:grid-cols-3">{children}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 md:grid-cols-3">{children}</div>
     </div>
   );
 }
@@ -564,13 +565,15 @@ function TabPersonal({ a }: { a: AgenteDetalle }) {
       </Section>
       <div className="border-t border-slate-800" />
       <Section title="Domicilio">
-        <Field icon={<IconMapPinMini />} label="Ciudad" value={val(a.ciudad)} />
-        <Field icon={<IconMapPinMini />} label="Barrio" value={val(a.barrio)} />
-        {/* Espaciador: fuerza el salto de fila en md:grid-cols-3 para que
-            Domicilio real, Número y Piso queden alineados en la misma línea. */}
-        <div className="hidden md:block" aria-hidden="true" />
         <Field icon={<IconMapPinMini />} label="Domicilio real" value={val(a.domicilioReal)} />
+        {/* Espaciadores: fuerzan el salto de fila en md:grid-cols-3 para que
+            Domicilio real quede solo en su línea y Número/Barrio/Ciudad
+            queden alineados juntos en la siguiente. */}
+        <div className="hidden md:block" aria-hidden="true" />
+        <div className="hidden md:block" aria-hidden="true" />
         <Field icon={<IconMapPinMini />} label="Número" value={val(a.nroDomicilio)} />
+        <Field icon={<IconMapPinMini />} label="Barrio" value={val(a.barrio)} />
+        <Field icon={<IconMapPinMini />} label="Ciudad" value={val(a.ciudad)} />
         <Field icon={<IconMapPinMini />} label="Piso" value={val(a.piso)} />
       </Section>
       <div className="border-t border-slate-800" />
@@ -612,7 +615,7 @@ function TabLaboral({ a }: { a: AgenteDetalle }) {
       <Section title="Información laboral">
         <Field icon={<IconBadgeMini />} label="Tipo de personal" value={tipoLabels[a.tipoPersonal] ?? a.tipoPersonal} />
         <Field icon={<IconCheckCircle />} label="Estado" value={estadoLabels[a.estado] ?? a.estado} />
-        <Field icon={<IconCalendarMini />} label="Fecha de ingreso" value={fmt(a.fechaIngreso)} />
+        <Field icon={<IconCalendarMini />} label="Fecha de ingreso a Ojos en Alerta" value={fmt(a.fechaIngreso)} />
         <Field icon={<IconClockMini />} label="Turno" value={val(a.turno)} />
         <Field icon={<IconBuildingMini />} label="Sector" value={val(a.sector?.nombre)} />
         <Field icon={<IconFlagMini />} label="Origen institucional" value={origenValue} />
@@ -862,10 +865,7 @@ const ESTADO_LABEL_MAP: Record<string, string> = {
 };
 
 function fmtFechaHora(iso: string) {
-  const d = new Date(iso);
-  const fechaStr = d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
-  const horaStr = d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
-  return `${fechaStr} ${horaStr}`;
+  return formatFechaHora(iso, { utc: true, separador: " " });
 }
 
 function TabCambios({ auditLogs, historialEstados }: { auditLogs: AuditLogEntry[]; historialEstados: HistorialEstadoEntry[] }) {
@@ -1016,13 +1016,15 @@ function EditTabPersonal({ form, setForm }: {
       <div className="border-t border-slate-800" />
 
       <Section title="Domicilio">
-        <InputEdit label="Ciudad" value={form.ciudad} onChange={set("ciudad")} />
-        <InputEdit label="Barrio" value={form.barrio} onChange={set("barrio")} />
-        {/* Espaciador: fuerza el salto de fila en md:grid-cols-3 para que
-            Domicilio real, Número y Piso queden alineados en la misma línea. */}
-        <div className="hidden md:block" aria-hidden="true" />
         <InputEdit label="Domicilio real" value={form.domicilioReal} onChange={set("domicilioReal")} />
+        {/* Espaciadores: fuerzan el salto de fila en md:grid-cols-3 para que
+            Domicilio real quede solo en su línea y Número/Barrio/Ciudad
+            queden alineados juntos en la siguiente. */}
+        <div className="hidden md:block" aria-hidden="true" />
+        <div className="hidden md:block" aria-hidden="true" />
         <InputEdit label="Número" value={form.nroDomicilio} onChange={set("nroDomicilio")} />
+        <InputEdit label="Barrio" value={form.barrio} onChange={set("barrio")} />
+        <InputEdit label="Ciudad" value={form.ciudad} onChange={set("ciudad")} />
         <InputEdit label="Piso" value={form.piso} onChange={set("piso")} />
       </Section>
 
@@ -1614,7 +1616,7 @@ function NuevaLicenciaSkeleton() {
   return (
     <div className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4 space-y-3">
       <div className="h-4 w-28 rounded skeleton-shimmer" />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="col-span-2">
           <div className="h-3 w-10 rounded skeleton-shimmer mb-1" />
           <div className="h-[38px] rounded-lg border border-slate-800 skeleton-shimmer" />
@@ -1984,7 +1986,7 @@ function TabLicencias({
       {mostrarForm && subTab === "licencias" && (
         <form onSubmit={handleCrearLicencia} className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4 space-y-3">
           <p className="text-sm font-medium text-slate-300">Nueva licencia</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <SelectorTipoLicencia />
             <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2">
               <button
@@ -2088,7 +2090,7 @@ function TabLicencias({
       {mostrarForm && subTab === "pendientes" && (
         <form onSubmit={handleCrearPendiente} className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4 space-y-3">
           <p className="text-sm font-medium text-slate-300">Nuevo pendiente</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
               <select name="tipo" required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -2152,7 +2154,7 @@ function TabLicencias({
                 {editandoId === l.id ? (
                   <form onSubmit={(e) => handleEditarLicencia(e, l.id)} className="rounded-xl border border-yellow-500/25 bg-yellow-500/10 p-4 space-y-3">
                     <p className="text-sm font-medium text-slate-300">Editar licencia</p>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <SelectorTipoLicencia defaultValue={l.tipo as TipoLicencia} />
                       <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1">Fecha inicio</label>
@@ -2255,7 +2257,7 @@ function TabLicencias({
                   {editandoId === p.id ? (
                     <form onSubmit={(e) => handleEditarPendiente(e, p.id)} className="rounded-xl border border-yellow-500/25 bg-yellow-500/10 p-4 space-y-3">
                       <p className="text-sm font-medium text-slate-300">Editar pendiente</p>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
                           <select name="tipo" defaultValue={p.tipo} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -2333,7 +2335,7 @@ function TabLicencias({
                       {/* Mini-form registrar uso */}
                       {usoFormId === p.id && (
                         <form onSubmit={(e) => handleRegistrarUso(e, p.id)} className="mt-3 rounded-lg border border-blue-500/25 bg-blue-500/10 p-3 space-y-2">
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
                               <label className="block text-xs font-medium text-slate-400 mb-1">Fecha</label>
                               <input type="date" name="fecha" required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />

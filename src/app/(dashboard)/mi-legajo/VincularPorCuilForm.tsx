@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { vincularPorCuil } from "@/app/actions/legajo";
+
+// Recién a partir de acá se muestra el texto "Buscando..." con los puntos
+// animados — antes de eso alcanza con el spinner (ver LoginForm.tsx).
+const MS_ANTES_DE_AVISAR_DEMORA = 15000;
 
 export default function VincularPorCuilForm({
   intentosRestantesInicial,
@@ -14,14 +18,22 @@ export default function VincularPorCuilForm({
   const [error, setError] = useState<string | null>(null);
   const [intentosRestantes, setIntentosRestantes] = useState(intentosRestantesInicial);
   const [pending, startTransition] = useTransition();
+  const [tardando, setTardando] = useState(false);
+
+  useEffect(() => {
+    if (!pending) return;
+    const timer = setTimeout(() => setTardando(true), MS_ANTES_DE_AVISAR_DEMORA);
+    return () => clearTimeout(timer);
+  }, [pending]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setTardando(false);
     startTransition(async () => {
       try {
         const resultado = await vincularPorCuil(cuil);
-        if (resultado.vinculado) {
+        if (resultado.pendiente) {
           router.refresh();
           return;
         }
@@ -66,13 +78,38 @@ export default function VincularPorCuilForm({
       <button
         type="submit"
         disabled={pending || cuil.length !== 11}
-        className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 transition-colors"
+        className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 transition-colors flex items-center justify-center gap-2"
       >
-        {pending ? "Buscando…" : "Buscar mi legajo"}
+        {pending ? (
+          <>
+            <Spinner />
+            {tardando ? (
+              <span className="inline-flex items-center">
+                Buscando
+                <span className="loading-dots inline-flex" aria-hidden="true">
+                  <span>.</span><span>.</span><span>.</span>
+                </span>
+              </span>
+            ) : (
+              "Buscando"
+            )}
+          </>
+        ) : (
+          "Buscar mi legajo"
+        )}
       </button>
       <p className="text-xs text-slate-500">
         Intentos restantes: {intentosRestantes}
       </p>
     </form>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg className="spinner h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
   );
 }

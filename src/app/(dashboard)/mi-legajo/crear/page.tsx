@@ -22,6 +22,8 @@ export default async function CrearLegajoPage() {
     orderBy: { orden: "asc" },
   });
 
+  const meta = user.user_metadata ?? {};
+
   return (
     <div className="space-y-5 max-w-2xl mx-auto">
       <div>
@@ -35,6 +37,12 @@ export default async function CrearLegajoPage() {
       <CrearLegajoWizard
         rangos={rangos}
         emailUsuario={user.email ?? ""}
+        datosIniciales={{
+          nombres: meta.nombre,
+          apellidos: meta.apellido,
+          cuil: meta.cuil,
+          tipoPersonal: meta.tipoPersonal,
+        }}
       />
     </div>
   );

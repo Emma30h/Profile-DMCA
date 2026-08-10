@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { crearLegajoPropio, actualizarFotoLegajo, type DatosNuevoLegajo } from "@/app/actions/legajo";
 import { subirFotoStorage } from "@/lib/fotoLegajo";
+import { esDispositivoMobil } from "@/lib/device";
+import CapturarFotoModal from "./CapturarFotoModal";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -44,6 +46,9 @@ const PASOS = [
 interface Props {
   rangos: { id: string; nombre: string; cuerpo: string }[];
   emailUsuario: string;
+  // Precarga lo que ya se cargó en el formulario de registro, para no
+  // pedírselo de nuevo acá.
+  datosIniciales?: { nombres?: string; apellidos?: string; cuil?: string; tipoPersonal?: string };
 }
 
 type FormData = DatosNuevoLegajo & {
@@ -123,21 +128,73 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
+export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales }: Props) {
   const router = useRouter();
   const [paso, setPaso] = useState(0);
-  const [form, setForm] = useState<FormData>(inicial);
+  // El paso más lejano que el usuario ya validó — hasta ahí puede saltar
+  // libremente desde el indicador para corregir algo, sin tener que ir
+  // retrocediendo de a un paso por vez. No se puede saltar más adelante de
+  // lo ya validado, para no saltarse la validación de un paso intermedio.
+  const [maxPaso, setMaxPaso] = useState(0);
+  const [form, setForm] = useState<FormData>(() => {
+    const tipoPersonal = datosIniciales?.tipoPersonal ?? inicial.tipoPersonal;
+    const requiereSecundario = tipoPersonal === "SEGURIDAD" || tipoPersonal === "TECNICO";
+    return {
+      ...inicial,
+      nombres: datosIniciales?.nombres ?? inicial.nombres,
+      apellidos: datosIniciales?.apellidos ?? inicial.apellidos,
+      cuil: datosIniciales?.cuil ?? inicial.cuil,
+      tipoPersonal,
+      nivelPrimario: requiereSecundario ? "COMPLETADO" : inicial.nivelPrimario,
+      nivelSecundario: requiereSecundario ? "COMPLETADO" : inicial.nivelSecundario,
+    };
+  });
   const [error, setError] = useState("");
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
+  const inicioRef = useRef<HTMLDivElement>(null);
+  const esPrimerRender = useRef(true);
+  const inputCamaraRef = useRef<HTMLInputElement>(null);
+
+  // Al cambiar de paso, volver arriba del todo del wizard antes de que se
+  // vea el contenido nuevo — si no, quedaba a mitad de scroll con el
+  // formulario anterior y el salto de contenido se sentía tosco. Se salta
+  // en el primer render para no scrollear apenas se abre la página.
+  useEffect(() => {
+    if (esPrimerRender.current) {
+      esPrimerRender.current = false;
+      return;
+    }
+    inicioRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [paso]);
 
   function set(campo: keyof FormData, valor: unknown) {
     setForm((prev) => ({ ...prev, [campo]: valor }));
   }
 
+  // Para entrar a Seguridad o Técnico hace falta el secundario completo (y
+  // por lo tanto el primario también) — se da por asentado para no tener
+  // que tildarlo a mano cada vez, pero solo si el usuario todavía no tocó
+  // esos campos, para no pisarle una corrección si hizo un caso puntual.
+  function setTipoPersonal(valor: string) {
+    setForm((prev) => {
+      const requiereSecundario = valor === "SEGURIDAD" || valor === "TECNICO";
+      return {
+        ...prev,
+        tipoPersonal: valor,
+        rangoId: "",
+        nivelPrimario: requiereSecundario && !prev.nivelPrimario ? "COMPLETADO" : prev.nivelPrimario,
+        nivelSecundario: requiereSecundario && !prev.nivelSecundario ? "COMPLETADO" : prev.nivelSecundario,
+      };
+    });
+  }
+
   const tieneJerarquia = form.tipoPersonal === "SEGURIDAD" || form.tipoPersonal === "TECNICO";
   const tieneLicencia = form.licenciaConducir && form.licenciaConducir !== "NO_POSEO_LICENCIA";
+  const cuerposValidos = form.tipoPersonal === "SEGURIDAD" ? ["SUBOFICIAL", "OFICIAL"] : form.tipoPersonal === "TECNICO" ? ["TECNICO"] : [];
+  const rangosFiltrados = rangos.filter((r) => cuerposValidos.includes(r.cuerpo));
 
   // ─── Validación por paso ───────────────────────────────────────────────────
 
@@ -149,10 +206,46 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
       if (form.sexo === "OTRO" && !form.sexoPersonalizado.trim()) return "Especificá el sexo";
       const cuil = form.cuil.replace(/\D/g, "");
       if (cuil.length !== 11) return "El CUIL debe tener exactamente 11 dígitos";
+      if (!form.fechaNacimiento) return "La fecha de nacimiento es obligatoria";
+      if (!form.estadoCivil) return "El estado civil es obligatorio";
+      if (form.nacionalidad === "OTRO" && !form.nacionalidadPersonalizada.trim()) return "Especificá la nacionalidad";
+      if (!form.provinciaOrigen) return "La provincia de origen es obligatoria";
+      if (form.provinciaOrigen === "Otra" && !form.provinciaPersonalizada.trim()) return "Especificá la provincia";
+      if (!form.ciudadOrigen.trim()) return "La ciudad de origen es obligatoria";
+    }
+    if (paso === 1) {
+      if (!form.telefono.trim()) return "El teléfono personal es obligatorio";
+      if (!form.telefonoAlternativo.trim()) return "El teléfono alternativo es obligatorio";
+      if (!form.contactoEmergencia.trim()) return "El contacto de emergencia es obligatorio";
+      if (!form.domicilioReal.trim()) return "El domicilio (calle) es obligatorio";
+      if (!form.nroDomicilio.trim()) return "El número de domicilio es obligatorio";
+      if (!form.barrio.trim()) return "El barrio es obligatorio";
+      if (!form.ciudad.trim()) return "La ciudad es obligatoria";
     }
     if (paso === 2) {
       if (!form.tipoPersonal) return "El tipo de personal es obligatorio";
+      if (!form.turno) return "El turno es obligatorio";
+      if (!form.fechaIngreso) return "La fecha de ingreso es obligatoria";
+      if (form.poseeSepelio && !form.empresaSepelio.trim()) return "Especificá la empresa de sepelio";
     }
+    if (paso === 3) {
+      // El resto de los campos médicos quedan opcionales a propósito: dejarlos
+      // en blanco es una respuesta legítima ("no tengo alergias/medicación"),
+      // forzar texto ahí solo generaría "N/A" de relleno. El grupo sanguíneo
+      // es la excepción — es información crítica ante una emergencia.
+      if (!form.grupoSanguineo) return "El grupo sanguíneo es obligatorio";
+    }
+    if (paso === 4) {
+      // Los niveles educativos ya tienen "No iniciado" como respuesta válida
+      // por defecto, así que no hace falta forzarlos. La licencia sí: el
+      // desplegable ya incluye la opción "No poseo licencia", así que no
+      // elegir nada no es una respuesta válida — tiene que decidir una u otra.
+      if (!form.licenciaConducir) return "Seleccioná una categoría de licencia (o \"No poseo licencia\")";
+      if (tieneLicencia && !form.licenciaEmision) return "La fecha de emisión de la licencia es obligatoria";
+      if (tieneLicencia && !form.licenciaVencimiento) return "La fecha de vencimiento de la licencia es obligatoria";
+    }
+    // La foto (paso 5) queda opcional a propósito: se puede subir después
+    // desde el legajo, y forzarla acá trabaría a quien no tiene cámara a mano.
     return "";
   }
 
@@ -160,7 +253,19 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
     const err = validarPaso();
     if (err) { setError(err); return; }
     setError("");
-    setPaso((p) => p + 1);
+    setPaso((p) => {
+      const siguiente = p + 1;
+      setMaxPaso((m) => Math.max(m, siguiente));
+      return siguiente;
+    });
+  }
+
+  // Saltar directo a un paso ya alcanzado, para corregir algo sin tener que
+  // retroceder de a un paso por vez.
+  function irAPaso(i: number) {
+    if (i > maxPaso || i === paso) return;
+    setError("");
+    setPaso(i);
   }
 
   function retroceder() {
@@ -168,12 +273,23 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
     setPaso((p) => p - 1);
   }
 
-  function onFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function aplicarFoto(file: File) {
     set("fotoFile", file);
     const url = URL.createObjectURL(file);
     setFotoPreview(url);
+  }
+
+  function onFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) aplicarFoto(file);
+  }
+
+  function handleTomarFoto() {
+    if (esDispositivoMobil()) {
+      inputCamaraRef.current?.click();
+    } else {
+      setCamaraAbierta(true);
+    }
   }
 
   // ─── Submit ────────────────────────────────────────────────────────────────
@@ -236,30 +352,47 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
 
   function StepIndicator() {
     return (
-      <div className="flex items-center justify-between mb-6 px-1">
-        {PASOS.map((nombre, i) => (
-          <div key={i} className="flex items-center">
+      <div className="flex items-center justify-between mb-6 px-1 overflow-x-auto no-scrollbar">
+        {PASOS.map((nombre, i) => {
+          const alcanzado = i <= maxPaso;
+          return (
+          <div key={i} className="flex items-center shrink-0">
             <div className="flex flex-col items-center gap-1">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+              <button
+                type="button"
+                onClick={() => irAPaso(i)}
+                disabled={!alcanzado || i === paso}
+                title={alcanzado ? `Ir a "${nombre}"` : undefined}
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold transition-all duration-300 ${
+                  alcanzado ? "cursor-pointer" : "cursor-not-allowed"
+                } ${
                   i < paso
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-600 text-white hover:ring-4 hover:ring-blue-500/20"
                     : i === paso
                     ? "bg-blue-600 text-white ring-4 ring-blue-500/20"
                     : "bg-slate-800 text-slate-500"
                 }`}
               >
                 {i < paso ? "✓" : i + 1}
-              </div>
-              <span className={`text-[10px] font-medium hidden sm:block ${i === paso ? "text-blue-400" : "text-slate-500"}`}>
+              </button>
+              <span className={`text-[10px] font-medium hidden sm:block transition-colors duration-300 ${i === paso ? "text-blue-400" : "text-slate-500"}`}>
                 {nombre}
               </span>
             </div>
             {i < PASOS.length - 1 && (
-              <div className={`h-0.5 w-6 sm:w-10 mx-1 mt-[-12px] ${i < paso ? "bg-blue-600" : "bg-slate-700"}`} />
+              // Track fijo + relleno que anima su ancho: al avanzar/retroceder
+              // un paso, la línea entre esos dos círculos se llena (o vacía) de
+              // forma orgánica en vez de cambiar de color de golpe.
+              <div className="h-0.5 w-5 sm:w-10 mx-1 mt-[-12px] rounded-full bg-slate-700 overflow-hidden shrink-0">
+                <div
+                  className="h-full rounded-full bg-blue-600 transition-[width] duration-500 ease-out"
+                  style={{ width: i < paso ? "100%" : "0%" }}
+                />
+              </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     );
   }
@@ -305,13 +438,13 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
               maxLength={11}
             />
           </Field>
-          <Field label="Fecha de nacimiento">
+          <Field label="Fecha de nacimiento *">
             <Input type="date" value={form.fechaNacimiento} onChange={(e) => set("fechaNacimiento", e.target.value)} />
           </Field>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Estado civil">
+          <Field label="Estado civil *">
             <Select value={form.estadoCivil} onChange={(e) => set("estadoCivil", e.target.value)}>
               <option value="">Seleccionar...</option>
               <option value="SOLTERO">Soltero/a</option>
@@ -320,7 +453,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
               <option value="VIUDO">Viudo/a</option>
             </Select>
           </Field>
-          <Field label="Nacionalidad">
+          <Field label="Nacionalidad *">
             <Select value={form.nacionalidad} onChange={(e) => set("nacionalidad", e.target.value)}>
               <option value="ARGENTINA">Argentina</option>
               <option value="OTRO">Otra (especificar)</option>
@@ -334,15 +467,15 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Provincia de origen">
+          <Field label="Provincia de origen *">
             <Select value={form.provinciaOrigen} onChange={(e) => set("provinciaOrigen", e.target.value)}>
               <option value="">Seleccionar...</option>
               {PROVINCIAS.map((p) => <option key={p} value={p}>{p}</option>)}
               <option value="Otra">Otra (especificar)</option>
             </Select>
           </Field>
-          <Field label="Ciudad de origen">
-            <Input value={form.ciudadOrigen} onChange={(e) => set("ciudadOrigen", e.target.value)} placeholder="Ej: Rosario" />
+          <Field label="Ciudad de origen *">
+            <Input value={form.ciudadOrigen} onChange={(e) => set("ciudadOrigen", e.target.value)} placeholder="Ej: Ciudad de Córdoba" />
           </Field>
         </div>
         {form.provinciaOrigen === "Otra" && (
@@ -365,31 +498,31 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Teléfono personal (sin 0 ni 15)">
+          <Field label="Teléfono personal (sin 0 ni 15) *">
             <Input value={form.telefono} onChange={(e) => set("telefono", e.target.value.replace(/\D/g, ""))} placeholder="3512345678" inputMode="numeric" />
           </Field>
-          <Field label="Teléfono alternativo (sin 0 ni 15)">
+          <Field label="Teléfono alternativo (sin 0 ni 15) *">
             <Input value={form.telefonoAlternativo} onChange={(e) => set("telefonoAlternativo", e.target.value.replace(/\D/g, ""))} placeholder="3519876543" inputMode="numeric" />
           </Field>
         </div>
 
-        <Field label="El contacto alternativo pertenece a:">
+        <Field label="El contacto alternativo pertenece a: *">
           <Input value={form.contactoEmergencia} onChange={(e) => set("contactoEmergencia", e.target.value)} placeholder="Ej: Madre — María García" />
         </Field>
 
         <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2 pt-2">Domicilio actual</h3>
-        <Field label="Domicilio real (calle)">
+        <Field label="Domicilio real (calle) *">
           <Input value={form.domicilioReal} onChange={(e) => set("domicilioReal", e.target.value)} placeholder="Ej: Av. Colón" />
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Field label="Ciudad">
-            <Input value={form.ciudad} onChange={(e) => set("ciudad", e.target.value)} placeholder="Córdoba" />
+          <Field label="Número *">
+            <Input value={form.nroDomicilio} onChange={(e) => set("nroDomicilio", e.target.value)} placeholder="1234" />
           </Field>
-          <Field label="Barrio">
+          <Field label="Barrio *">
             <Input value={form.barrio} onChange={(e) => set("barrio", e.target.value)} placeholder="General Paz" />
           </Field>
-          <Field label="Número">
-            <Input value={form.nroDomicilio} onChange={(e) => set("nroDomicilio", e.target.value)} placeholder="1234" />
+          <Field label="Ciudad *">
+            <Input value={form.ciudad} onChange={(e) => set("ciudad", e.target.value)} placeholder="Córdoba" />
           </Field>
         </div>
         <Field label="Piso / Depto (opcional)">
@@ -405,21 +538,21 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
         <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2">Datos Laborales</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Tipo de personal *">
-            <Select value={form.tipoPersonal} onChange={(e) => { set("tipoPersonal", e.target.value); set("rangoId", ""); }}>
+            <Select value={form.tipoPersonal} onChange={(e) => setTipoPersonal(e.target.value)}>
               <option value="">Seleccionar...</option>
               {TIPOS_PERSONAL.map((t) => (
                 <option key={t} value={t}>{t.replace("_", " ")}</option>
               ))}
             </Select>
           </Field>
-          <Field label="Turno">
+          <Field label="Turno *">
             <Select value={form.turno} onChange={(e) => set("turno", e.target.value)}>
               <option value="">Seleccionar...</option>
               {TURNOS.map((t) => <option key={t} value={t}>{t}</option>)}
             </Select>
           </Field>
         </div>
-        <Field label="Fecha de ingreso">
+        <Field label="Fecha de ingreso a Ojos en Alerta *">
           <Input type="date" value={form.fechaIngreso} onChange={(e) => set("fechaIngreso", e.target.value)} />
         </Field>
 
@@ -430,7 +563,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
               <Field label="Jerarquía">
                 <Select value={form.rangoId} onChange={(e) => set("rangoId", e.target.value)}>
                   <option value="">Seleccionar...</option>
-                  {rangos.map((r) => (
+                  {rangosFiltrados.map((r) => (
                     <option key={r.id} value={r.id}>{r.nombre}</option>
                   ))}
                 </Select>
@@ -499,7 +632,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
           </div>
         </div>
         {form.poseeSepelio && (
-          <Field label="Empresa de sepelio">
+          <Field label="Empresa de sepelio *">
             <Input value={form.empresaSepelio} onChange={(e) => set("empresaSepelio", e.target.value)} placeholder="Ej: Coseguro" />
           </Field>
         )}
@@ -511,7 +644,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
     return (
       <div className="space-y-4">
         <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2">Información Médica</h3>
-        <Field label="Grupo sanguíneo">
+        <Field label="Grupo sanguíneo *">
           <Select value={form.grupoSanguineo} onChange={(e) => set("grupoSanguineo", e.target.value)}>
             <option value="">Seleccionar...</option>
             {GRUPOS_SANGUINEOS.map((g) => <option key={g} value={g}>{g}</option>)}
@@ -560,7 +693,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
         </Field>
 
         <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2 pt-2">Licencia de Conducir</h3>
-        <Field label="Categoría">
+        <Field label="Categoría *">
           <Select value={form.licenciaConducir} onChange={(e) => set("licenciaConducir", e.target.value)}>
             <option value="">Seleccionar...</option>
             {LICENCIAS.map((l) => (
@@ -570,10 +703,10 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
         </Field>
         {tieneLicencia && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Fecha de emisión">
+            <Field label="Fecha de emisión *">
               <Input type="date" value={form.licenciaEmision} onChange={(e) => set("licenciaEmision", e.target.value)} />
             </Field>
-            <Field label="Fecha de vencimiento">
+            <Field label="Fecha de vencimiento *">
               <Input type="date" value={form.licenciaVencimiento} onChange={(e) => set("licenciaVencimiento", e.target.value)} />
             </Field>
           </div>
@@ -597,7 +730,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          <div className="w-32 h-32 rounded-full bg-slate-800 border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="w-32 h-32 rounded-full bg-slate-800 border-4 border-dashed border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
             {fotoPreview ? (
               <img src={fotoPreview} alt="Vista previa" className="w-full h-full object-cover" />
             ) : (
@@ -605,19 +738,40 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
             )}
           </div>
           <div className="space-y-2 flex-1">
-            <label
-              htmlFor="foto-input"
-              className="inline-flex items-center gap-2 cursor-pointer bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            >
-              📎 Seleccionar foto
-            </label>
-            <input
-              id="foto-input"
-              type="file"
-              accept="image/*"
-              onChange={onFotoChange}
-              className="hidden"
-            />
+            <div className="flex flex-wrap gap-2">
+              <label
+                htmlFor="foto-input"
+                className="inline-flex items-center gap-2 cursor-pointer bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+                📎 Seleccionar foto
+              </label>
+              <input
+                id="foto-input"
+                type="file"
+                accept="image/*"
+                onChange={onFotoChange}
+                className="hidden"
+              />
+              {/* En mobile dispara el input oculto (cámara nativa del SO,
+                  vía capture="user"); en desktop abre el modal con
+                  getUserMedia, porque ahí el atributo capture no hace nada. */}
+              <button
+                type="button"
+                onClick={handleTomarFoto}
+                className="inline-flex items-center gap-2 cursor-pointer bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+                📷 Tomar foto
+              </button>
+              <input
+                ref={inputCamaraRef}
+                id="foto-camara-input"
+                type="file"
+                accept="image/*"
+                capture="user"
+                onChange={onFotoChange}
+                className="hidden"
+              />
+            </div>
             {form.fotoFile && (
               <p className="text-xs text-slate-400">{form.fotoFile.name}</p>
             )}
@@ -644,9 +798,17 @@ export default function CrearLegajoWizard({ rangos, emailUsuario }: Props) {
 
   return (
     <div className="space-y-5">
+      {camaraAbierta && (
+        <CapturarFotoModal
+          onCapturar={(file) => { aplicarFoto(file); setCamaraAbierta(false); }}
+          onCerrar={() => setCamaraAbierta(false)}
+        />
+      )}
+
+      <div ref={inicioRef} />
       <StepIndicator />
 
-      <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
+      <div key={paso} className="bg-slate-900 rounded-xl border border-slate-700 p-6 wizard-step-in">
         {stepComponents[paso]}
       </div>
 
