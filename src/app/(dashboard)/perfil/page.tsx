@@ -6,6 +6,7 @@ import type { RolUsuario } from "@/types";
 import FotoPerfilBtn from "@/components/legajo/FotoPerfilBtn";
 import AvatarConVerFoto from "@/components/legajo/AvatarConVerFoto";
 import EventosResumenMobile from "@/app/(dashboard)/dashboard/EventosResumenMobile";
+import VerLegajoBtn from "./VerLegajoBtn";
 
 const ROL_LABELS: Record<RolUsuario, string> = {
   SUPERADMIN: "Superadmin",
@@ -362,12 +363,7 @@ export default async function PerfilPage() {
                     </p>
                   </div>
                 </div>
-                <a
-                  href="/mi-legajo"
-                  className="shrink-0 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 transition-colors"
-                >
-                  Ver mi legajo
-                </a>
+                <VerLegajoBtn />
               </div>
             </div>
 
