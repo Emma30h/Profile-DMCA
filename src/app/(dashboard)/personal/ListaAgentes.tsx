@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { TipoPersonal } from "@/types";
 import type { AgenteResumen } from "./lib";
 import { useAgenteAnclado } from "@/lib/useAgenteAnclado";
+import { useSeleccionMultiple } from "@/lib/useSeleccionMultiple";
 import AgenteAvatar from "@/components/AgenteAvatar";
+import { buildQueryString, type FiltrosPersonalParams } from "./queryString";
 
 const PAGINA = 30;
 
@@ -46,7 +49,11 @@ export default function ListaAgentes({
   /** Cuando se provee, intercepta el click para navegar vía transición en vez de un link normal. */
   onSelect?: (href: string) => void;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { anclado, toggle } = useAgenteAnclado();
+  const { seleccion, toggle: toggleSeleccion, limpiar: limpiarSeleccion } = useSeleccionMultiple();
+  const [modoSeleccion, setModoSeleccion] = useState(false);
   const [cantidadVisible, setCantidadVisible] = useState(PAGINA);
   const [cargandoMas, setCargandoMas] = useState(false);
 
@@ -58,14 +65,6 @@ export default function ListaAgentes({
   if (queryString !== prevQueryString) {
     setPrevQueryString(queryString);
     setCantidadVisible(PAGINA);
-  }
-
-  if (agentes.length === 0) {
-    return (
-      <div className="px-4 py-12 text-center text-sm text-slate-500">
-        No se encontraron agentes con los filtros aplicados.
-      </div>
-    );
   }
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
@@ -85,22 +84,154 @@ export default function ListaAgentes({
     }, 400);
   }
 
+  const idsFiltroActivo = Boolean(searchParams.get("ids"));
+
+  // Los filtros del buscador (texto, estado, turno, dependencia, tipo,
+  // E.T.A.C.) tienen que sobrevivir a "Ver seleccionados"/"Ver todo": son
+  // los que el usuario ya armó a mano en FiltrosPersonal, y "ids" es sólo un
+  // filtro puntual que se agrega o se saca encima de esos, nunca los
+  // reemplaza.
+  function filtrosActualesSinIds(): FiltrosPersonalParams {
+    return {
+      q: searchParams.get("q") ?? undefined,
+      tipo: searchParams.get("tipo") ?? undefined,
+      estado: searchParams.get("estado") ?? undefined,
+      turno: searchParams.get("turno") ?? undefined,
+      sector: searchParams.get("sector") ?? undefined,
+      etac: searchParams.get("etac") ?? undefined,
+      sexo: searchParams.get("sexo") ?? undefined,
+    };
+  }
+
+  function irCon(destinoBase: string, extra?: FiltrosPersonalParams) {
+    const qs = buildQueryString({ ...filtrosActualesSinIds(), ...extra });
+    router.push(qs ? `${destinoBase}?${qs}` : destinoBase);
+  }
+
+  function verSeleccionados() {
+    irCon("/personal", { ids: seleccion.map((a) => a.id).join(",") });
+  }
+
+  // Sólo saca el filtro ?ids=... de la URL, sin tocar la selección guardada
+  // — para volver a la lista completa (respetando los demás filtros del
+  // buscador) y seguir trabajando, pero sin perder lo ya marcado (a
+  // diferencia de "Limpiar"/"Cancelar selección", que sí la borran). Si
+  // había un legajo abierto, se mantiene abierto.
+  function verTodo() {
+    irCon(selectedId ? `/personal/${selectedId}` : "/personal");
+  }
+
+  // Si "Ver seleccionados" dejó el filtro ?ids=... puesto en la URL, ni
+  // "Limpiar" ni "Cancelar selección" alcanzan por sí solos para volver a
+  // ver la lista completa: la selección en sessionStorage es un dato
+  // distinto del filtro aplicado en la URL, así que hay que sacar también
+  // ese filtro.
+  function handleLimpiar() {
+    limpiarSeleccion();
+    if (idsFiltroActivo) verTodo();
+  }
+
+  // "Cancelar selección" es un reset completo, no sólo ocultar los
+  // checkboxes: si dejara la selección guardada, la barra de "N
+  // seleccionados / Ver seleccionados / Limpiar" seguiría mostrándose
+  // aunque ya no se esté en modo selección, dando la sensación de que no
+  // pasó nada al cancelar.
+  function handleToggleModo() {
+    if (modoSeleccion) handleLimpiar();
+    setModoSeleccion((v) => !v);
+  }
+
+  const barraSeleccion = (
+    <div className="shrink-0 flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-800/40 px-4 py-2">
+      <button
+        type="button"
+        onClick={handleToggleModo}
+        className={`text-center text-xs font-medium transition-colors ${
+          modoSeleccion ? "text-blue-400 hover:text-blue-300" : "text-slate-400 hover:text-slate-200"
+        }`}
+      >
+        {modoSeleccion ? "Cancelar selección" : "☑️ Selección personalizada"}
+      </button>
+      {(seleccion.length > 0 || idsFiltroActivo) && (
+        <div className="flex items-center gap-3">
+          {seleccion.length > 0 && (
+            <span className="text-xs font-medium text-slate-300 text-center">
+              {seleccion.length} {seleccion.length === 1 ? "seleccionado" : "seleccionados"}
+            </span>
+          )}
+          {idsFiltroActivo ? (
+            <button
+              type="button"
+              onClick={verTodo}
+              className="text-center text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              Ver todo
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={verSeleccionados}
+              className="text-center text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              Ver seleccionados
+            </button>
+          )}
+          {seleccion.length > 0 && (
+            <button
+              type="button"
+              onClick={handleLimpiar}
+              className="text-center text-xs font-medium text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              Limpiar
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  if (agentes.length === 0) {
+    return (
+      <>
+        {barraSeleccion}
+        <div className="px-4 py-12 text-center text-sm text-slate-500">
+          No se encontraron agentes con los filtros aplicados.
+        </div>
+      </>
+    );
+  }
+
   const agentesVisibles = agentes.slice(0, cantidadVisible);
 
   return (
     <>
+    {barraSeleccion}
     <ul className="flex-1 overflow-y-auto divide-y divide-slate-800">
       {agentesVisibles.map((a) => {
         const activo = a.id === selectedId;
         const subLabel = a.turno ?? TIPO_LABELS[a.tipoPersonal as TipoPersonal] ?? a.tipoPersonal;
         const href = `/personal/${a.id}${queryString ? `?${queryString}` : ""}`;
         const estaAnclado = anclado?.id === a.id;
+        const estaSeleccionado = seleccion.some((s) => s.id === a.id);
         return (
           <li key={a.id} className="relative">
+            {modoSeleccion && (
+              <label
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center cursor-pointer"
+                title={estaSeleccionado ? "Quitar de la selección" : "Agregar a la selección"}
+              >
+                <input
+                  type="checkbox"
+                  checked={estaSeleccionado}
+                  onChange={() => toggleSeleccion({ id: a.id, nombres: a.nombres, apellidos: a.apellidos })}
+                  className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-500 cursor-pointer focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                />
+              </label>
+            )}
             <Link
               href={href}
               onClick={(e) => handleClick(e, href)}
-              className={`flex items-center gap-3 px-4 py-3 transition-colors ${activo ? "pr-10" : "pr-4"} ${
+              className={`flex items-center gap-3 py-3 transition-colors ${modoSeleccion ? "pl-10" : "pl-4"} ${activo ? "pr-10" : "pr-4"} ${
                 activo ? "bg-blue-500/10 border-l-2 border-blue-600" : "hover:bg-slate-800 border-l-2 border-transparent"
               }`}
             >
