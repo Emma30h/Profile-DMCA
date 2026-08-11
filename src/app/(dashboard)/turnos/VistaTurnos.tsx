@@ -43,28 +43,46 @@ function esFinDeSemana(anio: number, mes: number, dia: number): boolean {
 // usa FiltrosPersonal para sus filtros (w-80 centrado, nunca desborda).
 function SelectorAgenteModal({
   value,
+  valorManual,
   placeholder,
   principal,
   labelPrincipal,
   otros,
   onChange,
+  onChangeManual,
   disabled,
   className,
 }: {
   value: string;
+  /** Nombre libre cuando la persona todavía no tiene legajo cargado — mutuamente excluyente con `value`. */
+  valorManual: string | null;
   placeholder: string;
   principal: AgenteElegible[];
   labelPrincipal: string;
   otros: AgenteElegible[];
   onChange: (v: string) => void;
+  onChangeManual: (nombre: string) => void;
   disabled: boolean;
   className: string;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const [textoManual, setTextoManual] = useState("");
   const seleccionado = [...principal, ...otros].find((a) => a.id === value);
+
+  function abrir() {
+    setTextoManual(valorManual ?? "");
+    setAbierto(true);
+  }
 
   function elegir(v: string) {
     onChange(v);
+    setAbierto(false);
+  }
+
+  function guardarManual() {
+    const nombre = textoManual.trim();
+    if (!nombre) return;
+    onChangeManual(nombre);
     setAbierto(false);
   }
 
@@ -88,10 +106,10 @@ function SelectorAgenteModal({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setAbierto(true)}
+        onClick={abrir}
         className={`${className} text-left truncate`}
       >
-        {seleccionado ? seleccionado.nombreCompleto : placeholder}
+        {seleccionado ? seleccionado.nombreCompleto : valorManual || placeholder}
       </button>
 
       {abierto && createPortal(
@@ -115,6 +133,31 @@ function SelectorAgenteModal({
                 </svg>
               </button>
             </div>
+
+            {/* Para cuando la persona todavía no tiene legajo cargado en la base. */}
+            <div className="mb-3 space-y-1.5">
+              <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Nombre manual (si no está en la lista)
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={textoManual}
+                  onChange={(e) => setTextoManual(e.target.value)}
+                  placeholder="Nombre y apellido…"
+                  className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={guardarManual}
+                  disabled={!textoManual.trim()}
+                  className="shrink-0 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs font-medium text-white transition-colors"
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+            <div className="mb-1 border-t border-slate-800" />
 
             {filaOpcion("", "Sin asignar")}
 
@@ -157,7 +200,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
 
   async function cambiarCampo(
     fecha: string,
-    campo: "grupoTurno" | "superiorTurnoId" | "jefeFinDeId",
+    campo: "grupoTurno" | "superiorTurnoId" | "jefeFinDeId" | "superiorTurnoManual" | "jefeFinDeManual",
     valor: string
   ) {
     setGuardando(fecha);
@@ -198,43 +241,13 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
 
   const hoy = new Date();
 
-  function renderSelectAgente(
-    value: string,
-    placeholder: string,
-    principal: AgenteElegible[],
-    labelPrincipal: string,
-    otros: AgenteElegible[],
-    onChange: (v: string) => void,
-    disabled: boolean,
-    className: string
-  ) {
-    return (
-      <select
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className={className}
-      >
-        <option value="">{placeholder}</option>
-        <optgroup label={labelPrincipal}>
-          {principal.map((a) => (
-            <option key={a.id} value={a.id}>{a.nombreCompleto}</option>
-          ))}
-        </optgroup>
-        <optgroup label="Otros (por excepción)">
-          {otros.map((a) => (
-            <option key={a.id} value={a.id}>{a.nombreCompleto} — {a.rango}</option>
-          ))}
-        </optgroup>
-      </select>
-    );
-  }
-
-  // Los 3 selects de un día (turno, superior de turno, jefe de fin de semana
-  // si aplica), parametrizados por tamaño: "grid" son las celdas diminutas
-  // del calendario mensual (desktop), "agenda" es la lista de un día por
-  // fila que se usa en mobile en vez del grid de 7 columnas — no entran 3
-  // selects legibles en una celda de ~50px de ancho.
+  // Los 3 controles de un día (turno, superior de turno, jefe de fin de
+  // semana si aplica), parametrizados por tamaño: "grid" son las celdas
+  // diminutas del calendario mensual (desktop), "agenda" es la lista de un
+  // día por fila que se usa en mobile en vez del grid de 7 columnas.
+  // Superior/jefe usan siempre SelectorAgenteModal (nunca un <select>
+  // nativo): además de no desbordar el ancho de la pantalla con nombres +
+  // rango largos, es lo que permite ofrecer la carga de nombre manual.
   function renderControlesDia(dia: number, variant: "grid" | "agenda") {
     const info = dias[dia - 1];
     const estaGuardando = guardando === info.fecha;
@@ -242,17 +255,18 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
     const finde = esFinDeSemana(anio, mes, dia);
     const compact = variant === "grid";
 
-    // disabled:appearance-none saca la flechita nativa del <select> cuando
-    // el rol no puede editar (ej. Supervisor) — con la flechita puesta
-    // parece clickeable/editable aunque no lo sea.
+    // disabled:appearance-none saca la flechita nativa del <select> de Turno
+    // cuando el rol no puede editar (ej. Supervisor) — con la flechita
+    // puesta parece clickeable/editable aunque no lo sea. Superior/jefe son
+    // <button>, no <select>: nunca tuvieron esa flechita nativa.
     const grupoClass = compact
       ? `w-full rounded px-1 py-0.5 text-[10px] font-semibold border disabled:opacity-80 disabled:appearance-none ${info.grupoTurno ? GRUPO_BADGE[info.grupoTurno] : "bg-slate-800 text-slate-500 border-slate-700"}`
       : `w-full rounded-lg px-2 py-1.5 text-xs font-semibold border disabled:opacity-80 disabled:appearance-none ${info.grupoTurno ? GRUPO_BADGE[info.grupoTurno] : "bg-slate-800 text-slate-500 border-slate-700"}`;
     const superiorClass = compact
-      ? "w-full rounded px-1 py-0.5 text-[9px] bg-slate-800 text-slate-300 border border-slate-700 disabled:opacity-80 disabled:appearance-none"
+      ? "w-full rounded px-1 py-0.5 text-[9px] bg-slate-800 text-slate-300 border border-slate-700 disabled:opacity-80"
       : "w-full rounded-lg px-2 py-1.5 text-xs bg-slate-800 text-slate-300 border border-slate-700 disabled:opacity-80";
     const jefeClass = compact
-      ? "w-full rounded px-1 py-0.5 text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/30 disabled:opacity-80 disabled:appearance-none"
+      ? "w-full rounded px-1 py-0.5 text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/30 disabled:opacity-80"
       : "w-full rounded-lg px-2 py-1.5 text-xs bg-amber-500/10 text-amber-300 border border-amber-500/30 disabled:opacity-80";
 
     return (
@@ -268,53 +282,33 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
           <option value="2">Turno 2 ({GRUPO_TURNO_LETRAS[2]})</option>
         </select>
 
-        {compact
-          ? renderSelectAgente(
-              info.superiorTurno?.id ?? "",
-              "Superior de turno: sin asignar",
-              elegibles.subcomisarios,
-              "Subcomisarios",
-              elegibles.otrosParaSuperiorTurno,
-              (v) => cambiarCampo(info.fecha, "superiorTurnoId", v),
-              disabled,
-              superiorClass
-            )
-          : (
-            <SelectorAgenteModal
-              value={info.superiorTurno?.id ?? ""}
-              placeholder="Superior de turno: sin asignar"
-              principal={elegibles.subcomisarios}
-              labelPrincipal="Subcomisarios"
-              otros={elegibles.otrosParaSuperiorTurno}
-              onChange={(v) => cambiarCampo(info.fecha, "superiorTurnoId", v)}
-              disabled={disabled}
-              className={superiorClass}
-            />
-          )}
+        <SelectorAgenteModal
+          value={info.superiorTurno?.id ?? ""}
+          valorManual={info.superiorTurnoManual}
+          placeholder="Superior de turno: sin asignar"
+          principal={elegibles.subcomisarios}
+          labelPrincipal="Subcomisarios"
+          otros={elegibles.otrosParaSuperiorTurno}
+          onChange={(v) => cambiarCampo(info.fecha, "superiorTurnoId", v)}
+          onChangeManual={(nombre) => cambiarCampo(info.fecha, "superiorTurnoManual", nombre)}
+          disabled={disabled}
+          className={superiorClass}
+        />
 
-        {finde && (compact
-          ? renderSelectAgente(
-              info.jefeFinDe?.id ?? "",
-              "Jefe de fin de semana: sin asignar",
-              elegibles.oficialesSuperiores,
-              "Oficiales Superiores",
-              elegibles.otrosParaJefeFinDe,
-              (v) => cambiarCampo(info.fecha, "jefeFinDeId", v),
-              disabled,
-              jefeClass
-            )
-          : (
-            <SelectorAgenteModal
-              value={info.jefeFinDe?.id ?? ""}
-              placeholder="Jefe de fin de semana: sin asignar"
-              principal={elegibles.oficialesSuperiores}
-              labelPrincipal="Oficiales Superiores"
-              otros={elegibles.otrosParaJefeFinDe}
-              onChange={(v) => cambiarCampo(info.fecha, "jefeFinDeId", v)}
-              disabled={disabled}
-              className={jefeClass}
-            />
-          ))}
+        {finde && (
+          <SelectorAgenteModal
+            value={info.jefeFinDe?.id ?? ""}
+            valorManual={info.jefeFinDeManual}
+            placeholder="Jefe de fin de semana: sin asignar"
+            principal={elegibles.oficialesSuperiores}
+            labelPrincipal="Oficiales Superiores"
+            otros={elegibles.otrosParaJefeFinDe}
+            onChange={(v) => cambiarCampo(info.fecha, "jefeFinDeId", v)}
+            onChangeManual={(nombre) => cambiarCampo(info.fecha, "jefeFinDeManual", nombre)}
+            disabled={disabled}
+            className={jefeClass}
+          />
+        )}
       </>
     );
   }

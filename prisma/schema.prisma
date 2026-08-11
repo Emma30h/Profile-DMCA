@@ -313,8 +313,12 @@ model DiaTurno {
   grupoTurno      Int?     // 1 = A·C·E en servicio, 2 = B·D·F en servicio; null = sin definir
   superiorTurnoId String?
   superiorTurno   Agente?  @relation("SuperiorTurnoDias", fields: [superiorTurnoId], references: [id])
+  // Nombre libre, para cuando la persona todavía no tiene legajo cargado —
+  // mutuamente excluyente con superiorTurnoId (uno de los dos, nunca ambos).
+  superiorTurnoManual String?
   jefeFinDeId     String?
   jefeFinDe       Agente?  @relation("JefeFinDeDias", fields: [jefeFinDeId], references: [id])
+  jefeFinDeManual String?
   observacion     String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

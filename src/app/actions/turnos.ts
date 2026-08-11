@@ -30,7 +30,11 @@ export interface DiaTurnoInfo {
   fecha: string; // YYYY-MM-DD
   grupoTurno: GrupoTurno | null;
   superiorTurno: { id: string; nombreCompleto: string } | null;
+  // Nombre libre cuando la persona todavía no tiene legajo cargado —
+  // mutuamente excluyente con superiorTurno (uno de los dos, nunca ambos).
+  superiorTurnoManual: string | null;
   jefeFinDe: { id: string; nombreCompleto: string } | null;
+  jefeFinDeManual: string | null;
   observacion: string | null;
 }
 
@@ -65,9 +69,11 @@ export async function obtenerTurnoHoy(): Promise<TurnoHoyInfo> {
 
   return {
     grupoTurno: (dia?.grupoTurno as GrupoTurno | null | undefined) ?? null,
-    superiorTurno: dia?.superiorTurno ? `${dia.superiorTurno.apellidos}, ${dia.superiorTurno.nombres}` : null,
+    superiorTurno: dia?.superiorTurno
+      ? `${dia.superiorTurno.apellidos}, ${dia.superiorTurno.nombres}`
+      : dia?.superiorTurnoManual ?? null,
     superiorTurnoRango: dia?.superiorTurno?.rango?.nombre ?? null,
-    jefeFinDe: dia?.jefeFinDe ? `${dia.jefeFinDe.apellidos}, ${dia.jefeFinDe.nombres}` : null,
+    jefeFinDe: dia?.jefeFinDe ? `${dia.jefeFinDe.apellidos}, ${dia.jefeFinDe.nombres}` : dia?.jefeFinDeManual ?? null,
     esFinDeSemana: diaSemana === 5 || diaSemana === 0 || diaSemana === 6,
   };
 }
@@ -97,9 +103,11 @@ export async function obtenerMesTurno(anio: number, mes: number): Promise<DiaTur
       superiorTurno: registro?.superiorTurno
         ? { id: registro.superiorTurno.id, nombreCompleto: `${registro.superiorTurno.apellidos}, ${registro.superiorTurno.nombres}` }
         : null,
+      superiorTurnoManual: registro?.superiorTurnoManual ?? null,
       jefeFinDe: registro?.jefeFinDe
         ? { id: registro.jefeFinDe.id, nombreCompleto: `${registro.jefeFinDe.apellidos}, ${registro.jefeFinDe.nombres}` }
         : null,
+      jefeFinDeManual: registro?.jefeFinDeManual ?? null,
       observacion: registro?.observacion ?? null,
     };
   });
@@ -208,15 +216,23 @@ export async function generarMesAutomatico(params: {
 
 export async function actualizarDiaTurno(params: {
   fecha: string; // YYYY-MM-DD
-  campo: "grupoTurno" | "superiorTurnoId" | "jefeFinDeId" | "observacion";
+  campo: "grupoTurno" | "superiorTurnoId" | "jefeFinDeId" | "superiorTurnoManual" | "jefeFinDeManual" | "observacion";
   valor: string | null;
 }): Promise<void> {
   await verificarAdmin();
   const { fecha, campo, valor } = params;
   const fechaDate = new Date(`${fecha}T00:00:00.000Z`);
 
-  const data: Record<string, string | number | null> =
-    campo === "grupoTurno" ? { grupoTurno: valor ? Number(valor) : null } : { [campo]: valor };
+  // El id (de un Agente real) y el nombre manual son mutuamente excluyentes
+  // — al cargar uno se limpia el otro, para no dejar un rastro del valor
+  // anterior si después se corrige el legajo y se vuelve a elegir de la lista.
+  let data: Record<string, string | number | null>;
+  if (campo === "grupoTurno") data = { grupoTurno: valor ? Number(valor) : null };
+  else if (campo === "superiorTurnoId") data = { superiorTurnoId: valor, superiorTurnoManual: null };
+  else if (campo === "superiorTurnoManual") data = { superiorTurnoManual: valor, superiorTurnoId: null };
+  else if (campo === "jefeFinDeId") data = { jefeFinDeId: valor, jefeFinDeManual: null };
+  else if (campo === "jefeFinDeManual") data = { jefeFinDeManual: valor, jefeFinDeId: null };
+  else data = { [campo]: valor };
 
   await prisma.diaTurno.upsert({
     where: { fecha: fechaDate },
