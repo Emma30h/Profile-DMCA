@@ -17,6 +17,10 @@ const navItems: { href: string; label: string; icon: LucideIcon; disabled?: bool
 ];
 
 const ROLES_ADMIN: RolUsuario[] = ["SUPERADMIN", "ADMIN"];
+// Debe reflejar exactamente los roles permitidos en licencias/page.tsx — si
+// no, un rol sin acceso ve el link en el sidebar y lo manda a un redirect
+// a /dashboard en vez de a la página.
+const ROLES_LICENCIAS: RolUsuario[] = ["SUPERADMIN", "ADMIN", "SUPERVISOR"];
 
 export default function Sidebar({ rol }: { rol: RolUsuario }) {
   const pathname = usePathname();
@@ -86,9 +90,14 @@ export default function Sidebar({ rol }: { rol: RolUsuario }) {
           />
         </div>
 
-      {/* Nav principal — READONLY solo ve Organigrama (consulta libre, sin edición) */}
+      {/* Nav principal — READONLY solo ve Organigrama (consulta libre, sin
+          edición); Licencias y Ausentismo se oculta para los roles que no
+          tienen acceso a esa página. */}
       <nav className="flex-1 px-2.5 py-3 space-y-0.5">
-        {(esReadonly ? navItems.filter((item) => item.href === "/organigrama") : navItems).map((item) => {
+        {(esReadonly
+          ? navItems.filter((item) => item.href === "/organigrama")
+          : navItems.filter((item) => item.href !== "/licencias" || ROLES_LICENCIAS.includes(rol))
+        ).map((item) => {
           const Icon = item.icon;
 
           if (item.disabled) {
