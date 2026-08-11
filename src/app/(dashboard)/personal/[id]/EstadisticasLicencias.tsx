@@ -43,6 +43,40 @@ function describeDonutSlice(cx: number, cy: number, rOuter: number, rInner: numb
   ].join(" ");
 }
 
+// ─── Período dinámico (año puntual / todo el historial / rango a elección) ───
+
+type ModoPeriodo = "anio" | "todo" | "rango";
+
+interface MesBucket {
+  anio: number;
+  mes: number; // 0-11
+  label: string;
+}
+
+// Genera los meses entre dos fechas (inclusive) para la línea de tiempo — a
+// diferencia del año puntual (siempre Ene-Dic), "Todo"/"rango" pueden cruzar
+// años, así que la cantidad de columnas es variable.
+function generarMeses(desde: Date, hasta: Date): MesBucket[] {
+  const multiAnio = desde.getUTCFullYear() !== hasta.getUTCFullYear();
+  const buckets: MesBucket[] = [];
+  let anio = desde.getUTCFullYear();
+  let mes = desde.getUTCMonth();
+  while (anio < hasta.getUTCFullYear() || (anio === hasta.getUTCFullYear() && mes <= hasta.getUTCMonth())) {
+    buckets.push({ anio, mes, label: multiAnio ? `${MESES[mes]} ${String(anio).slice(2)}` : MESES[mes] });
+    mes++;
+    if (mes > 11) { mes = 0; anio++; }
+  }
+  return buckets;
+}
+
+function indiceMes(fecha: Date, buckets: MesBucket[]): number {
+  const i = buckets.findIndex((b) => b.anio === fecha.getUTCFullYear() && b.mes === fecha.getUTCMonth());
+  if (i !== -1) return i;
+  // La licencia empieza/termina fuera del rango visible (ej. arrancó antes
+  // del "desde" elegido) — se clampea al primer/último mes visible.
+  return fecha.getTime() < Date.UTC(buckets[0]?.anio ?? 0, buckets[0]?.mes ?? 0) ? 0 : buckets.length - 1;
+}
+
 function buildDonutSlices<T extends { tipo: string; cantidad: number }>(data: T[], total: number) {
   let anguloActual = -90; // arranca arriba (12hs), como cualquier gráfico de torta convencional
   return data.map((d) => {
@@ -76,20 +110,20 @@ function hoyLargoAR() {
 // dentro de @media print cuando el botón dispara window.print().
 function InformeImprimible({
   agente,
-  anioActivo,
+  tituloPeriodo,
   totalDias,
   porCategoria,
   porTipo,
-  delAnio,
+  licenciasFiltradas,
   slicesDonut,
   totalLicencias,
 }: {
   agente: AgenteInfoInforme;
-  anioActivo: number;
+  tituloPeriodo: string;
   totalDias: number;
   porCategoria: { categoria: CategoriaLicencia; dias: number; info: { label: string } }[];
   porTipo: { tipo: string; cantidad: number; label: string }[];
-  delAnio: LicenciaEntry[];
+  licenciasFiltradas: LicenciaEntry[];
   slicesDonut: { tipo: string; label: string; cantidad: number; porcentaje: number; path: string }[];
   totalLicencias: number;
 }) {
@@ -98,7 +132,7 @@ function InformeImprimible({
       <div className="flex items-start justify-between border-b-2 border-slate-800 pb-3">
         <div>
           <h1 className="text-xl font-bold">Informe de ausentismo</h1>
-          <p className="text-sm text-slate-600">Año {anioActivo}</p>
+          <p className="text-sm text-slate-600">{tituloPeriodo}</p>
         </div>
         <p className="text-xs text-slate-500">Generado el {hoyLargoAR()}</p>
       </div>
@@ -134,7 +168,7 @@ function InformeImprimible({
         </thead>
         <tbody>
           {porCategoria.length === 0 ? (
-            <tr><td colSpan={2} className="py-2 text-slate-500">Sin licencias aprobadas en {anioActivo}.</td></tr>
+            <tr><td colSpan={2} className="py-2 text-slate-500">Sin licencias aprobadas en el período.</td></tr>
           ) : porCategoria.map((c) => (
             <tr key={c.categoria} className="border-b border-slate-200">
               <td className="py-1">{c.info.label}</td>
@@ -169,7 +203,7 @@ function InformeImprimible({
           </thead>
           <tbody>
             {porTipo.length === 0 ? (
-              <tr><td colSpan={3} className="py-2 text-slate-500">Sin licencias aprobadas en {anioActivo}.</td></tr>
+              <tr><td colSpan={3} className="py-2 text-slate-500">Sin licencias aprobadas en el período.</td></tr>
             ) : porTipo.map((t) => (
               <tr key={t.tipo} className="border-b border-slate-200">
                 <td className="py-1 flex items-center gap-2">
@@ -195,9 +229,9 @@ function InformeImprimible({
           </tr>
         </thead>
         <tbody>
-          {delAnio.length === 0 ? (
-            <tr><td colSpan={4} className="py-2 text-slate-500">Sin licencias aprobadas en {anioActivo}.</td></tr>
-          ) : delAnio.map((l) => (
+          {licenciasFiltradas.length === 0 ? (
+            <tr><td colSpan={4} className="py-2 text-slate-500">Sin licencias aprobadas en el período.</td></tr>
+          ) : licenciasFiltradas.map((l) => (
             <tr key={l.id} className="border-b border-slate-200">
               <td className="py-1">{TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}</td>
               <td className="py-1">{fmt(l.fechaInicio)}</td>
@@ -222,18 +256,75 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
   const [anio, setAnio] = useState<number | null>(anios[0] ?? null);
   const anioActivo = anio ?? anios[0] ?? new Date().getUTCFullYear();
 
-  const delAnio = useMemo(
-    () => aprobadas
-      .filter((l) => new Date(l.fechaInicio).getUTCFullYear() === anioActivo)
-      .sort((a, b) => a.fechaInicio.localeCompare(b.fechaInicio)),
-    [aprobadas, anioActivo]
-  );
+  const [modo, setModo] = useState<ModoPeriodo>("anio");
+  const [rangoDesde, setRangoDesde] = useState("");
+  const [rangoHasta, setRangoHasta] = useState("");
 
-  const totalDias = delAnio.reduce((acc, l) => acc + l.diasHabiles, 0);
+  function elegirPeriodo(valor: string) {
+    if (valor === "todo") {
+      setModo("todo");
+      return;
+    }
+    if (valor === "rango") {
+      setModo("rango");
+      // Precarga el rango con el historial completo, para no arrancar con
+      // los dos campos vacíos (y el informe vacío) hasta que el usuario
+      // toque algo.
+      if (!rangoDesde && !rangoHasta && aprobadas.length > 0) {
+        const fechas = aprobadas.map((l) => l.fechaInicio.slice(0, 10)).sort();
+        setRangoDesde(fechas[0]);
+        setRangoHasta(fechas[fechas.length - 1]);
+      }
+      return;
+    }
+    setModo("anio");
+    setAnio(Number(valor));
+  }
+
+  const licenciasFiltradas = useMemo(() => {
+    if (modo === "todo") {
+      return [...aprobadas].sort((a, b) => a.fechaInicio.localeCompare(b.fechaInicio));
+    }
+    if (modo === "rango") {
+      if (!rangoDesde || !rangoHasta) return [];
+      return aprobadas
+        .filter((l) => {
+          const f = l.fechaInicio.slice(0, 10);
+          return f >= rangoDesde && f <= rangoHasta;
+        })
+        .sort((a, b) => a.fechaInicio.localeCompare(b.fechaInicio));
+    }
+    return aprobadas
+      .filter((l) => new Date(l.fechaInicio).getUTCFullYear() === anioActivo)
+      .sort((a, b) => a.fechaInicio.localeCompare(b.fechaInicio));
+  }, [aprobadas, modo, anioActivo, rangoDesde, rangoHasta]);
+
+  const tituloPeriodo =
+    modo === "todo"
+      ? "Todo el historial"
+      : modo === "rango"
+        ? (rangoDesde && rangoHasta ? `Del ${fmt(rangoDesde)} al ${fmt(rangoHasta)}` : "Seleccioná un período")
+        : `Año ${anioActivo}`;
+
+  // Rango de meses a graficar en la línea de tiempo: Ene-Dic del año activo
+  // en modo "anio", o el tramo real cubierto por las licencias filtradas en
+  // "todo"/"rango" (puede cruzar años).
+  const rangoMeses = useMemo(() => {
+    if (modo === "anio") {
+      return { desde: new Date(Date.UTC(anioActivo, 0, 1)), hasta: new Date(Date.UTC(anioActivo, 11, 1)) };
+    }
+    if (licenciasFiltradas.length === 0) return null;
+    const tiempos = licenciasFiltradas.flatMap((l) => [new Date(l.fechaInicio).getTime(), new Date(l.fechaFin).getTime()]);
+    return { desde: new Date(Math.min(...tiempos)), hasta: new Date(Math.max(...tiempos)) };
+  }, [modo, anioActivo, licenciasFiltradas]);
+
+  const meses = useMemo(() => (rangoMeses ? generarMeses(rangoMeses.desde, rangoMeses.hasta) : []), [rangoMeses]);
+
+  const totalDias = licenciasFiltradas.reduce((acc, l) => acc + l.diasHabiles, 0);
 
   const porCategoria = useMemo(() => {
     const acc = new Map<CategoriaLicencia, number>();
-    for (const l of delAnio) {
+    for (const l of licenciasFiltradas) {
       const categoria = LICENCIA_CATEGORIA_DE_TIPO[l.tipo as keyof typeof LICENCIA_CATEGORIA_DE_TIPO];
       if (!categoria) continue;
       acc.set(categoria, (acc.get(categoria) ?? 0) + l.diasHabiles);
@@ -241,19 +332,19 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
     return [...acc.entries()]
       .map(([categoria, dias]) => ({ categoria, dias, info: CATEGORIA_LICENCIA_INFO[categoria] }))
       .sort((a, b) => b.dias - a.dias);
-  }, [delAnio]);
+  }, [licenciasFiltradas]);
 
   const maxDiasCategoria = Math.max(1, ...porCategoria.map((c) => c.dias));
 
   const porTipo = useMemo(() => {
     const acc = new Map<string, number>();
-    for (const l of delAnio) acc.set(l.tipo, (acc.get(l.tipo) ?? 0) + 1);
+    for (const l of licenciasFiltradas) acc.set(l.tipo, (acc.get(l.tipo) ?? 0) + 1);
     return [...acc.entries()]
       .map(([tipo, cantidad]) => ({ tipo, cantidad, label: TIPO_LICENCIA_LABELS[tipo] ?? tipo }))
       .sort((a, b) => b.cantidad - a.cantidad);
-  }, [delAnio]);
+  }, [licenciasFiltradas]);
 
-  const totalLicencias = delAnio.length;
+  const totalLicencias = licenciasFiltradas.length;
   const slicesDonut = useMemo(() => buildDonutSlices(porTipo, totalLicencias), [porTipo, totalLicencias]);
 
   if (anios.length === 0) {
@@ -266,14 +357,31 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">Total en {anioActivo}</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">Total — {tituloPeriodo}</p>
           <p className="text-3xl font-semibold tracking-tight text-slate-100 tabular-nums">
             {totalDias} <span className="text-base font-normal text-slate-400">{totalDias === 1 ? "día" : "días"}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {modo === "rango" && (
+            <>
+              <input
+                type="date"
+                value={rangoDesde}
+                onChange={(e) => setRangoDesde(e.target.value)}
+                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
+              />
+              <span className="text-slate-500 text-sm">→</span>
+              <input
+                type="date"
+                value={rangoHasta}
+                onChange={(e) => setRangoHasta(e.target.value)}
+                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
+              />
+            </>
+          )}
           <button
             type="button"
             onClick={() => window.print()}
@@ -282,13 +390,15 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
             🖨️ Imprimir informe
           </button>
           <select
-            value={anioActivo}
-            onChange={(e) => setAnio(Number(e.target.value))}
+            value={modo === "anio" ? String(anioActivo) : modo}
+            onChange={(e) => elegirPeriodo(e.target.value)}
             className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {anios.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
+            <option value="todo">Todo</option>
+            <option value="rango">Seleccionar período…</option>
           </select>
         </div>
       </div>
@@ -297,7 +407,7 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
       <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-3">
         <h3 className="text-sm font-semibold text-slate-200">Días por categoría</h3>
         {porCategoria.length === 0 ? (
-          <p className="text-sm text-slate-500">Sin licencias aprobadas en {anioActivo}.</p>
+          <p className="text-sm text-slate-500">Sin licencias aprobadas en el período.</p>
         ) : (
           <div className="space-y-2.5">
             {porCategoria.map((c) => (
@@ -320,7 +430,7 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
       <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-3">
         <h3 className="text-sm font-semibold text-slate-200">Cantidad por tipo</h3>
         {porTipo.length === 0 ? (
-          <p className="text-sm text-slate-500">Sin licencias aprobadas en {anioActivo}.</p>
+          <p className="text-sm text-slate-500">Sin licencias aprobadas en el período.</p>
         ) : (
           <div className="flex flex-col sm:flex-row items-center gap-5">
             <svg viewBox="0 0 100 100" className="w-28 h-28 shrink-0" role="img" aria-label="Distribución porcentual por tipo de licencia">
@@ -350,29 +460,31 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
         )}
       </div>
 
-      {/* Línea de tiempo del año */}
+      {/* Línea de tiempo del período */}
       <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-slate-200">Línea de tiempo — {anioActivo}</h3>
-        {delAnio.length === 0 ? (
-          <p className="text-sm text-slate-500">Sin licencias aprobadas en {anioActivo}.</p>
+        <h3 className="text-sm font-semibold text-slate-200">Línea de tiempo — {tituloPeriodo}</h3>
+        {licenciasFiltradas.length === 0 || meses.length === 0 ? (
+          <p className="text-sm text-slate-500">Sin licencias aprobadas en el período.</p>
         ) : (
-          <div className="space-y-2">
-            <div className="grid grid-cols-12 gap-px text-[10px] text-slate-500 pl-0">
-              {MESES.map((m) => (
-                <span key={m} className="text-center">{m}</span>
+          <div className="space-y-2 overflow-x-auto">
+            <div
+              className="grid gap-px text-[10px] text-slate-500 pl-0 min-w-max"
+              style={{ gridTemplateColumns: `repeat(${meses.length}, minmax(28px, 1fr))` }}
+            >
+              {meses.map((m, i) => (
+                <span key={`${m.anio}-${m.mes}-${i}`} className="text-center">{m.label}</span>
               ))}
             </div>
-            <div className="space-y-1.5">
-              {delAnio.map((l) => {
-                const inicio = new Date(l.fechaInicio);
-                const fin = new Date(l.fechaFin);
-                const mesInicio = inicio.getUTCFullYear() === anioActivo ? inicio.getUTCMonth() : 0;
-                const mesFin = fin.getUTCFullYear() > anioActivo ? 11 : fin.getUTCMonth();
+            <div className="space-y-1.5 min-w-max">
+              {licenciasFiltradas.map((l) => {
+                const mesInicio = indiceMes(new Date(l.fechaInicio), meses);
+                const mesFin = indiceMes(new Date(l.fechaFin), meses);
                 const color = categoriaColor(l.tipo);
                 return (
                   <div
                     key={l.id}
-                    className="grid grid-cols-12 gap-px h-5"
+                    className="grid gap-px h-5"
+                    style={{ gridTemplateColumns: `repeat(${meses.length}, minmax(28px, 1fr))` }}
                     title={`${TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}: ${fmt(l.fechaInicio)} → ${fmt(l.fechaFin)} (${l.diasHabiles} ${l.diasHabiles === 1 ? "día" : "días"})`}
                   >
                     <div
@@ -389,11 +501,11 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
 
       <InformeImprimible
         agente={agente}
-        anioActivo={anioActivo}
+        tituloPeriodo={tituloPeriodo}
         totalDias={totalDias}
         porCategoria={porCategoria}
         porTipo={porTipo}
-        delAnio={delAnio}
+        licenciasFiltradas={licenciasFiltradas}
         slicesDonut={slicesDonut}
         totalLicencias={totalLicencias}
       />
