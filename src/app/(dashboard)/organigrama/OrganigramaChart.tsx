@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ZoomIn, ZoomOut, Maximize2, ArrowUp } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, ArrowUp, Download } from "lucide-react";
 import AgenteAvatar from "@/components/AgenteAvatar";
 
 export interface Persona {
@@ -199,7 +199,7 @@ function EtiquetaLicencia() {
   return <div className="text-[9px] mt-0.5 font-medium text-amber-300">En licencia</div>;
 }
 
-function renderCaja(caja: Caja) {
+function renderCaja(caja: Caja, incluirFotos: boolean) {
   const base = "absolute rounded-lg border px-3 py-2 flex flex-col justify-center overflow-hidden";
   const style = { left: caja.x, top: caja.y, width: caja.w, height: caja.h };
 
@@ -222,7 +222,9 @@ function renderCaja(caja: Caja) {
   if (caja.kind === "jefe") {
     return (
       <div key={`jefe-${caja.persona.nombre}`} className={`${baseFila} ${ESTILO_CAJA.jefe}`} style={style}>
-        <AgenteAvatar fotoUrl={caja.persona.fotoUrl} sexo={caja.persona.sexo} sizeClassName="h-9 w-9 rounded-full shrink-0" />
+        {incluirFotos && (
+          <AgenteAvatar fotoUrl={caja.persona.fotoUrl} sexo={caja.persona.sexo} sizeClassName="h-9 w-9 rounded-full shrink-0" />
+        )}
         <div className="min-w-0">
           <span className="text-[11px] font-semibold leading-tight">
             {caja.persona.rango} {caja.persona.nombre}
@@ -238,7 +240,9 @@ function renderCaja(caja: Caja) {
     : "bg-orange-800 border-orange-600 text-orange-50";
   return (
     <div key={`persona-${caja.persona.nombre}`} className={`${baseFila} ${colorPersona}`} style={style}>
-      <AgenteAvatar fotoUrl={caja.persona.fotoUrl} sexo={caja.persona.sexo} sizeClassName="h-9 w-9 rounded-full shrink-0" />
+      {incluirFotos && (
+        <AgenteAvatar fotoUrl={caja.persona.fotoUrl} sexo={caja.persona.sexo} sizeClassName="h-9 w-9 rounded-full shrink-0" />
+      )}
       <div className="min-w-0">
         {caja.persona.orden && (
           <span className="block text-[9px] font-bold uppercase tracking-wide opacity-70">{caja.persona.orden}</span>
@@ -520,11 +524,40 @@ export default function OrganigramaChart({
   const layout = useMemo(() => (centro ? construirLayout(centro, sectores) : null), [centro, sectores]);
   const [contenedorRef, escalaAuto] = useEscalaAjustada(layout?.width ?? 1, layout?.height ?? 1);
   const [factorZoom, setFactorZoom] = useState(1);
+  const [incluirFotos, setIncluirFotos] = useState(true);
   const escala = escalaAuto * factorZoom;
   usePanArrastre(contenedorRef);
 
   const topMobilRef = useRef<HTMLDivElement>(null);
   const mostrarBotonArriba = useMostrarBotonArriba(topMobilRef);
+
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [descargando, setDescargando] = useState(false);
+
+  // html2canvas-pro (no el html2canvas clásico: éste no sabe parsear los
+  // colores oklch() que usa la paleta por defecto de Tailwind v4) rasteriza
+  // el nodo fuera de pantalla de abajo, a tamaño completo (sin el scale del
+  // zoom ni el achique de impresión) para que la imagen salga nítida.
+  async function descargarImagen() {
+    if (!exportRef.current) return;
+    setDescargando(true);
+    try {
+      const { default: html2canvas } = await import("html2canvas-pro");
+      const canvas = await html2canvas(exportRef.current, { backgroundColor: "#ffffff", scale: 2, useCORS: true });
+      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("No se pudo generar la imagen");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `organigrama-${new Date().toISOString().slice(0, 10)}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("No se pudo descargar la imagen del organigrama.");
+    } finally {
+      setDescargando(false);
+    }
+  }
 
   if (!centro || !layout) {
     return (
@@ -535,8 +568,79 @@ export default function OrganigramaChart({
     );
   }
 
+  // Ancho aproximado disponible en una hoja horizontal (A4/Carta) con los
+  // márgenes de @page print-organigrama — se achica el diagrama para que
+  // entre a lo ancho de una página; a lo alto puede paginar sin problema
+  // porque el bloque de impresión no usa position:fixed.
+  const printScale = Math.min(1, 1000 / layout.width);
+
   return (
-    <>
+    <div className="h-full flex flex-col gap-2.5">
+      {/* Sólo impresión: se revela vía .print-organigrama en globals.css,
+          igual mecánica que .print-informe pero sin recortar el alto. */}
+      <div className="print-organigrama">
+        <div style={{ width: layout.width * printScale, height: layout.height * printScale }}>
+          <div
+            className="relative"
+            style={{ width: layout.width, height: layout.height, transform: `scale(${printScale})`, transformOrigin: "top left" }}
+          >
+            <svg width={layout.width} height={layout.height} className="absolute inset-0 pointer-events-none">
+              {layout.lineas.map((d) => (
+                <path key={d} d={d} fill="none" stroke="#475569" strokeWidth={2} />
+              ))}
+            </svg>
+            {layout.cajas.map((c) => renderCaja(c, incluirFotos))}
+          </div>
+        </div>
+      </div>
+
+      {/* Fuera de pantalla (no display:none: html2canvas necesita que el
+          nodo esté realmente en el layout para poder rasterizarlo), a
+          tamaño completo sin el scale del zoom ni el achique de impresión,
+          para que la imagen descargada salga nítida. */}
+      <div className="fixed left-[-99999px] top-0 pointer-events-none" aria-hidden="true">
+        <div ref={exportRef} className="relative bg-white" style={{ width: layout.width, height: layout.height }}>
+          <svg width={layout.width} height={layout.height} className="absolute inset-0 pointer-events-none">
+            {layout.lineas.map((d) => (
+              <path key={d} d={d} fill="none" stroke="#475569" strokeWidth={2} />
+            ))}
+          </svg>
+          {layout.cajas.map((c) => renderCaja(c, incluirFotos))}
+        </div>
+      </div>
+
+      {/* Controles de impresión/descarga — se ocultan solos al imprimir,
+          junto con el resto de la UI de pantalla (no llevan la clase
+          print-organigrama). */}
+      <div className="shrink-0 flex items-center justify-end gap-3">
+        <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={incluirFotos}
+            onChange={(e) => setIncluirFotos(e.target.checked)}
+            className="h-3.5 w-3.5 rounded border-slate-600 bg-slate-800 text-blue-500 cursor-pointer focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+          />
+          Incluir fotos
+        </label>
+        <button
+          type="button"
+          onClick={descargarImagen}
+          disabled={descargando}
+          className="inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <Download className="w-3.5 h-3.5" strokeWidth={2} />
+          {descargando ? "Generando…" : "Descargar imagen"}
+        </button>
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          🖨️ Imprimir
+        </button>
+      </div>
+
+      <div className="flex-1 min-h-0">
       {/* Desktop: el flowchart completo, escalado para entrar sin scroll. */}
       <div className="hidden lg:flex relative h-full flex-col bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
         <LogoMarcaDeAgua width={320} height={245} />
@@ -572,7 +676,7 @@ export default function OrganigramaChart({
                   <path key={d} d={d} fill="none" stroke="#475569" strokeWidth={2} />
                 ))}
               </svg>
-              {layout.cajas.map(renderCaja)}
+              {layout.cajas.map((c) => renderCaja(c, true))}
             </div>
           </div>
         </div>
@@ -596,6 +700,7 @@ export default function OrganigramaChart({
           </button>
         )}
       </div>
-    </>
+      </div>
+    </div>
   );
 }

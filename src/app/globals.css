@@ -334,3 +334,28 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
     color: #0f172a;
   }
 }
+
+/* Organigrama: misma mecánica de "ocultar todo el body y revelar sólo este
+   subárbol" que .print-informe, pero sin position:fixed — el árbol puede ser
+   más alto que una página y position:fixed lo recortaría a la primera. Pide
+   además una página con nombre en horizontal (el organigrama es naturalmente
+   más ancho que alto); si el navegador no soporta páginas con nombre, cae de
+   forma prolija al tamaño de página por defecto. */
+.print-organigrama {
+  display: none;
+}
+@page print-organigrama {
+  size: landscape;
+  margin: 10mm;
+}
+@media print {
+  .print-organigrama,
+  .print-organigrama * {
+    visibility: visible;
+  }
+  .print-organigrama {
+    display: block;
+    background: #fff;
+    page: print-organigrama;
+  }
+}
