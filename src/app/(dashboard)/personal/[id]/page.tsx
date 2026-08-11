@@ -32,11 +32,22 @@ export default async function PersonalDetallePage({
   if (!user) redirect("/login");
   const currentUser = await prisma.usuario.findFirst({
     where: { OR: [{ id: user.id }, { email: user.email! }] },
-    select: { rol: true },
+    select: {
+      rol: true, nombre: true, apellido: true, jerarquia: true,
+      agente: { select: { sexo: true } },
+    },
   });
   if (currentUser?.rol === "READONLY") redirect("/mi-legajo");
 
   const canEdit = currentUser?.rol === "SUPERADMIN" || currentUser?.rol === "ADMIN";
+
+  // Remitente para el saludo prearmado de WhatsApp: quien hace click en el
+  // ícono se identifica ante el agente al que le escribe.
+  const remitenteWhatsapp = {
+    nombre: [currentUser?.nombre, currentUser?.apellido].filter(Boolean).join(" "),
+    jerarquia: currentUser?.jerarquia ?? null,
+    sexo: currentUser?.agente?.sexo ?? null,
+  };
 
   const { id } = await params;
   const sp = await searchParams;
@@ -269,6 +280,7 @@ export default async function PersonalDetallePage({
           }))}
           canManageLicencias={["SUPERADMIN", "ADMIN", "SUPERVISOR"].includes(currentUser?.rol ?? "")}
           feriados={feriadosSerializados}
+          remitenteWhatsapp={remitenteWhatsapp}
         />
       </div>
     </>

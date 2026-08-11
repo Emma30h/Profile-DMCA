@@ -331,14 +331,64 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, value, full, icon }: { label: string; value: string; full?: boolean; icon?: React.ReactNode }) {
+/** wa.me necesita el número completo con código de país — acá se guardan
+ *  como código de área + número, sin 0 ni 15 (ej. "3516815808"), así que
+ *  alcanza con anteponerle el 549 de Argentina/celular. */
+function whatsappUrl(numero: string, mensaje?: string): string {
+  const digitos = numero.replace(/\D/g, "");
+  const base = `https://wa.me/549${digitos}`;
+  return mensaje ? `${base}?text=${encodeURIComponent(mensaje)}` : base;
+}
+
+export interface RemitenteWhatsapp {
+  nombre: string;
+  jerarquia: string | null;
+  sexo: string | null;
+}
+
+function saludoSegunHora(): string {
+  const hora = new Date().getHours();
+  if (hora >= 6 && hora < 12) return "Buenos días";
+  if (hora >= 12 && hora < 19) return "Buenas tardes";
+  return "Buenas noches";
+}
+
+/** "Buenas tardes! Le habla el/la {jerarquía} {nombre}." — se arma en el
+ *  momento (no server-side) porque el saludo depende de la hora local de
+ *  quien hace click, no de cuándo se renderizó la página. */
+function mensajeSaludoWhatsapp(remitente: RemitenteWhatsapp | undefined): string | undefined {
+  if (!remitente?.nombre) return undefined;
+  const articulo = remitente.sexo === "FEMENINO" ? "la" : "el";
+  const cargo = remitente.jerarquia ? `${remitente.jerarquia} ` : "";
+  return `${saludoSegunHora()}! Le habla ${articulo} ${cargo}${remitente.nombre}.`;
+}
+
+function Field({ label, value, full, icon, whatsapp, whatsappMensaje }: {
+  label: string; value: string; full?: boolean; icon?: React.ReactNode;
+  /** Si viene y `value` no es "—", agrega un ícono de WhatsApp que abre un chat con ese número. */
+  whatsapp?: string | null;
+  whatsappMensaje?: string;
+}) {
   return (
     <div className={full ? "col-span-full" : ""}>
       <p className="flex items-center gap-1.5 text-xs text-slate-500 mb-0.5">
         {icon && <span className="text-slate-600 shrink-0">{icon}</span>}
         {label}
       </p>
-      <p className={`text-sm ${value === "—" ? "text-slate-600" : "text-slate-200"}`}>{value}</p>
+      <p className={`flex items-center gap-2 text-sm ${value === "—" ? "text-slate-600" : "text-slate-200"}`}>
+        {value}
+        {whatsapp && value !== "—" && (
+          <a
+            href={whatsappUrl(whatsapp, whatsappMensaje)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Escribir por WhatsApp"
+            className="text-green-500 hover:text-green-400 transition-colors"
+          >
+            <IconWhatsApp />
+          </a>
+        )}
+      </p>
     </div>
   );
 }
@@ -432,6 +482,15 @@ function IconCross() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
+function IconWhatsApp() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.121.553 4.113 1.523 5.845L0 24l6.317-1.657A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75c-1.837 0-3.554-.51-5.024-1.393l-.36-.214-3.734.98.999-3.635-.235-.373A9.716 9.716 0 012.25 12c0-5.376 4.374-9.75 9.75-9.75s9.75 4.374 9.75 9.75-4.374 9.75-9.75 9.75z" />
     </svg>
   );
 }
@@ -535,7 +594,8 @@ function IconGraduation() {
 
 // ─── Tabs: vista (solo lectura) ───────────────────────────────────────────────
 
-function TabPersonal({ a }: { a: AgenteDetalle }) {
+function TabPersonal({ a, remitenteWhatsapp }: { a: AgenteDetalle; remitenteWhatsapp?: RemitenteWhatsapp }) {
+  const mensajeWhatsapp = mensajeSaludoWhatsapp(remitenteWhatsapp);
   return (
     <div className="space-y-8">
       <Section title="Identidad">
@@ -559,8 +619,8 @@ function TabPersonal({ a }: { a: AgenteDetalle }) {
       <div className="border-t border-slate-800" />
       <Section title="Contacto">
         <Field icon={<IconMail />} label="Email" value={val(a.email)} />
-        <Field icon={<IconPhoneMini />} label="Teléfono" value={val(a.telefono)} />
-        <Field icon={<IconPhoneMini />} label="Teléfono alternativo" value={val(a.telefonoAlternativo)} />
+        <Field icon={<IconPhoneMini />} label="Teléfono" value={val(a.telefono)} whatsapp={a.telefono} whatsappMensaje={mensajeWhatsapp} />
+        <Field icon={<IconPhoneMini />} label="Teléfono alternativo" value={val(a.telefonoAlternativo)} whatsapp={a.telefonoAlternativo} whatsappMensaje={mensajeWhatsapp} />
         <Field icon={<IconUsersMini />} label="Contacto de emergencia" value={val(a.contactoEmergencia)} full />
       </Section>
       <div className="border-t border-slate-800" />
@@ -1251,6 +1311,7 @@ export default function LegajoTabs({
   feriados = [],
   permisoHasta,
   tabInicial,
+  remitenteWhatsapp,
 }: {
   agente: AgenteDetalle;
   canEdit: boolean;
@@ -1264,6 +1325,7 @@ export default function LegajoTabs({
   feriados?: Feriado[];
   permisoHasta?: string | null;
   tabInicial?: TabId;
+  remitenteWhatsapp?: RemitenteWhatsapp;
 }) {
   const [activeTab, setActiveTab] = useState<TabId>(tabInicial ?? "personal");
   const [editando, setEditando] = useState(false);
@@ -1479,7 +1541,7 @@ export default function LegajoTabs({
         {activeTab === "personal" && (
           editando
             ? <EditTabPersonal form={formPersonal} setForm={setFormPersonal} />
-            : <TabPersonal a={agente} />
+            : <TabPersonal a={agente} remitenteWhatsapp={remitenteWhatsapp} />
         )}
         {activeTab === "laboral" && (
           editando
