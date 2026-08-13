@@ -350,9 +350,7 @@ export default function OpcionesLegajoMenu({ href, agenteId, agente, esOperador 
 
   return (
     <>
-      {/* Solo desktop: en mobile "Volver" vive aparte en VolverMovilBtn,
-          en su propia fila arriba de la cabecera (ver ese componente). */}
-      <div ref={menuRef} className="hidden lg:block relative">
+      <div ref={menuRef} className="relative">
         <button
           type="button"
           onClick={() => setMenuAbierto((v) => !v)}
