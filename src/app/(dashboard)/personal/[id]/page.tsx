@@ -175,8 +175,9 @@ export default async function PersonalDetallePage({
       <div className="space-y-5">
         {/* Header del legajo */}
         <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
-          <div className="flex justify-start mb-4 lg:hidden">
+          <div className="flex items-center justify-between mb-4 lg:hidden">
             <VolverMovilBtn href={volverHref} agenteId={agente.id} />
+            <OpcionesLegajoMenu href={volverHref} agenteId={agente.id} agente={agenteSerializado} esOperador={esOperador} />
           </div>
 
           <div className="flex items-start gap-5">
@@ -233,7 +234,9 @@ export default async function PersonalDetallePage({
                       TNO
                     </span>
                   )}
-                  <OpcionesLegajoMenu href={volverHref} agenteId={agente.id} agente={agenteSerializado} esOperador={esOperador} />
+                  <div className="hidden lg:block">
+                    <OpcionesLegajoMenu href={volverHref} agenteId={agente.id} agente={agenteSerializado} esOperador={esOperador} />
+                  </div>
                 </div>
               </div>
 
