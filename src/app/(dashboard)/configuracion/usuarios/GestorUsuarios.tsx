@@ -630,6 +630,21 @@ function FilaUsuario({
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ROL_BADGE[rol] ?? "bg-slate-800 text-slate-400"}`}>
             {ROL_LABELS[rol] ?? rol}
           </span>
+        ) : pending ? (
+          // Mientras se guarda el nuevo rol, en vez de dejar el <select>
+          // interactuable con el valor viejo, se lo reemplaza por unos
+          // puntos suspensivos centrados — misma señal de "carga en curso"
+          // que .loading-dots usa en el resto de la app, sin texto porque acá
+          // no hay lugar para un label al lado.
+          <div className="flex items-center justify-center rounded-md border border-slate-700 bg-slate-900 px-2 py-1 h-[30px] min-w-[130px]">
+            {/* Los "." se apoyan en la línea de base del texto, así que con
+                text-2xl quedan visualmente pegados abajo del box — se
+                compensa subiéndolos con -translate-y en vez de perseguir el
+                centrado con más padding. */}
+            <span className="loading-dots inline-flex items-center gap-0.5 text-2xl leading-none text-slate-500 -translate-y-1.5" aria-hidden="true">
+              <span>.</span><span>.</span><span>.</span>
+            </span>
+          </div>
         ) : (
           <select
             value={usuario.rol}
