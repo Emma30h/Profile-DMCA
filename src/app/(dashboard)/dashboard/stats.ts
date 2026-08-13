@@ -101,7 +101,7 @@ export interface HijosStats {
   sinHijos: RingStats;
   sinHijosIds: string[];
   totalActivos: number;
-  histograma: ConteoLabel[]; // "0 hijos".."4 hijos", "+4 hijos"
+  histograma: ConteoConIds[]; // "0 hijos".."4 hijos", "+4 hijos"
 }
 
 export interface PadresMadresStats {
@@ -457,19 +457,19 @@ async function calcularStats(): Promise<DashboardStats> {
   // ── Hijos a cargo: con/sin + histograma 0..4 / +4 ──
   const conHijosIds = agentesPorHijos.filter((a) => a.hijosCargo > 0).map((a) => a.id);
   const sinHijosIds = agentesPorHijos.filter((a) => a.hijosCargo === 0).map((a) => a.id);
-  const balde = [0, 0, 0, 0, 0]; // 0,1,2,3,4
-  let masDeCuatro = 0;
+  const balde: string[][] = [[], [], [], [], []]; // 0,1,2,3,4
+  const masDeCuatroIds: string[] = [];
   for (const a of agentesPorHijos) {
-    if (a.hijosCargo >= 0 && a.hijosCargo <= 4) balde[a.hijosCargo]++;
-    else if (a.hijosCargo > 4) masDeCuatro++;
+    if (a.hijosCargo >= 0 && a.hijosCargo <= 4) balde[a.hijosCargo].push(a.id);
+    else if (a.hijosCargo > 4) masDeCuatroIds.push(a.id);
   }
-  const histograma: ConteoLabel[] = [
-    { label: "0 hijos", count: balde[0] },
-    { label: "1 hijo", count: balde[1] },
-    { label: "2 hijos", count: balde[2] },
-    { label: "3 hijos", count: balde[3] },
-    { label: "4 hijos", count: balde[4] },
-    { label: "+4 hijos", count: masDeCuatro },
+  const histograma: ConteoConIds[] = [
+    { label: "0 hijos", count: balde[0].length, ids: balde[0] },
+    { label: "1 hijo", count: balde[1].length, ids: balde[1] },
+    { label: "2 hijos", count: balde[2].length, ids: balde[2] },
+    { label: "3 hijos", count: balde[3].length, ids: balde[3] },
+    { label: "4 hijos", count: balde[4].length, ids: balde[4] },
+    { label: "+4 hijos", count: masDeCuatroIds.length, ids: masDeCuatroIds },
   ];
 
   // ── Padres y madres: entre los que tienen hijos a cargo, Masculino/Femenino ──

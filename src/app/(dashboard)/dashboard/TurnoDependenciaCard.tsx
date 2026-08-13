@@ -6,11 +6,13 @@ import type { ConteoLabel, ConteoConIds } from "./stats";
 import { buildQueryString } from "../personal/queryString";
 
 const LETRA_TURNO = /^[A-F]$/;
-// Buckets sintéticos (ver stats.ts) — no son un valor real de turno/sector/
-// origen, así que no tiene sentido armar un link de filtro con ellos.
+// Bucket sintético (ver stats.ts): no es un valor real de turno, así que no
+// tiene sentido armar un link de filtro con él (el filtro de turno matchea
+// por el valor literal, y "Sin turno asignado" no es un turno real).
+// Dependencia y origen no tienen este problema: filtran por ids puntuales de
+// agente (ver ConteoConIds), así que su bucket "sin clasificar" también es
+// filtrable como cualquier otro.
 const SIN_TURNO_LABEL = "Sin turno asignado";
-const SIN_DEPENDENCIA_LABEL = "Sin dependencia asignada";
-const SIN_ORIGEN_LABEL = "Sin clasificar";
 
 type Vista = "turno" | "dependencia" | "origen";
 const VISTAS: Vista[] = ["turno", "dependencia", "origen"];
@@ -80,7 +82,7 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
                     className={`grid grid-cols-[96px_1fr_34px] items-center gap-2.5 -mx-1.5 px-1.5 py-0.5 rounded-lg transition-colors group ${
                       clickable ? "cursor-pointer hover:bg-slate-800/60" : ""
                     }`}
-                    onDoubleClick={() => {
+                    onClick={() => {
                       if (clickable) router.push(`/personal?${buildQueryString({ turno: t.label, estado: "ACTIVO" })}`);
                     }}
                   >
@@ -102,61 +104,47 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
 
           <div className="shrink-0 w-full">
             <div className="flex flex-col">
-              {dependencia.map((d, i) => {
-                const clickable = d.label !== SIN_DEPENDENCIA_LABEL;
-                return (
-                  <div
-                    key={d.label}
-                    className={`flex items-center gap-2.5 py-2.5 border-b border-slate-800 last:border-b-0 -mx-1.5 px-1.5 rounded-lg transition-colors group ${
-                      clickable ? "cursor-pointer hover:bg-slate-800/60" : ""
+              {dependencia.map((d, i) => (
+                <div
+                  key={d.label}
+                  className="flex items-center gap-2.5 py-2.5 border-b border-slate-800 last:border-b-0 -mx-1.5 px-1.5 rounded-lg transition-colors group cursor-pointer hover:bg-slate-800/60"
+                  onClick={() => router.push(`/personal?${buildQueryString({ ids: d.ids.join(",") })}`)}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 transition-[filter] duration-150 group-hover:brightness-125 ${
+                      i === 0 ? "bg-blue-500" : "bg-slate-600"
                     }`}
-                    onDoubleClick={() => {
-                      if (clickable) router.push(`/personal?${buildQueryString({ ids: d.ids.join(",") })}`);
-                    }}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full shrink-0 transition-[filter] duration-150 ${
-                        i === 0 ? "bg-blue-500" : "bg-slate-600"
-                      } ${clickable ? "group-hover:brightness-125" : ""}`}
-                    />
-                    <span className="text-[12.5px] text-slate-400 flex-1 min-w-0 truncate">{d.label}</span>
-                    <span className="text-[12.5px] font-semibold text-slate-100 tabular-nums">{d.count}</span>
-                    <span className="text-[11px] text-slate-500 w-9 text-right tabular-nums">
-                      {totalActivos > 0 ? Math.round((d.count / totalActivos) * 100) : 0}%
-                    </span>
-                  </div>
-                );
-              })}
+                  />
+                  <span className="text-[12.5px] text-slate-400 flex-1 min-w-0 truncate">{d.label}</span>
+                  <span className="text-[12.5px] font-semibold text-slate-100 tabular-nums">{d.count}</span>
+                  <span className="text-[11px] text-slate-500 w-9 text-right tabular-nums">
+                    {totalActivos > 0 ? Math.round((d.count / totalActivos) * 100) : 0}%
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="shrink-0 w-full">
             <div className="flex flex-col">
-              {origenInstitucional.map((o, i) => {
-                const clickable = o.label !== SIN_ORIGEN_LABEL;
-                return (
-                  <div
-                    key={o.label}
-                    className={`flex items-center gap-2.5 py-2.5 border-b border-slate-800 last:border-b-0 -mx-1.5 px-1.5 rounded-lg transition-colors group ${
-                      clickable ? "cursor-pointer hover:bg-slate-800/60" : ""
+              {origenInstitucional.map((o, i) => (
+                <div
+                  key={o.label}
+                  className="flex items-center gap-2.5 py-2.5 border-b border-slate-800 last:border-b-0 -mx-1.5 px-1.5 rounded-lg transition-colors group cursor-pointer hover:bg-slate-800/60"
+                  onClick={() => router.push(`/personal?${buildQueryString({ ids: o.ids.join(",") })}`)}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 transition-[filter] duration-150 group-hover:brightness-125 ${
+                      i === 0 ? "bg-blue-500" : "bg-slate-600"
                     }`}
-                    onDoubleClick={() => {
-                      if (clickable) router.push(`/personal?${buildQueryString({ ids: o.ids.join(",") })}`);
-                    }}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full shrink-0 transition-[filter] duration-150 ${
-                        i === 0 ? "bg-blue-500" : "bg-slate-600"
-                      } ${clickable ? "group-hover:brightness-125" : ""}`}
-                    />
-                    <span className="text-[12.5px] text-slate-400 flex-1 min-w-0 truncate">{o.label}</span>
-                    <span className="text-[12.5px] font-semibold text-slate-100 tabular-nums">{o.count}</span>
-                    <span className="text-[11px] text-slate-500 w-9 text-right tabular-nums">
-                      {totalActivos > 0 ? Math.round((o.count / totalActivos) * 100) : 0}%
-                    </span>
-                  </div>
-                );
-              })}
+                  />
+                  <span className="text-[12.5px] text-slate-400 flex-1 min-w-0 truncate">{o.label}</span>
+                  <span className="text-[12.5px] font-semibold text-slate-100 tabular-nums">{o.count}</span>
+                  <span className="text-[11px] text-slate-500 w-9 text-right tabular-nums">
+                    {totalActivos > 0 ? Math.round((o.count / totalActivos) * 100) : 0}%
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

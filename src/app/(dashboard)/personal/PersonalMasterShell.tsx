@@ -247,9 +247,16 @@ export default function PersonalMasterShell({
   // de props/estado en vez de guardarse en un setState propio, para no
   // llamar setState de forma directa dentro del efecto (el redirect en sí sí
   // necesita el efecto, por ser una llamada real al router).
+  //
+  // "De cero" exige además que no haya filtros en la URL (!queryString): sin
+  // este chequeo, cualquier búsqueda o drill-down (ej. doble click en
+  // "Activos por dependencia" del dashboard) que llegara sin un id puntual
+  // rebotaba al legajo anclado en vez de mostrar la lista filtrada —y con un
+  // agente anclado, esto se repetía en cada cambio de filtro/búsqueda,
+  // porque el efecto vuelve a dispararse en cada cambio de queryString.
   const { anclado } = useAgenteAnclado();
   const ancladoId = anclado?.id;
-  const pendienteAnclado = !selectedId && Boolean(ancladoId);
+  const pendienteAnclado = !selectedId && !queryString && Boolean(ancladoId);
 
   // Transición propia (no la de navigate()): si compartiera la misma que
   // "Limpiar fichero"/selección manual, un agente anclado DISTINTO al que se

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import RingCompare from "./RingCompare";
 import type { HijosStats } from "./stats";
 import { buildQueryString } from "../personal/queryString";
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export default function HijosACargoCard({ hijos }: Props) {
+  const router = useRouter();
   const [verDetalle, setVerDetalle] = useState(false);
   const max = Math.max(1, ...hijos.histograma.map((h) => h.count));
 
@@ -70,12 +72,23 @@ export default function HijosACargoCard({ hijos }: Props) {
             <div className="flex flex-col gap-2.5">
               {hijos.histograma.map((h) => {
                 const dim = h.label === "0 hijos" || h.label === "+4 hijos";
+                const clickable = h.count > 0;
                 return (
-                  <div key={h.label} className="grid grid-cols-[96px_1fr_34px] items-center gap-2.5">
+                  <div
+                    key={h.label}
+                    className={`grid grid-cols-[96px_1fr_34px] items-center gap-2.5 -mx-1.5 px-1.5 py-0.5 rounded-lg transition-colors group ${
+                      clickable ? "cursor-pointer hover:bg-slate-800/60" : ""
+                    }`}
+                    onClick={() => {
+                      if (clickable) router.push(`/personal?${buildQueryString({ ids: h.ids.join(",") })}`);
+                    }}
+                  >
                     <span className="text-xs font-medium text-slate-400 truncate">{h.label}</span>
                     <div className="h-2.5 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${dim ? "bg-slate-600" : "bg-blue-500"}`}
+                        className={`h-full rounded-full transition-[filter] duration-150 ${dim ? "bg-slate-600" : "bg-blue-500"} ${
+                          clickable ? "group-hover:brightness-125" : ""
+                        }`}
                         style={{ width: `${(h.count / max) * 100}%` }}
                       />
                     </div>
