@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { TurnoHoyInfo } from "@/app/actions/turnos";
 
 // Cada franja horaria la cubre una letra del grupo 1 y una del grupo 2 (ver
@@ -22,18 +25,46 @@ function horaActualCordoba(): number {
   return Number(hora) % 24; // Intl puede devolver "24" para la medianoche
 }
 
+// Misma razón que horaActualCordoba(): la fecha de hoy también se lee en
+// hora de Córdoba, no en la del proceso, para que coincida con las franjas.
+function fechaHoyCordoba(): string {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Argentina/Cordoba",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(new Date());
+  const obtener = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? "";
+  return `${obtener("day")}/${obtener("month")}/${obtener("year")}`;
+}
+
 function enBandaVigente(hora: number, inicio: number, fin: number): boolean {
   // Franjas normales (inicio < fin) vs. la que cruza la medianoche (23 a 07).
   return inicio < fin ? hora >= inicio && hora < fin : hora >= inicio || hora < fin;
 }
 
+function calcularReloj() {
+  return { horaActual: horaActualCordoba(), fecha: fechaHoyCordoba() };
+}
+
 export default function TurnoHoyCard({ turnoHoy }: { turnoHoy: TurnoHoyInfo }) {
   const grupo = turnoHoy.grupoTurno;
-  const horaActual = horaActualCordoba();
+  // La franja vigente y la fecha se recalculan solas cada un minuto (mismo
+  // mecanismo que ContadorPermiso en LegajoTabs.tsx) para que la tarjeta no
+  // quede mostrando la franja/fecha de cuando se cargó la página si el
+  // usuario la deja abierta y cruza una hora o la medianoche.
+  const [{ horaActual, fecha }, setReloj] = useState(calcularReloj);
+  useEffect(() => {
+    const interval = setInterval(() => setReloj(calcularReloj()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="p-4.5">
-      <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2.5">Turno de hoy</h3>
+      <div className="flex items-center justify-between gap-2 mb-2.5">
+        <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Turno de hoy</h3>
+        <span className="text-[11px] text-slate-500 tabular-nums">{fecha}</span>
+      </div>
       <div className="space-y-3 text-[13px]">
         <div>
           <div className="text-slate-400 text-[11px] mb-0.5">En servicio</div>
