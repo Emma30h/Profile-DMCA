@@ -32,6 +32,7 @@ export default async function DashboardPage() {
     select: { rol: true },
   });
   if (currentUser?.rol === "READONLY") redirect("/perfil");
+  const esOperador = currentUser?.rol === "OPERADOR";
 
   const stats = await getDashboardStats();
 
@@ -41,45 +42,51 @@ export default async function DashboardPage() {
 
       <EventosResumenMobile />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <KpiTile
-          label="En pase"
-          value={stats.kpi.enPase}
-          sub="a otra dependencia"
-          icon="⇄"
-          badgeClass="bg-blue-500/10 text-blue-300"
-          href={stats.kpi.enPase > 0 ? "/personal?estado=PASE" : undefined}
-        />
-        <KpiTile
-          label="En baja"
-          value={stats.kpi.enBaja}
-          sub="fuera de servicio"
-          icon="−"
-          badgeClass="bg-slate-800 text-slate-500"
-          href={stats.kpi.enBaja > 0 ? "/personal?estado=BAJA" : undefined}
-        />
-        <KpiTile
-          label="Legajos pendientes"
-          value={stats.kpi.legajosPendientes}
-          sub={stats.kpi.legajosPendientes === 0 ? "al día — nada por validar" : "esperando validación"}
-          subClass={stats.kpi.legajosPendientes === 0 ? "text-green-400" : undefined}
-          icon="✓"
-          badgeClass="bg-green-500/10 text-green-400"
-          href={stats.kpi.legajosPendientes > 0 ? "/personal?estado=PENDIENTE" : undefined}
-        />
-        <KpiTile
-          label="Licencias activas hoy"
-          value={stats.kpi.licenciasActivasHoy}
-          sub={`+${stats.kpi.licenciasProximas} próximas a iniciar`}
-          icon="◐"
-          badgeClass="bg-amber-400/10 text-amber-300"
-          href={
-            stats.kpi.licenciasActivasHoyIds.length > 0
-              ? `/personal?${buildQueryString({ ids: stats.kpi.licenciasActivasHoyIds.join(",") })}`
-              : undefined
-          }
-        />
-      </div>
+      {/* Indicadores de gestión (pases, bajas, legajos por validar,
+          licencias): son información administrativa/RRHH, no algo que un
+          Operador necesite para su tarea — se ocultan para ese rol, igual
+          que el resto del legajo sensible. */}
+      {!esOperador && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <KpiTile
+            label="En pase"
+            value={stats.kpi.enPase}
+            sub="a otra dependencia"
+            icon="⇄"
+            badgeClass="bg-blue-500/10 text-blue-300"
+            href={stats.kpi.enPase > 0 ? "/personal?estado=PASE" : undefined}
+          />
+          <KpiTile
+            label="En baja"
+            value={stats.kpi.enBaja}
+            sub="fuera de servicio"
+            icon="−"
+            badgeClass="bg-slate-800 text-slate-500"
+            href={stats.kpi.enBaja > 0 ? "/personal?estado=BAJA" : undefined}
+          />
+          <KpiTile
+            label="Legajos pendientes"
+            value={stats.kpi.legajosPendientes}
+            sub={stats.kpi.legajosPendientes === 0 ? "al día — nada por validar" : "esperando validación"}
+            subClass={stats.kpi.legajosPendientes === 0 ? "text-green-400" : undefined}
+            icon="✓"
+            badgeClass="bg-green-500/10 text-green-400"
+            href={stats.kpi.legajosPendientes > 0 ? "/personal?estado=PENDIENTE" : undefined}
+          />
+          <KpiTile
+            label="Licencias activas hoy"
+            value={stats.kpi.licenciasActivasHoy}
+            sub={`+${stats.kpi.licenciasProximas} próximas a iniciar`}
+            icon="◐"
+            badgeClass="bg-amber-400/10 text-amber-300"
+            href={
+              stats.kpi.licenciasActivasHoyIds.length > 0
+                ? `/personal?${buildQueryString({ ids: stats.kpi.licenciasActivasHoyIds.join(",") })}`
+                : undefined
+            }
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
         <DonutTipoPersonal data={stats.tipoPersonal} total={stats.totalActivos} />
@@ -91,9 +98,14 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="mb-6">
-        <AlertsPanel alertas={stats.alertas} />
-      </div>
+      {/* Mismo criterio que la fila de indicadores: licencias por vencer,
+          licencia de conducir y chaleco son datos que un Operador no
+          necesita y que además ya están restringidos en el propio legajo. */}
+      {!esOperador && (
+        <div className="mb-6">
+          <AlertsPanel alertas={stats.alertas} />
+        </div>
+      )}
 
       <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 mb-4">
         <h3 className="text-sm font-semibold text-slate-100 mb-1">Activos por sexo</h3>
