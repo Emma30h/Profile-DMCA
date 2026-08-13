@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface Props {
   src: string;
@@ -9,6 +9,13 @@ interface Props {
 }
 
 export default function PreviewFoto({ src, label, onCerrar }: Props) {
+  // AgenteAvatar ya sabe recuperarse de un link roto (foto vieja de imgbox
+  // que dejó de resolver, o dato corrupto de la carga masiva original) y
+  // cae al ícono genérico — acá, en cambio, no había ningún resguardo: un
+  // <img> con src inválido rompía el modal mostrando el ícono nativo de
+  // imagen rota más el alt a tamaño completo.
+  const [error, setError] = useState(false);
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onCerrar();
@@ -35,12 +42,22 @@ export default function PreviewFoto({ src, label, onCerrar }: Props) {
             </svg>
           </button>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={src}
-          alt={label}
-          className="w-full max-h-[75vh] rounded-xl border border-slate-700 object-contain bg-slate-950"
-        />
+        {error ? (
+          <div className="w-full h-64 rounded-xl border border-slate-700 bg-slate-950 flex flex-col items-center justify-center gap-2 text-slate-500">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            </svg>
+            <p className="text-sm">No se pudo cargar la foto</p>
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt={label}
+            onError={() => setError(true)}
+            className="w-full max-h-[75vh] rounded-xl border border-slate-700 object-contain bg-slate-950"
+          />
+        )}
       </div>
     </div>
   );
