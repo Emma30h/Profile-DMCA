@@ -108,6 +108,11 @@ export default function TurnoHoyCard({ turnoHoy }: { turnoHoy: TurnoHoyInfo }) {
             {turnoHoy.superiorTurno
               ? `${turnoHoy.superiorTurnoRango ? `${turnoHoy.superiorTurnoRango} ` : ""}${turnoHoy.superiorTurno}`
               : "Sin definir"}
+            {/* Cubre 20 a 8 hs (cruza la medianoche, ver diaDeTurnoActual()
+                en actions/turnos.ts) — horario fijo, no depende del agente. */}
+            {turnoHoy.superiorTurno && (
+              <span className="ml-1.5 text-[11px] font-normal text-slate-500">(20:00 a 08:00 Hrs)</span>
+            )}
           </div>
         </div>
         {turnoHoy.esFinDeSemana && (

@@ -42,9 +42,22 @@ function toFechaKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-function hoyUTC(): Date {
-  const ahora = new Date();
-  return new Date(Date.UTC(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()));
+// El servidor puede correr en cualquier huso horario (ej. UTC en Vercel); el
+// "día de turno" se lee en hora de Córdoba, no en la del proceso — igual
+// criterio que horaActualCordoba() en TurnoHoyCard.tsx. El Superior de Turno
+// cubre 20 a 8 hs y cruza la medianoche, así que su asignación pertenece al
+// día calendario en que empezó: antes de las 8 de la mañana, el día de
+// turno vigente todavía es el de ayer, no el de hoy.
+function diaDeTurnoActual(): Date {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Argentina/Cordoba",
+    year: "numeric", month: "numeric", day: "numeric", hour: "numeric", hour12: false,
+  }).formatToParts(new Date());
+  const obtener = (tipo: string) => Number(partes.find((p) => p.type === tipo)?.value ?? 0);
+  const hora = obtener("hour") % 24; // Intl puede devolver "24" para la medianoche
+  const fecha = new Date(Date.UTC(obtener("year"), obtener("month") - 1, obtener("day")));
+  if (hora < 8) fecha.setUTCDate(fecha.getUTCDate() - 1);
+  return fecha;
 }
 
 export interface TurnoHoyInfo {
@@ -57,7 +70,7 @@ export interface TurnoHoyInfo {
 
 // El "fin de semana" del Jefe de Fin de Semana arranca el viernes, no solo sábado/domingo.
 export async function obtenerTurnoHoy(): Promise<TurnoHoyInfo> {
-  const hoy = hoyUTC();
+  const hoy = diaDeTurnoActual();
   const dia = await prisma.diaTurno.findUnique({
     where: { fecha: hoy },
     include: {
