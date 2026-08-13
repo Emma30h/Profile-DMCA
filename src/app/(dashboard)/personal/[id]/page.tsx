@@ -10,6 +10,7 @@ import FotoLegajoBtn from "@/components/legajo/FotoLegajoBtn";
 import AgenteAvatar from "@/components/AgenteAvatar";
 import VerFotoTrigger from "@/components/legajo/VerFotoTrigger";
 import EstadoBadgeInfo from "@/components/legajo/EstadoBadgeInfo";
+import TipoPersonalBtn from "@/components/legajo/TipoPersonalBtn";
 import LimpiarFicheroButton from "../LimpiarFicheroButton";
 import { buildQueryString, type FiltrosPersonalParams } from "../queryString";
 
@@ -40,6 +41,7 @@ export default async function PersonalDetallePage({
   if (currentUser?.rol === "READONLY") redirect("/mi-legajo");
 
   const canEdit = currentUser?.rol === "SUPERADMIN" || currentUser?.rol === "ADMIN";
+  const esOperador = currentUser?.rol === "OPERADOR";
 
   // Remitente para el saludo prearmado de WhatsApp: quien hace click en el
   // ícono se identifica ante el agente al que le escribe.
@@ -164,6 +166,7 @@ export default async function PersonalDetallePage({
   };
 
   const subtitulo = [agente.rango?.nombre, TIPO_LABELS[tipo] ?? tipo].filter(Boolean).join(" - ");
+  const rangoPrefijo = agente.rango?.nombre ? `${agente.rango.nombre} - ` : "";
 
   return (
     <>
@@ -199,8 +202,15 @@ export default async function PersonalDetallePage({
                   <h1 className="text-xl font-bold text-slate-100 leading-tight">
                     {agente.apellidos}, {agente.nombres}
                   </h1>
-                  {subtitulo && (
-                    <p className="text-sm font-semibold text-blue-400 uppercase tracking-wide mt-0.5">{subtitulo}</p>
+                  {canEdit ? (
+                    <p className="text-sm font-semibold text-blue-400 uppercase tracking-wide mt-0.5">
+                      {rangoPrefijo}
+                      <TipoPersonalBtn agenteId={agente.id} tipoActual={tipo} />
+                    </p>
+                  ) : (
+                    subtitulo && (
+                      <p className="text-sm font-semibold text-blue-400 uppercase tracking-wide mt-0.5">{subtitulo}</p>
+                    )
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -245,6 +255,7 @@ export default async function PersonalDetallePage({
         <LegajoTabs
           agente={agenteSerializado}
           canEdit={canEdit}
+          esOperador={esOperador}
           rangos={rangos}
           sectores={sectores}
           auditLogs={auditLogsSerialized}

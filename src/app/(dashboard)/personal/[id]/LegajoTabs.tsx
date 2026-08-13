@@ -653,7 +653,7 @@ const ORIGEN_LABEL: Record<OrigenInstitucional, string> = {
   OTRA_DEPENDENCIA: "Otra dependencia",
 };
 
-function TabLaboral({ a }: { a: AgenteDetalle }) {
+function TabLaboral({ a, esOperador = false }: { a: AgenteDetalle; esOperador?: boolean }) {
   const esSeguridad = a.tipoPersonal === "SEGURIDAD";
   const esTecnico = a.tipoPersonal === "TECNICO";
   const tieneRango = esSeguridad || esTecnico;
@@ -689,21 +689,27 @@ function TabLaboral({ a }: { a: AgenteDetalle }) {
       </Section>
       {esSeguridad && (
         <>
-          <div className="border-t border-slate-800" />
-          <Section title="Armamento">
-            <Field icon={<IconShield />} label="Tipo de arma" value={val(a.tipoArma)} />
-            <Field icon={<IconShield />} label="Marca de pistola" value={val(a.marcaPistola)} />
-            <Field icon={<IconShield />} label="Modelo de pistola" value={val(a.modeloPistola)} />
-            <Field icon={<IconShield />} label="Calibre" value={val(a.calibre)} />
-          </Section>
-          <div className="border-t border-slate-800" />
-          <Section title="Chaleco">
-            <Field icon={<IconShield />} label="Chaleco provisto" value={boolVal(a.chalecoProvisto)} />
-            <Field icon={<IconShield />} label="Marca" value={val(a.marcaChaleco)} />
-            <Field icon={<IconShield />} label="N° de serie / Placas" value={val(a.nroSeriePlacas)} />
-            <Field icon={<IconShield />} label="Talle" value={val(a.talleChaleco)} />
-            <Field icon={<IconCalendarMini />} label="Vencimiento" value={fmt(a.vencimientoChaleco)} />
-          </Section>
+          {/* Operador puede ver Datos Laborales de Seguridad, pero no el
+              detalle del armamento ni del chaleco asignado. */}
+          {!esOperador && (
+            <>
+              <div className="border-t border-slate-800" />
+              <Section title="Armamento">
+                <Field icon={<IconShield />} label="Tipo de arma" value={val(a.tipoArma)} />
+                <Field icon={<IconShield />} label="Marca de pistola" value={val(a.marcaPistola)} />
+                <Field icon={<IconShield />} label="Modelo de pistola" value={val(a.modeloPistola)} />
+                <Field icon={<IconShield />} label="Calibre" value={val(a.calibre)} />
+              </Section>
+              <div className="border-t border-slate-800" />
+              <Section title="Chaleco">
+                <Field icon={<IconShield />} label="Chaleco provisto" value={boolVal(a.chalecoProvisto)} />
+                <Field icon={<IconShield />} label="Marca" value={val(a.marcaChaleco)} />
+                <Field icon={<IconShield />} label="N° de serie / Placas" value={val(a.nroSeriePlacas)} />
+                <Field icon={<IconShield />} label="Talle" value={val(a.talleChaleco)} />
+                <Field icon={<IconCalendarMini />} label="Vencimiento" value={fmt(a.vencimientoChaleco)} />
+              </Section>
+            </>
+          )}
           <div className="border-t border-slate-800" />
           <Section title="Situación de revista">
             <Field icon={<IconShield />} label="Tarea No Operativa (TNO)" value={boolVal(a.enTNO)} />
@@ -1301,6 +1307,7 @@ function ContadorPermiso({ permisoHasta }: { permisoHasta: string }) {
 export default function LegajoTabs({
   agente,
   canEdit,
+  esOperador = false,
   rangos,
   sectores,
   auditLogs = [],
@@ -1315,6 +1322,11 @@ export default function LegajoTabs({
 }: {
   agente: AgenteDetalle;
   canEdit: boolean;
+  /** Rol OPERADOR viendo el legajo de otra persona (nunca el propio, ver
+   * /mi-legajo): puede ver todos los legajos, pero con pestañas y secciones
+   * restringidas para cuidar datos sensibles (licencias, historial,
+   * armamento de Seguridad). No afecta a otros roles. */
+  esOperador?: boolean;
   rangos: RangoOption[];
   sectores: SectorOption[];
   auditLogs?: AuditLogEntry[];
@@ -1327,7 +1339,21 @@ export default function LegajoTabs({
   tabInicial?: TabId;
   remitenteWhatsapp?: RemitenteWhatsapp;
 }) {
-  const [activeTab, setActiveTab] = useState<TabId>(tabInicial ?? "personal");
+  // Seguridad y Técnico (personal con jerarquía/uniformado): para un
+  // Operador, solo se ven Datos Personales y Datos Laborales — ni siquiera
+  // Asistencia. Civil Becario/Policial: se ve todo excepto Historial de
+  // Rangos, Historial de Cambios y Licencias y Ausentismo.
+  const tipoRestringido = agente.tipoPersonal === "SEGURIDAD" || agente.tipoPersonal === "TECNICO";
+  const tabsOcultas: TabId[] = esOperador
+    ? tipoRestringido
+      ? ["historial", "cambios", "licencias", "asistencia"]
+      : ["historial", "cambios", "licencias"]
+    : [];
+  const tabsVisibles = TABS.filter((tab) => !tabsOcultas.includes(tab.id));
+  const tabInicialSegura: TabId =
+    tabInicial && !tabsOcultas.includes(tabInicial) ? tabInicial : "personal";
+
+  const [activeTab, setActiveTab] = useState<TabId>(tabInicialSegura);
   const [editando, setEditando] = useState(false);
   const [formPersonal, setFormPersonal] = useState<DatosPersonales>(() => initPersonal(agente));
   const [formLaboral, setFormLaboral] = useState<DatosLaborales>(() => initLaboral(agente));
@@ -1439,7 +1465,7 @@ export default function LegajoTabs({
             tabScroll.left ? "" : "pl-6"
           } ${tabScroll.right ? "" : "pr-6"}`}
         >
-          {TABS.map((tab) => {
+          {tabsVisibles.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
@@ -1546,7 +1572,7 @@ export default function LegajoTabs({
         {activeTab === "laboral" && (
           editando
             ? <EditTabLaboral form={formLaboral} setForm={setFormLaboral} agente={agente} rangos={rangos} sectores={sectores} />
-            : <TabLaboral a={agente} />
+            : <TabLaboral a={agente} esOperador={esOperador} />
         )}
         {activeTab === "historial" && (
           <TabHistorial

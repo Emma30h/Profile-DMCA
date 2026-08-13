@@ -402,6 +402,80 @@ export async function actualizarAgenteLaboral(
   revalidatePath("/dashboard");
 }
 
+// ─── Tipo de personal (corrección de carga, solo ADMIN/SUPERADMIN) ────────────
+// No es editable desde el formulario de Datos Laborales porque de este valor
+// depende qué otros campos tiene el agente (rango, armamento, chaleco, TNO) —
+// se maneja aparte para poder limpiar esos campos si dejan de aplicar.
+
+const TIPOS_PERSONAL_VALIDOS = ["SEGURIDAD", "TECNICO", "CIVIL_BECARIO", "CIVIL_POLICIAL"];
+const TIPO_PERSONAL_LABEL: Record<string, string> = {
+  SEGURIDAD: "Seguridad",
+  TECNICO: "Técnico",
+  CIVIL_BECARIO: "Civil Becario",
+  CIVIL_POLICIAL: "Civil Policial",
+};
+
+export async function actualizarTipoPersonal(agenteId: string, nuevoTipo: string): Promise<void> {
+  const { usuarioId, usuarioNombre } = await verificarAdmin();
+
+  if (!TIPOS_PERSONAL_VALIDOS.includes(nuevoTipo)) {
+    throw new Error("Tipo de personal inválido");
+  }
+
+  const agenteActual = await prisma.agente.findUnique({
+    where: { id: agenteId },
+    select: { tipoPersonal: true },
+  });
+  if (!agenteActual) throw new Error("Legajo no encontrado");
+  if (agenteActual.tipoPersonal === nuevoTipo) return;
+
+  const tieneRango = nuevoTipo === "SEGURIDAD" || nuevoTipo === "TECNICO";
+  const esSeguridad = nuevoTipo === "SEGURIDAD";
+
+  await prisma.agente.update({
+    where: { id: agenteId },
+    data: {
+      tipoPersonal: nuevoTipo,
+      // Si el nuevo tipo no tiene jerarquía/armamento, se limpian los campos
+      // que dejaron de aplicar en vez de dejarlos con datos de otro tipo.
+      rangoId: tieneRango ? undefined : null,
+      perteneceETAC: tieneRango ? undefined : null,
+      tipoArma: esSeguridad ? undefined : null,
+      marcaPistola: esSeguridad ? undefined : null,
+      modeloPistola: esSeguridad ? undefined : null,
+      calibre: esSeguridad ? undefined : null,
+      chalecoProvisto: esSeguridad ? undefined : null,
+      marcaChaleco: esSeguridad ? undefined : null,
+      nroSeriePlacas: esSeguridad ? undefined : null,
+      talleChaleco: esSeguridad ? undefined : null,
+      vencimientoChaleco: esSeguridad ? undefined : null,
+      enTNO: esSeguridad ? undefined : null,
+      motivoTNO: esSeguridad ? undefined : null,
+      fechaInicioTNO: esSeguridad ? undefined : null,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      agenteId,
+      usuarioId,
+      usuarioNombre,
+      seccion: "LABORAL",
+      cambios: JSON.stringify([{
+        campo: "Tipo de personal",
+        anterior: TIPO_PERSONAL_LABEL[agenteActual.tipoPersonal] ?? agenteActual.tipoPersonal,
+        nuevo: TIPO_PERSONAL_LABEL[nuevoTipo] ?? nuevoTipo,
+      }]),
+    },
+  });
+
+  await invalidateAgentesCache();
+  revalidatePath(`/personal/${agenteId}`);
+  revalidatePath("/personal");
+  revalidatePath("/mi-legajo");
+  revalidatePath("/dashboard");
+}
+
 // ─── Condición de ascenso (solo Seguridad/Técnico, solo ADMIN/SUPERADMIN) ─────
 
 async function verificarAdmin(): Promise<{ usuarioId: string; usuarioNombre: string }> {
