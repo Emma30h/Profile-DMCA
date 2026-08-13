@@ -574,17 +574,33 @@ function CalendarioMes({
   );
 }
 
-// Calendario simplificado que sólo pinta los días que abarca una licencia
-// puntual, en el mes en que comienza. Se muestra en el panel lateral que
-// aparece al hacer doble click sobre un agente dentro del modal de día.
+// Calendario simplificado que pinta los días que abarca una licencia
+// puntual. Arranca en el mes en que comienza, pero si la licencia sigue en
+// meses posteriores (ej. una licencia extraordinaria de 2 meses para
+// personal jerárquico) se puede navegar mes a mes con las flechas — sin
+// esto, solo se veía el primer mes y el resto del rango quedaba invisible.
+// Se muestra en el panel lateral que aparece al hacer doble click sobre un
+// agente dentro del modal de día.
 function MiniCalendarioLicencia({ licencia }: { licencia: LicenciaRow }) {
   const inicio = new Date(licencia.fechaInicio);
   const fin = new Date(licencia.fechaFin);
-  const anio = inicio.getUTCFullYear();
-  const mes = inicio.getUTCMonth();
 
   const inicioUTC = Date.UTC(inicio.getUTCFullYear(), inicio.getUTCMonth(), inicio.getUTCDate());
   const finUTC = Date.UTC(fin.getUTCFullYear(), fin.getUTCMonth(), fin.getUTCDate());
+
+  // Cantidad total de meses distintos que abarca la licencia (0 = un solo mes).
+  const mesesDeRango =
+    (fin.getUTCFullYear() - inicio.getUTCFullYear()) * 12 + (fin.getUTCMonth() - inicio.getUTCMonth());
+
+  const [offsetMes, setOffsetMes] = useState(0);
+  // Si se abre el panel de otra licencia (el componente se remonta por el
+  // key={id} del padre), o si esta licencia cambia, siempre arranca en su
+  // primer mes.
+  useEffect(() => setOffsetMes(0), [licencia.id]);
+
+  const totalMeses = inicio.getUTCMonth() + offsetMes;
+  const anio = inicio.getUTCFullYear() + Math.floor(totalMeses / 12);
+  const mes = ((totalMeses % 12) + 12) % 12;
 
   const primerDia = new Date(anio, mes, 1);
   const diasEnMes = new Date(anio, mes + 1, 0).getDate();
@@ -601,7 +617,36 @@ function MiniCalendarioLicencia({ licencia }: { licencia: LicenciaRow }) {
       <p className="mb-1 text-sm font-medium text-slate-200">
         {licencia.agente.apellidos}, {licencia.agente.nombres}
       </p>
-      <p className="mb-3 text-xs text-slate-500 capitalize">{fmtMes(anio, mes)}</p>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setOffsetMes((o) => o - 1)}
+          disabled={offsetMes <= 0}
+          aria-label="Mes anterior"
+          className="rounded-lg p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <p className="text-xs text-slate-500 capitalize">
+          {fmtMes(anio, mes)}
+          {mesesDeRango > 0 && (
+            <span className="ml-1 text-slate-600 tabular-nums">({offsetMes + 1}/{mesesDeRango + 1})</span>
+          )}
+        </p>
+        <button
+          type="button"
+          onClick={() => setOffsetMes((o) => o + 1)}
+          disabled={offsetMes >= mesesDeRango}
+          aria-label="Mes siguiente"
+          className="rounded-lg p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
       <div className="grid grid-cols-7 mb-1">
         {["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"].map((d) => (
           <div key={d} className="text-center text-[10px] font-semibold text-slate-500 py-1">{d}</div>
