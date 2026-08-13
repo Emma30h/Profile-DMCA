@@ -11,7 +11,8 @@ import AgenteAvatar from "@/components/AgenteAvatar";
 import VerFotoTrigger from "@/components/legajo/VerFotoTrigger";
 import EstadoBadgeInfo from "@/components/legajo/EstadoBadgeInfo";
 import TipoPersonalBtn from "@/components/legajo/TipoPersonalBtn";
-import LimpiarFicheroButton from "../LimpiarFicheroButton";
+import OpcionesLegajoMenu from "@/components/legajo/OpcionesLegajoMenu";
+import VolverMovilBtn from "@/components/legajo/VolverMovilBtn";
 import { buildQueryString, type FiltrosPersonalParams } from "../queryString";
 
 const TIPO_LABELS: Record<TipoPersonal, string> = {
@@ -174,8 +175,8 @@ export default async function PersonalDetallePage({
       <div className="space-y-5">
         {/* Header del legajo */}
         <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
-          <div className="flex justify-start lg:justify-end mb-4">
-            <LimpiarFicheroButton href={volverHref} agenteId={agente.id} />
+          <div className="flex justify-start mb-4 lg:hidden">
+            <VolverMovilBtn href={volverHref} agenteId={agente.id} />
           </div>
 
           <div className="flex items-start gap-5">
@@ -232,6 +233,7 @@ export default async function PersonalDetallePage({
                       TNO
                     </span>
                   )}
+                  <OpcionesLegajoMenu href={volverHref} agenteId={agente.id} agente={agenteSerializado} esOperador={esOperador} />
                 </div>
               </div>
 
