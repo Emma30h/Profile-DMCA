@@ -44,7 +44,7 @@ function Ring({ side, iconSize }: { side: RingSide; iconSize: number }) {
             fill="none"
             stroke={side.color}
             strokeWidth="10"
-            strokeLinecap="round"
+            strokeLinecap="square"
             strokeDasharray={`${largo} ${CIRCUNFERENCIA}`}
           />
         </svg>

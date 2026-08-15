@@ -84,9 +84,9 @@ export default function HijosACargoCard({ hijos }: Props) {
                     }}
                   >
                     <span className="text-xs font-medium text-slate-400 truncate">{h.label}</span>
-                    <div className="h-2.5 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
+                    <div className="h-2.5 rounded-none bg-slate-950 border border-slate-800 overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-[filter] duration-150 ${dim ? "bg-slate-600" : "bg-blue-500"} ${
+                        className={`h-full rounded-none transition-[filter] duration-150 ${dim ? "bg-slate-600" : "bg-blue-500"} ${
                           clickable ? "group-hover:brightness-125" : ""
                         }`}
                         style={{ width: `${(h.count / max) * 100}%` }}

@@ -46,24 +46,22 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
         <h3 className="text-sm font-semibold text-slate-100">
           Activos por {VISTA_LABEL[vista]}
         </h3>
-        <div className="flex items-center gap-2.5 shrink-0">
-          <span className="text-[11px] text-slate-500 tabular-nums">{totalActivos} agentes activos</span>
-          <div className="flex items-center gap-1">
-            {VISTAS.map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setVista(v)}
-                className={`text-[11px] font-semibold rounded-md px-2.5 py-1 border transition-colors ${
-                  vista === v
-                    ? "bg-blue-500 text-white border-blue-500"
-                    : "text-slate-400 border-slate-700 hover:text-slate-200 hover:border-slate-600"
-                }`}
-              >
-                {VISTA_LABEL_CORTO[v]}
-              </button>
-            ))}
-          </div>
+        <span className="text-[11px] text-slate-500 tabular-nums">{totalActivos} agentes activos</span>
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          {VISTAS.map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setVista(v)}
+              className={`text-[11px] font-semibold rounded-md px-2.5 py-1 border transition-colors ${
+                vista === v
+                  ? "bg-blue-500 text-white border-blue-500"
+                  : "text-slate-400 border-slate-700 hover:text-slate-200 hover:border-slate-600"
+              }`}
+            >
+              {VISTA_LABEL_CORTO[v]}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -79,17 +77,17 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
                 return (
                   <div
                     key={t.label}
-                    className={`grid grid-cols-[96px_1fr_34px] items-center gap-2.5 -mx-1.5 px-1.5 py-0.5 rounded-lg transition-colors group ${
+                    className={`grid grid-cols-[132px_1fr_34px] items-center gap-2.5 -mx-1.5 px-1.5 py-0.5 rounded-none transition-colors group ${
                       clickable ? "cursor-pointer hover:bg-slate-800/60" : ""
                     }`}
                     onClick={() => {
                       if (clickable) router.push(`/personal?${buildQueryString({ turno: t.label, estado: "ACTIVO" })}`);
                     }}
                   >
-                    <span className="text-xs font-medium text-slate-400 truncate">{t.label}</span>
-                    <div className="h-2.5 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
+                    <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap">{t.label}</span>
+                    <div className="h-2.5 rounded-none bg-slate-950 border border-slate-800 overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-[filter] duration-150 ${
+                        className={`h-full rounded-none transition-[filter] duration-150 ${
                           LETRA_TURNO.test(t.label) ? "bg-blue-500" : "bg-slate-600"
                         } ${clickable ? "group-hover:brightness-125" : ""}`}
                         style={{ width: `${(t.count / maxTurno) * 100}%` }}
