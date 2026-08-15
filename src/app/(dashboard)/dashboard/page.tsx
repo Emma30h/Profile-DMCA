@@ -47,7 +47,7 @@ export default async function DashboardPage() {
           Operador necesite para su tarea — se ocultan para ese rol, igual
           que el resto del legajo sensible. */}
       {!esOperador && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           <KpiTile
             label="En pase"
             value={stats.kpi.enPase}
