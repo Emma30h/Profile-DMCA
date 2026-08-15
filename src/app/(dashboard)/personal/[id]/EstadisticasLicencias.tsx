@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   LICENCIA_CATEGORIA_DE_TIPO,
   CATEGORIA_LICENCIA_INFO,
@@ -127,7 +128,34 @@ function InformeImprimible({
   slicesDonut: { tipo: string; label: string; cantidad: number; porcentaje: number; path: string }[];
   totalLicencias: number;
 }) {
-  return (
+  // El nodo se crea acá (durante el render, sin efecto secundario visible
+  // hasta que se inserte en el documento) para no necesitar un setState
+  // dentro del useEffect de abajo.
+  const [contenedor] = useState<HTMLDivElement | null>(() =>
+    typeof document === "undefined" ? null : document.createElement("div")
+  );
+
+  // Se inserta como primer hijo de <body> (no al final, como un portal
+  // normal) para que el informe arranque siempre en la página 1 al
+  // imprimir: .print-informe ya no usa position:fixed (ver globals.css)
+  // porque un motivo largo en el detalle cronológico puede empujar el
+  // informe a más de una página, y position:fixed no pagina — recorta todo
+  // lo que sobra de la página 1 en vez de pasarlo a la 2. En flujo normal
+  // eso ya funciona, pero entonces cualquier otra cosa de /personal que
+  // esté antes en el DOM seguiría reservando su alto real (aunque invisible
+  // por el print) y empujaría el informe a páginas en blanco — insertarlo
+  // primero evita eso. Mismo mecanismo ya probado en NominaBuilderBtn.tsx.
+  useEffect(() => {
+    if (!contenedor) return;
+    document.body.insertBefore(contenedor, document.body.firstChild);
+    return () => {
+      contenedor.remove();
+    };
+  }, [contenedor]);
+
+  if (!contenedor) return null;
+
+  return createPortal(
     <div className="print-informe px-10 py-8 text-slate-900">
       <div className="flex items-start justify-between border-b-2 border-slate-800 pb-3">
         <div>
@@ -222,26 +250,29 @@ function InformeImprimible({
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="border-b border-slate-300 text-left text-slate-500">
-            <th className="py-1 font-medium">Tipo</th>
-            <th className="py-1 font-medium">Desde</th>
-            <th className="py-1 font-medium">Hasta</th>
-            <th className="py-1 font-medium text-right">Días</th>
+            <th className="py-1 font-medium w-28">Tipo</th>
+            <th className="py-1 font-medium w-20">Desde</th>
+            <th className="py-1 font-medium w-20">Hasta</th>
+            <th className="py-1 font-medium text-right w-12">Días</th>
+            <th className="py-1 font-medium pl-3">Motivo</th>
           </tr>
         </thead>
         <tbody>
           {licenciasFiltradas.length === 0 ? (
-            <tr><td colSpan={4} className="py-2 text-slate-500">Sin licencias aprobadas en el período.</td></tr>
+            <tr><td colSpan={5} className="py-2 text-slate-500">Sin licencias aprobadas en el período.</td></tr>
           ) : licenciasFiltradas.map((l) => (
-            <tr key={l.id} className="border-b border-slate-200">
-              <td className="py-1">{TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}</td>
-              <td className="py-1">{fmt(l.fechaInicio)}</td>
-              <td className="py-1">{fmt(l.fechaFin)}</td>
-              <td className="py-1 text-right">{l.diasHabiles}</td>
+            <tr key={l.id} className="border-b border-slate-200 align-top">
+              <td className="py-1.5">{TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}</td>
+              <td className="py-1.5">{fmt(l.fechaInicio)}</td>
+              <td className="py-1.5">{fmt(l.fechaFin)}</td>
+              <td className="py-1.5 text-right">{l.diasHabiles}</td>
+              <td className="py-1.5 pl-3 text-slate-600 break-words">{l.motivo || "—"}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </div>,
+    contenedor
   );
 }
 

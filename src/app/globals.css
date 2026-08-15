@@ -314,7 +314,14 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
    se oculta todo el body y se revela solo el subárbol marcado — funciona sin
    importar dónde vive ese subárbol en el DOM. El bloque .print-informe trae
    su propia paleta clara porque el tema oscuro de la app (texto claro sobre
-   fondo oscuro) es ilegible en papel/PDF. */
+   fondo oscuro) es ilegible en papel/PDF.
+   Sin position:fixed a propósito (a diferencia de una versión anterior): un
+   detalle cronológico con motivos largos puede superar una página, y
+   position:fixed no pagina — recorta lo que sobra de la página 1 en vez de
+   pasarlo a la 2 (se verificó con Chrome headless). En flujo normal pagina
+   bien, a cambio de que EstadisticasLicencias.tsx tenga que insertar este
+   bloque como primer hijo de <body> (mismo mecanismo que .print-nomina) para
+   que no le queden páginas en blanco adelante. */
 .print-informe {
   display: none;
 }
@@ -328,8 +335,6 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   }
   .print-informe {
     display: block;
-    position: fixed;
-    inset: 0;
     background: #fff;
     color: #0f172a;
   }
