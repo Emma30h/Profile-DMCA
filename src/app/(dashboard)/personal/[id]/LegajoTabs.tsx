@@ -28,6 +28,7 @@ import {
 } from "@/types";
 import EstadisticasLicencias, { type AgenteInfoInforme } from "./EstadisticasLicencias";
 import { formatFechaHora } from "@/lib/fecha";
+import { cuilToDni } from "@/lib/personalLabels";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -178,14 +179,6 @@ function boolVal(v: boolean | null | undefined): string {
 function toDateInput(iso: string | null): string {
   if (!iso) return "";
   return iso.split("T")[0];
-}
-
-/** Deriva el DNI a partir del CUIL (formato XX-DNI(8)-X). */
-function cuilToDni(cuil: string): string {
-  const digits = cuil.replace(/\D/g, "");
-  if (digits.length !== 11) return digits;
-  const dniConCeros = digits.slice(2, 10);
-  return dniConCeros.replace(/^0+/, "") || dniConCeros;
 }
 
 // ─── Form state ───────────────────────────────────────────────────────────────

@@ -5,29 +5,7 @@ import { createPortal } from "react-dom";
 import { usePersonalNav } from "@/app/(dashboard)/personal/PersonalMasterShell";
 import { useAgenteAnclado } from "@/lib/useAgenteAnclado";
 import type { AgenteDetalle } from "@/app/(dashboard)/personal/[id]/LegajoTabs";
-
-const TIPO_LABEL: Record<string, string> = {
-  SEGURIDAD: "Seguridad",
-  TECNICO: "Técnico",
-  CIVIL_BECARIO: "Civil Becario",
-  CIVIL_POLICIAL: "Civil Policial",
-};
-
-const ESTADO_LABEL: Record<string, string> = {
-  PENDIENTE: "Pendiente", ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase",
-};
-
-const SEXO_LABEL: Record<string, string> = {
-  MASCULINO: "Masculino",
-  FEMENINO: "Femenino",
-  NO_BINARIO: "No binario",
-  PREFIERO_NO_DECIR: "Prefiero no decir",
-  OTRO: "Otro",
-};
-
-const ORIGEN_LABEL: Record<string, string> = {
-  GOBIERNO: "Gobierno", DMCA: "DMCA", "911": "911", OTRA_DEPENDENCIA: "Otra dependencia",
-};
+import { TIPO_LABEL, ESTADO_LABEL, SEXO_LABEL, ORIGEN_LABEL, cuilToDni, fmt } from "@/lib/personalLabels";
 
 // ─── Íconos de sección (mismo set de líneas finas que ya usa el legajo,
 // ver LegajoTabs.tsx — se duplican acá en vez de exportarlos porque son
@@ -88,21 +66,6 @@ function IconUsersMini() {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   );
-}
-
-/** Deriva el DNI a partir del CUIL (formato XX-DNI(8)-X). */
-function cuilToDni(cuil: string): string {
-  const digits = cuil.replace(/\D/g, "");
-  if (digits.length !== 11) return digits;
-  const dniConCeros = digits.slice(2, 10);
-  return dniConCeros.replace(/^0+/, "") || dniConCeros;
-}
-
-function fmt(date: string | null | undefined): string | null {
-  if (!date) return null;
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 }
 
 type Linea = [string, string | null | undefined];

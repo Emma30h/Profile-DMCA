@@ -9,15 +9,9 @@ import { useAgenteAnclado } from "@/lib/useAgenteAnclado";
 import { useSeleccionMultiple } from "@/lib/useSeleccionMultiple";
 import AgenteAvatar from "@/components/AgenteAvatar";
 import { buildQueryString, type FiltrosPersonalParams } from "./queryString";
+import { cuilToDni } from "@/lib/personalLabels";
 
 const PAGINA = 30;
-
-function cuilToDni(cuil: string): string {
-  const digits = cuil.replace(/\D/g, "");
-  if (digits.length !== 11) return digits;
-  const dniConCeros = digits.slice(2, 10);
-  return dniConCeros.replace(/^0+/, "") || dniConCeros;
-}
 
 const TIPO_LABELS: Record<TipoPersonal, string> = {
   SEGURIDAD: "Seguridad",

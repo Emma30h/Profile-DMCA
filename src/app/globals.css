@@ -359,3 +359,37 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
     page: print-organigrama;
   }
 }
+
+/* Nómina: mismo patrón que .print-organigrama (sin position:fixed, permite
+   multi-página) — una tabla de nómina con muchas columnas es naturalmente
+   ancha, así que también pide horizontal.
+   Nota: a diferencia de .print-informe/.print-organigrama, acá NO hay una
+   regla que colapse "el resto de la app" — se probó (con position:fixed y
+   también con una regla global condicionada por una clase en <body>) y
+   ambos enfoques terminaban rompiendo OTRAS impresiones de la app (el
+   informe de ausentismo, entre otras) en distintos escenarios. El único
+   fix que queda es insertar la tabla como primer hijo de body (ver
+   NominaBuilderBtn.tsx), que evita páginas en blanco ANTES de la tabla sin
+   tocar nada global — a cambio, en nóminas con muchas filas puede quedar
+   alguna página en blanco DESPUÉS de la tabla (el resto de /personal sigue
+   reservando su alto real aunque sea invisible). Se acepta ese costo menor
+   antes que arriesgar romper otros flujos de impresión de la app. */
+.print-nomina {
+  display: none;
+}
+@page print-nomina {
+  size: landscape;
+  margin: 10mm;
+}
+@media print {
+  .print-nomina,
+  .print-nomina * {
+    visibility: visible;
+  }
+  .print-nomina {
+    display: block;
+    background: #fff;
+    color: #0f172a;
+    page: print-nomina;
+  }
+}

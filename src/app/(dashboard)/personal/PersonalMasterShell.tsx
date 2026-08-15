@@ -10,8 +10,18 @@ import type { AgenteResumen } from "./lib";
 import { buildQueryString } from "./queryString";
 import { useAgenteAnclado } from "@/lib/useAgenteAnclado";
 import type { RolUsuario } from "@/types";
+import NominaBuilderBtn from "@/components/personal/NominaBuilderBtn";
 
 const ROLES_ADMIN: RolUsuario[] = ["SUPERADMIN", "ADMIN"];
+
+function IconImportar() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+    </svg>
+  );
+}
 
 type PersonalNavContextValue = {
   limpiarFicha: (href: string) => void;
@@ -303,14 +313,18 @@ export default function PersonalMasterShell({
           <div>
             <h2 className="text-xl font-semibold text-slate-100">Personal</h2>
           </div>
-          {ROLES_ADMIN.includes(rol) && (
-            <Link
-              href="/configuracion/importar-legajos"
-              className="shrink-0 inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              📥 Importar legajos
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            <NominaBuilderBtn agentes={agentes} rol={rol} />
+            {ROLES_ADMIN.includes(rol) && (
+              <Link
+                href="/configuracion/importar-legajos"
+                className="shrink-0 inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <IconImportar />
+                Importar legajos
+              </Link>
+            )}
+          </div>
         </div>
 
         <div

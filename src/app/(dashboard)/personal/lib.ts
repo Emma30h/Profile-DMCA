@@ -102,10 +102,7 @@ export async function getOpcionesFiltro(): Promise<{
   turnos: string[];
 }> {
   const [sectores, turnos] = await Promise.all([
-    prisma.sector.findMany({
-      select: { id: true, nombre: true },
-      orderBy: { nombre: "asc" },
-    }),
+    getSectoresCache(),
     prisma.turno.findMany({
       select: { nombre: true },
     }),
@@ -113,11 +110,29 @@ export async function getOpcionesFiltro(): Promise<{
   return { sectores, turnos: turnos.map((t) => t.nombre).sort(compararTurnos) };
 }
 
-/** Deriva el DNI a partir del CUIL (formato XX-DNI(8)-X). */
-export function cuilToDni(cuil: string): string {
-  const digits = cuil.replace(/\D/g, "");
-  if (digits.length !== 11) return digits;
-  const dniConCeros = digits.slice(2, 10);
-  return dniConCeros.replace(/^0+/, "") || dniConCeros;
+// Rangos y sectores son estructura organizacional: no tienen ninguna acción
+// de crear/editar/borrar en la app (se cargan a mano en la base), así que
+// cachearlos 1h sin invalidación no arriesga mostrar datos viejos. Esto
+// además evita que cada carga de un legajo le pegue a Postgres por estas dos
+// tablas — antes eran 2 de las 8 queries en paralelo que agotaban el pool de
+// conexiones (ver .env, connection_limit).
+export async function getRangosCache(): Promise<{ id: string; nombre: string; cuerpo: string }[]> {
+  return getOrSet("rangos:todos", CACHE_TTL.CONFIGURACION, () =>
+    prisma.rango.findMany({
+      select: { id: true, nombre: true, cuerpo: true },
+      orderBy: { orden: "asc" },
+    })
+  );
 }
+
+export async function getSectoresCache(): Promise<{ id: string; nombre: string }[]> {
+  return getOrSet("sectores:todos", CACHE_TTL.CONFIGURACION, () =>
+    prisma.sector.findMany({
+      select: { id: true, nombre: true },
+      orderBy: { nombre: "asc" },
+    })
+  );
+}
+
+export { cuilToDni } from "@/lib/personalLabels";
 

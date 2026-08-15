@@ -14,6 +14,7 @@ import TipoPersonalBtn from "@/components/legajo/TipoPersonalBtn";
 import OpcionesLegajoMenu from "@/components/legajo/OpcionesLegajoMenu";
 import VolverMovilBtn from "@/components/legajo/VolverMovilBtn";
 import { buildQueryString, type FiltrosPersonalParams } from "../queryString";
+import { getRangosCache, getSectoresCache } from "../lib";
 
 const TIPO_LABELS: Record<TipoPersonal, string> = {
   SEGURIDAD: "Seguridad",
@@ -63,7 +64,12 @@ export default async function PersonalDetallePage({
   const volverQueryString = buildQueryString(sp);
   const volverHref = volverExterno ?? `/personal${volverQueryString ? `?${volverQueryString}` : ""}`;
 
-  const [agente, rangos, sectores, auditLogs, historialEstados, licencias, licenciasPendientes, feriados] = await Promise.all([
+  // Antes eran 8 queries en paralelo (una por relación) y agotaban el pool de
+  // conexiones de Postgres bajo carga. historialEstados/licencias/licenciasPendientes
+  // viajan como include del agente (mismo shape, un solo round-trip), y
+  // rango/sector salen de la caché en Redis (getRangosCache/getSectoresCache
+  // en ../lib.ts) en vez de Postgres — quedan solo 3 queries reales.
+  const [agente, rangos, sectores, auditLogs, feriados] = await Promise.all([
     prisma.agente.findUnique({
       where: { id },
       include: {
@@ -73,34 +79,24 @@ export default async function PersonalDetallePage({
           include: { rango: true },
           orderBy: { fechaDesde: "desc" },
         },
+        historialEstados: {
+          orderBy: { createdAt: "desc" },
+        },
+        licencias: {
+          orderBy: { fechaInicio: "desc" },
+        },
+        licenciasPendientes: {
+          orderBy: [{ anio: "desc" }, { createdAt: "desc" }],
+          include: { usos: { orderBy: { fecha: "desc" } } },
+        },
       },
     }),
-    prisma.rango.findMany({
-      select: { id: true, nombre: true, cuerpo: true },
-      orderBy: { orden: "asc" },
-    }),
-    prisma.sector.findMany({
-      select: { id: true, nombre: true },
-      orderBy: { nombre: "asc" },
-    }),
+    getRangosCache(),
+    getSectoresCache(),
     prisma.auditLog.findMany({
       where: { agenteId: id },
       orderBy: { createdAt: "desc" },
       select: { id: true, usuarioNombre: true, seccion: true, cambios: true, createdAt: true },
-    }),
-    prisma.historialEstado.findMany({
-      where: { agenteId: id },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, estadoAnterior: true, estadoNuevo: true, motivo: true, usuarioNombre: true, createdAt: true },
-    }),
-    prisma.licencia.findMany({
-      where: { agenteId: id },
-      orderBy: { fechaInicio: "desc" },
-    }),
-    prisma.licenciaPendiente.findMany({
-      where: { agenteId: id },
-      orderBy: [{ anio: "desc" }, { createdAt: "desc" }],
-      include: { usos: { orderBy: { fecha: "desc" } } },
     }),
     prisma.feriado.findMany({
       orderBy: { fecha: "asc" },
@@ -108,6 +104,13 @@ export default async function PersonalDetallePage({
   ]);
 
   if (!agente) notFound();
+
+  // Se separan del resto porque agenteSerializado (más abajo) solo necesita
+  // convertir fechas de campos propios del agente — mandarle también estas
+  // listas (con Date sin convertir, a diferencia del resto del archivo)
+  // sería a la vez redundante (ya viajan aparte como props propios de
+  // LegajoTabs) e inconsistente con la convención de fechas-como-ISO-string.
+  const { historialEstados, licencias, licenciasPendientes, ...agenteSinListas } = agente;
 
   const feriadosSerializados = feriados.map((f) => ({
     id: f.id,
@@ -147,7 +150,7 @@ export default async function PersonalDetallePage({
 
   // Serializar fechas para pasar al Client Component
   const agenteSerializado = {
-    ...agente,
+    ...agenteSinListas,
     fechaNacimiento: agente.fechaNacimiento?.toISOString() ?? null,
     fechaIngreso: agente.fechaIngreso?.toISOString() ?? null,
     anoEgreso: agente.anoEgreso?.toISOString() ?? null,
