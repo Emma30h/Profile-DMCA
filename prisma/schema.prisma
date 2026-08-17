@@ -172,11 +172,13 @@ model Agente {
   excepciones         ExcepcionTurno[]
   historialRangos     HistorialRango[]
   historialEstados    HistorialEstado[]
+  comentarios         Comentario[]
   solicitudesFoto     SolicitudFoto[]
   solicitudesVinculacion SolicitudVinculacion[]
   rolesOrganigrama    RolOrganigrama[]
   diasComoSuperiorTurno DiaTurno[] @relation("SuperiorTurnoDias")
   diasComoJefeFinDe     DiaTurno[] @relation("JefeFinDeDias")
+  coberturasTurno       CoberturaTurno[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -195,6 +197,18 @@ model HistorialEstado {
   createdAt      DateTime @default(now())
 
   @@map("historial_estados")
+}
+
+model Comentario {
+  id            String   @id @default(cuid())
+  agenteId      String
+  agente        Agente   @relation(fields: [agenteId], references: [id])
+  texto         String
+  usuarioNombre String?
+  createdAt     DateTime @default(now())
+
+  @@index([agenteId])
+  @@map("comentarios")
 }
 
 model HistorialRango {
@@ -324,6 +338,39 @@ model DiaTurno {
   updatedAt       DateTime @updatedAt
 
   @@map("dias_turno")
+}
+
+// Nómina de cobertura fuera de la propia dependencia: Directores/Jefes
+// cubriendo otras dependencias de la Policía de Córdoba (tipo JEFATURA, ej.
+// "Territorial Este") y personal de menor rango cubriendo lineales de avenida
+// (tipo LINEAL). Un solo modelo para los dos casos porque tienen la misma
+// forma (agente o nombre libre + fecha/horario + lugar + teléfono) y solo
+// difieren en quién es elegible y en el rótulo del campo "lugar" — separarlos
+// en dos tablas hubiera duplicado esto sin necesidad. Un registro por franja
+// horaria puntual (no por mes entero): las nóminas reales traen un renglón
+// por día con su propio horario — entre semana una franja nocturna, los
+// fines de semana dos (día y noche).
+model CoberturaTurno {
+  id           String   @id @default(cuid())
+  tipo         String // "JEFATURA" | "LINEAL"
+  fecha        DateTime
+  horarioDesde String // "HH:MM"
+  horarioHasta String // "HH:MM"
+  agenteId     String?
+  agente       Agente? @relation(fields: [agenteId], references: [id])
+  // Nombre (y rango) libre, para cuando la persona todavía no tiene legajo
+  // cargado — mutuamente excluyente con agenteId (uno de los dos, nunca ambos).
+  nombreManual String?
+  lugar        String // dependencia a cubrir (JEFATURA) o avenida (LINEAL)
+  // Solo para LINEAL: zona de Córdoba Capital (NORTE/ESTE/SUR/OESTE/CENTRO).
+  zona         String?
+  telefono     String?
+  observacion  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tipo, fecha])
+  @@map("coberturas_turno")
 }
 
 model ExcepcionTurno {
