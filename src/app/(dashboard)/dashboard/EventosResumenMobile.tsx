@@ -1,4 +1,5 @@
 import { obtenerTurnoHoy } from "@/app/actions/turnos";
+import { obtenerCoberturasSemana } from "@/app/actions/coberturas";
 import { obtenerEfemeridesHoy } from "@/lib/calendarioGarden";
 import { obtenerCumpleanosHoy } from "@/lib/cumpleanosPersonal";
 import TurnoHoyCard from "./TurnoHoyCard";
@@ -15,8 +16,9 @@ import EventosResumenCollapsible from "./EventosResumenCollapsible";
 // distintas del árbol (aside fijo del layout vs. arriba del contenido de
 // cada página).
 export default async function EventosResumenMobile() {
-  const [turnoHoy, efemerides, cumpleanos] = await Promise.all([
+  const [turnoHoy, semana, efemerides, cumpleanos] = await Promise.all([
     obtenerTurnoHoy(),
+    obtenerCoberturasSemana(),
     obtenerEfemeridesHoy(),
     obtenerCumpleanosHoy(),
   ]);
@@ -29,7 +31,7 @@ export default async function EventosResumenMobile() {
 
   return (
     <EventosResumenCollapsible resumenCerrado={resumenCerrado}>
-      <TurnoHoyCard turnoHoy={turnoHoy} />
+      <TurnoHoyCard turnoHoy={turnoHoy} semana={semana} />
       <EfemeridesHoyCard eventos={efemerides} />
       <CumpleanosGardenCard cumpleanos={cumpleanos} />
     </EventosResumenCollapsible>

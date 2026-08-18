@@ -13,6 +13,11 @@ import EventosResumenMobile from "./EventosResumenMobile";
 import KpiTile from "./KpiTile";
 import { buildQueryString } from "../personal/queryString";
 
+// Fuerza SSR en cada request: esta página muestra contenido atado al día de
+// hoy (turno, efemérides, cumpleaños) — no debe quedar servida desde ningún
+// caché de ruta entre requests, ni siquiera por unos minutos.
+export const dynamic = "force-dynamic";
+
 const MASC_COLOR = "#3987e5";
 const FEM_COLOR = "#d55181";
 const OTROS_COLOR = "#7c8aa8";

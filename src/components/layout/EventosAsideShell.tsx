@@ -19,7 +19,12 @@ export default function EventosAsideShell({ children }: { children: React.ReactN
   if (!RUTAS_CON_ASIDE.has(pathname)) return null;
 
   return (
-    <aside className="hidden lg:flex w-80 shrink-0 flex-col overflow-y-auto bg-slate-900 border-l border-slate-700">
+    // scrollbar-gutter:stable le reserva su propio carril a la scrollbar
+    // nativa (color-scheme:dark en globals.css la pinta como una franja
+    // redondeada semi-transparente) — sin esto, en vez de correr al costado
+    // se dibuja flotando ENCIMA del borde derecho de cada tarjeta, tapando
+    // texto como las letras A/C/E de "Turno de hoy".
+    <aside className="hidden lg:flex w-80 shrink-0 flex-col overflow-y-auto bg-slate-900 border-l border-slate-700 [scrollbar-gutter:stable]">
       {children}
     </aside>
   );

@@ -29,7 +29,10 @@ const TIMEOUT_MS = 5000;
 
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS), next: { revalidate: 3600 } });
+    // Sin caché: es contenido filtrado por el día de hoy — cachearlo (aunque
+    // sea por poco tiempo) arriesga mostrar la efeméride de un día anterior
+    // al entrar a la app recién pasada la medianoche.
+    const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS), cache: "no-store" });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
