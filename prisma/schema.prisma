@@ -173,6 +173,7 @@ model Agente {
   historialRangos     HistorialRango[]
   historialEstados    HistorialEstado[]
   comentarios         Comentario[]
+  eventosCursoAscenso EventoCursoAscenso[]
   solicitudesFoto     SolicitudFoto[]
   solicitudesVinculacion SolicitudVinculacion[]
   rolesOrganigrama    RolOrganigrama[]
@@ -209,6 +210,23 @@ model Comentario {
 
   @@index([agenteId])
   @@map("comentarios")
+}
+
+// Fechas de clases/exámenes de un curso de ascenso (ver
+// Agente.fechaInicioCursoAscenso). Quedan como historial permanente aunque
+// el curso termine (se confirme o se cancele el ascenso) — no se tocan al
+// cerrar el curso, a propósito.
+model EventoCursoAscenso {
+  id          String   @id @default(cuid())
+  agenteId    String
+  agente      Agente   @relation(fields: [agenteId], references: [id])
+  tipo        String // "CLASE" | "EXAMEN"
+  fecha       DateTime
+  observacion String?
+  createdAt   DateTime @default(now())
+
+  @@index([agenteId])
+  @@map("eventos_curso_ascenso")
 }
 
 model HistorialRango {
