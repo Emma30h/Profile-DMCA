@@ -4,7 +4,7 @@ export type TipoPersonal = "SEGURIDAD" | "TECNICO" | "CIVIL_BECARIO" | "CIVIL_PO
 export type EstadoAgente = "PENDIENTE" | "ACTIVO" | "BAJA" | "PASE";
 export type RolUsuario = "SUPERADMIN" | "ADMIN" | "SUPERVISOR" | "OPERADOR" | "READONLY";
 export type EstadoLicencia = "PENDIENTE" | "APROBADA" | "RECHAZADA" | "CANCELADA";
-export type CategoriaLicencia = "ORDINARIA" | "MEDICA" | "EXTRAORDINARIA" | "EXCEPCIONAL" | "ADSCRIPCION";
+export type CategoriaLicencia = "ORDINARIA" | "MEDICA" | "EXTRAORDINARIA" | "EXCEPCIONAL" | "ADSCRIPCION" | "SANCION";
 
 export type TipoLicencia =
   | "ORDINARIA"
@@ -13,7 +13,8 @@ export type TipoLicencia =
   | "PATERNIDAD_ADOPCION" | "NACIMIENTO_ADOPCION_HIJO_DISCAPACITADO" | "ESTIMULO"
   | "FALLECIMIENTO_FAMILIAR" | "EXAMEN_CURSOS_NO_POLICIALES"
   | "RETIRO_VOLUNTARIO" | "EXCEPCIONAL_REMUNERADA"
-  | "ADSCRIPCION";
+  | "ADSCRIPCION"
+  | "SANCION";
 export type TipoLicenciaPendiente = "ANUAL_ORDINARIA" | "DIA_ESTIMULO" | "OTRO";
 export type UnidadDias = "HABILES" | "CORRIDOS";
 export type EstadoLicenciaPendiente = "PENDIENTE" | "PARCIAL" | "USADA";
@@ -63,12 +64,17 @@ export const ROLES_USUARIO: RolUsuario[] = [
   "READONLY",
 ];
 
-export const CATEGORIAS_LICENCIA: { value: CategoriaLicencia; label: string; badge: string; emoji: string }[] = [
+export const CATEGORIAS_LICENCIA: { value: CategoriaLicencia; label: string; badge: string; emoji: string; soloEstadoPolicial?: boolean }[] = [
   { value: "ORDINARIA", label: "Licencia Ordinaria", badge: "bg-blue-500/15 text-blue-300", emoji: "🏖️" },
   { value: "MEDICA", label: "Licencia Especial (Médica)", badge: "bg-red-500/15 text-red-400", emoji: "🏥" },
   { value: "EXTRAORDINARIA", label: "Licencia Extraordinaria", badge: "bg-purple-500/15 text-purple-400", emoji: "👨‍👩‍👧‍👦" },
   { value: "EXCEPCIONAL", label: "Licencia Excepcional", badge: "bg-fuchsia-500/15 text-fuchsia-400", emoji: "⭐" },
   { value: "ADSCRIPCION", label: "Adscripción", badge: "bg-indigo-500/15 text-indigo-400", emoji: "🔄" },
+  // Solo para personal con estado policial (Seguridad y Técnico) — el monto
+  // descontado lo determina Control de Conducta, acá solo se registran los
+  // días. Ver soloEstadoPolicial: se oculta del selector para Civil
+  // Becario/Civil Policial y se valida también del lado servidor.
+  { value: "SANCION", label: "Sanción", badge: "bg-rose-500/15 text-rose-400", emoji: "⚠️", soloEstadoPolicial: true },
 ];
 
 // Única lista a mano; todo lo demás (lista plana, labels, lookup inverso) se deriva
@@ -95,6 +101,7 @@ export const LICENCIA_TIPOS_POR_CATEGORIA: Record<CategoriaLicencia, { value: Ti
     { value: "EXCEPCIONAL_REMUNERADA", label: "Excepcional Remunerada" },
   ],
   ADSCRIPCION: [{ value: "ADSCRIPCION", label: "Adscripción" }],
+  SANCION: [{ value: "SANCION", label: "Sanción" }],
 };
 
 export const TIPOS_LICENCIA: TipoLicencia[] = Object.values(LICENCIA_TIPOS_POR_CATEGORIA)
@@ -130,6 +137,7 @@ export const CATEGORIA_LICENCIA_CHART_COLOR: Record<CategoriaLicencia, string> =
   EXTRAORDINARIA: "#199e70",
   EXCEPCIONAL: "#c98500",
   ADSCRIPCION: "#d55181",
+  SANCION: "#c23b3b",
 };
 
 export const TIPOS_LICENCIA_PENDIENTE: TipoLicenciaPendiente[] = ["ANUAL_ORDINARIA", "DIA_ESTIMULO", "OTRO"];

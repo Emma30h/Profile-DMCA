@@ -1939,6 +1939,7 @@ export default function LegajoTabs({
               fotoUrl: agente.fotoUrl,
               sexo: agente.sexo,
             }}
+            tipoPersonal={agente.tipoPersonal}
             licencias={licencias}
             licenciasPendientes={licenciasPendientes}
             canManage={canManageLicencias}
@@ -1966,9 +1967,11 @@ const TIPO_LICENCIA_EMOJI: Record<string, string> = Object.fromEntries(
 // (se lee por FormData en el submit, igual que el resto del form) — el
 // key={categoria} fuerza a React a remontarlo y reaplicar su defaultValue
 // cada vez que cambia la categoría elegida.
-function SelectorTipoLicencia({ defaultValue }: { defaultValue?: TipoLicencia }) {
+function SelectorTipoLicencia({ defaultValue, tipoPersonal }: { defaultValue?: TipoLicencia; tipoPersonal: string }) {
+  const tieneEstadoPolicial = tipoPersonal === "SEGURIDAD" || tipoPersonal === "TECNICO";
+  const categoriasDisponibles = CATEGORIAS_LICENCIA.filter((c) => !c.soloEstadoPolicial || tieneEstadoPolicial);
   const [categoria, setCategoria] = useState<CategoriaLicencia>(
-    defaultValue ? LICENCIA_CATEGORIA_DE_TIPO[defaultValue] : CATEGORIAS_LICENCIA[0].value
+    defaultValue ? LICENCIA_CATEGORIA_DE_TIPO[defaultValue] : categoriasDisponibles[0].value
   );
 
   return (
@@ -1980,7 +1983,7 @@ function SelectorTipoLicencia({ defaultValue }: { defaultValue?: TipoLicencia })
           onChange={(e) => setCategoria(e.target.value as CategoriaLicencia)}
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          {CATEGORIAS_LICENCIA.map((c) => (
+          {categoriasDisponibles.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </select>
@@ -2113,6 +2116,7 @@ function calcularFechaFinCorrida(fechaInicioISO: string, dias: number): string {
 function TabLicencias({
   agenteId,
   agenteInfo,
+  tipoPersonal,
   licencias,
   licenciasPendientes,
   canManage,
@@ -2120,6 +2124,7 @@ function TabLicencias({
 }: {
   agenteId: string;
   agenteInfo: AgenteInfoInforme;
+  tipoPersonal: string;
   licencias: LicenciaEntry[];
   licenciasPendientes: LicenciaPendienteEntry[];
   canManage: boolean;
@@ -2419,7 +2424,7 @@ function TabLicencias({
         <form onSubmit={handleCrearLicencia} className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4 space-y-3">
           <p className="text-sm font-medium text-slate-300">Nueva licencia</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <SelectorTipoLicencia />
+            <SelectorTipoLicencia tipoPersonal={tipoPersonal} />
             <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2">
               <button
                 type="button"
@@ -2587,7 +2592,7 @@ function TabLicencias({
                   <form onSubmit={(e) => handleEditarLicencia(e, l.id)} className="rounded-xl border border-yellow-500/25 bg-yellow-500/10 p-4 space-y-3">
                     <p className="text-sm font-medium text-slate-300">Editar licencia</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <SelectorTipoLicencia defaultValue={l.tipo as TipoLicencia} />
+                      <SelectorTipoLicencia defaultValue={l.tipo as TipoLicencia} tipoPersonal={tipoPersonal} />
                       <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1">Fecha inicio</label>
                         <input type="date" name="fechaInicio" defaultValue={l.fechaInicio.slice(0, 10)} required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />

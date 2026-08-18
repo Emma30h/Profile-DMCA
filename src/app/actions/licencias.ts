@@ -55,6 +55,17 @@ async function verificarPermiso() {
   return current;
 }
 
+// Sanción: solo personal con estado policial (Seguridad y Técnico) puede ser
+// sancionado — Control de Conducta no aplica a Civil Becario/Civil Policial.
+async function validarTipoSegunAgente(tipo: TipoLicencia, agenteId: string) {
+  if (tipo !== "SANCION") return;
+  const agente = await prisma.agente.findUnique({ where: { id: agenteId }, select: { tipoPersonal: true } });
+  if (!agente) throw new Error("Agente no encontrado");
+  if (agente.tipoPersonal !== "SEGURIDAD" && agente.tipoPersonal !== "TECNICO") {
+    throw new Error("La categoría Sanción solo aplica a personal con estado policial (Seguridad o Técnico)");
+  }
+}
+
 async function verificarSector(current: { rol: string; agente: { sectorId: string | null } | null }, agenteId: string) {
   // Admin y superadmin pueden gestionar cualquier agente
   if (["SUPERADMIN", "ADMIN"].includes(current.rol)) return;
@@ -92,6 +103,7 @@ export async function crearLicencia(data: {
   if (fechaFin < fechaInicio) throw new Error("La fecha de fin no puede ser anterior a la de inicio");
 
   validarDuracionMedica(data.tipo, fechaInicio, fechaFin);
+  await validarTipoSegunAgente(data.tipo, data.agenteId);
 
   const diasHabiles = diasCorridos(fechaInicio, fechaFin);
 
@@ -159,6 +171,7 @@ export async function actualizarLicencia(
 
   if (data.tipo) {
     if (!TIPOS_LICENCIA_VALIDOS.includes(data.tipo)) throw new Error("Tipo de licencia inválido");
+    await validarTipoSegunAgente(data.tipo, licencia.agenteId);
     updateData.tipo = data.tipo;
   }
 
