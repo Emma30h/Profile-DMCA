@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { obtenerMesTurno, obtenerElegiblesTurno } from "@/app/actions/turnos";
-import VistaTurnos from "./VistaTurnos";
+import { obtenerCoberturas, obtenerElegiblesCobertura } from "@/app/actions/coberturas";
+import { obtenerFeriadosMes } from "@/app/actions/feriados";
+import TurnosTabs from "./TurnosTabs";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 
@@ -23,19 +25,33 @@ export default async function TurnosPage() {
   const anio = hoy.getFullYear();
   const mes = hoy.getMonth() + 1;
 
-  const [dias, elegibles] = await Promise.all([
+  const [dias, elegibles, jefaturas, lineales, elegiblesCobertura, feriados] = await Promise.all([
     obtenerMesTurno(anio, mes),
     obtenerElegiblesTurno(),
+    obtenerCoberturas("JEFATURA", anio, mes),
+    obtenerCoberturas("LINEAL", anio, mes),
+    obtenerElegiblesCobertura(),
+    obtenerFeriadosMes(anio, mes),
   ]);
 
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-semibold text-slate-100">Turnos</h2>
-        <p className="text-sm text-slate-400 mt-0.5">Calendario de guardias, superior de turno y jefe de fin de semana</p>
+        <p className="text-sm text-slate-400 mt-0.5">Calendario de guardias, cobertura de jefaturas y lineales</p>
       </div>
 
-      <VistaTurnos anioInicial={anio} mesInicial={mes} diasInicial={dias} elegibles={elegibles} canEdit={canEdit} />
+      <TurnosTabs
+        anio={anio}
+        mes={mes}
+        dias={dias}
+        elegibles={elegibles}
+        jefaturas={jefaturas}
+        lineales={lineales}
+        elegiblesCobertura={elegiblesCobertura}
+        feriados={feriados}
+        canEdit={canEdit}
+      />
     </div>
   );
 }

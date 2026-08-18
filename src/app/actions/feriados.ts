@@ -18,6 +18,18 @@ async function verificarAdmin() {
   }
 }
 
+export async function obtenerFeriadosMes(anio: number, mes: number): Promise<string[]> {
+  const inicio = new Date(Date.UTC(anio, mes - 1, 1));
+  const fin = new Date(Date.UTC(anio, mes, 1));
+
+  const feriados = await prisma.feriado.findMany({
+    where: { aplica: true, fecha: { gte: inicio, lt: fin } },
+    select: { fecha: true },
+  });
+
+  return feriados.map((f) => f.fecha.toISOString().slice(0, 10));
+}
+
 export async function crearFeriado(data: {
   fecha: string; // ISO date string "YYYY-MM-DD"
   nombre: string;

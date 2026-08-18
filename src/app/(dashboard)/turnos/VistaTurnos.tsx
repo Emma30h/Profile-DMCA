@@ -10,6 +10,7 @@ import {
   type ElegiblesTurno,
   type AgenteElegible,
 } from "@/app/actions/turnos";
+import { obtenerFeriadosMes } from "@/app/actions/feriados";
 import { GRUPO_TURNO_LETRAS, type GrupoTurno } from "@/types";
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
   mesInicial: number; // 1-12
   diasInicial: DiaTurnoInfo[];
   elegibles: ElegiblesTurno;
+  feriadosInicial: string[]; // fechas YYYY-MM-DD de feriados que "aplican"
   canEdit: boolean;
 }
 
@@ -25,14 +27,18 @@ const GRUPO_BADGE: Record<GrupoTurno, string> = {
   2: "bg-purple-500/15 text-purple-300 border-purple-500/30",
 };
 
-function fmtMes(anio: number, mes: number) {
+export function fmtMes(anio: number, mes: number) {
   return new Date(anio, mes - 1).toLocaleDateString("es-AR", { month: "long", year: "numeric" });
 }
 
-// El "fin de semana" del Jefe de Fin de Semana arranca el viernes (no solo sábado/domingo).
-function esFinDeSemana(anio: number, mes: number, dia: number): boolean {
-  const diaSemana = new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay();
-  return diaSemana === 5 || diaSemana === 0 || diaSemana === 6;
+// El "fin de semana" del Jefe de Fin de Semana arranca el viernes (no solo
+// sábado/domingo), y también se extiende a los feriados que "aplican"
+// (ej. un lunes feriado que arma un fin de semana largo).
+function esFinDeSemana(anio: number, mes: number, dia: number, feriados: Set<string>): boolean {
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+  const diaSemana = fecha.getUTCDay();
+  if (diaSemana === 5 || diaSemana === 0 || diaSemana === 6) return true;
+  return feriados.has(fecha.toISOString().slice(0, 10));
 }
 
 // Reemplaza al <select> nativo en la agenda mobile: la lista desplegable de
@@ -41,7 +47,7 @@ function esFinDeSemana(anio: number, mes: number, dia: number): boolean {
 // (justo lo que pasaba acá, con nombres + rango largos en "Otros por
 // excepción"). Este modal sí lo controlamos nosotros — mismo patrón que ya
 // usa FiltrosPersonal para sus filtros (w-80 centrado, nunca desborda).
-function SelectorAgenteModal({
+export function SelectorAgenteModal({
   value,
   valorManual,
   placeholder,
@@ -164,8 +170,12 @@ function SelectorAgenteModal({
             <p className="mt-3 mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{labelPrincipal}</p>
             {principal.map((a) => filaOpcion(a.id, a.nombreCompleto))}
 
-            <p className="mt-3 mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Otros (por excepción)</p>
-            {otros.map((a) => filaOpcion(a.id, `${a.nombreCompleto} — ${a.rango}`))}
+            {otros.length > 0 && (
+              <>
+                <p className="mt-3 mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Otros (por excepción)</p>
+                {otros.map((a) => filaOpcion(a.id, `${a.nombreCompleto} — ${a.rango}`))}
+              </>
+            )}
           </div>
         </div>,
         document.body
@@ -174,10 +184,11 @@ function SelectorAgenteModal({
   );
 }
 
-export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, elegibles, canEdit }: Props) {
+export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, elegibles, feriadosInicial, canEdit }: Props) {
   const [anio, setAnio] = useState(anioInicial);
   const [mes, setMes] = useState(mesInicial);
   const [dias, setDias] = useState<DiaTurnoInfo[]>(diasInicial);
+  const [feriados, setFeriados] = useState<Set<string>>(() => new Set(feriadosInicial));
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState<string | null>(null);
   const [modalGenerar, setModalGenerar] = useState(false);
@@ -191,10 +202,14 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
     let nuevoMes = mes + direccion;
     if (nuevoMes < 1) { nuevoMes = 12; nuevoAnio -= 1; }
     if (nuevoMes > 12) { nuevoMes = 1; nuevoAnio += 1; }
-    const fresh = await obtenerMesTurno(nuevoAnio, nuevoMes);
+    const [fresh, feriadosFrescos] = await Promise.all([
+      obtenerMesTurno(nuevoAnio, nuevoMes),
+      obtenerFeriadosMes(nuevoAnio, nuevoMes),
+    ]);
     setAnio(nuevoAnio);
     setMes(nuevoMes);
     setDias(fresh);
+    setFeriados(new Set(feriadosFrescos));
     setCargando(false);
   }
 
@@ -252,7 +267,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
     const info = dias[dia - 1];
     const estaGuardando = guardando === info.fecha;
     const disabled = !canEdit || estaGuardando;
-    const finde = esFinDeSemana(anio, mes, dia);
+    const finde = esFinDeSemana(anio, mes, dia, feriados);
     const compact = variant === "grid";
 
     // disabled:appearance-none saca la flechita nativa del <select> de Turno
@@ -323,8 +338,8 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
       </div>
 
       {/* Navegación mes + generar */}
-      <div className="flex items-center justify-between mb-5 gap-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-3">
+        <div className="flex items-center justify-center sm:justify-start gap-2">
           <button
             type="button"
             onClick={() => cambiarMes(-1)}
@@ -351,7 +366,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
           <button
             type="button"
             onClick={() => setModalGenerar(true)}
-            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 transition-colors"
+            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 transition-colors w-full sm:w-auto whitespace-nowrap"
           >
             Generar automáticamente
           </button>
@@ -408,7 +423,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
         {dias.map((info, idx) => {
           const dia = idx + 1;
           const esHoy = hoy.getDate() === dia && hoy.getMonth() === mes - 1 && hoy.getFullYear() === anio;
-          const finde = esFinDeSemana(anio, mes, dia);
+          const finde = esFinDeSemana(anio, mes, dia, feriados);
           const estaGuardando = guardando === info.fecha;
           const nombreDia = new Date(Date.UTC(anio, mes - 1, dia)).toLocaleDateString("es-AR", { weekday: "short", timeZone: "UTC" });
 
