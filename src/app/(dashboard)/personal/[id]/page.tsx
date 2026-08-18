@@ -89,6 +89,9 @@ export default async function PersonalDetallePage({
           orderBy: [{ anio: "desc" }, { createdAt: "desc" }],
           include: { usos: { orderBy: { fecha: "desc" } } },
         },
+        comentarios: {
+          orderBy: { createdAt: "desc" },
+        },
       },
     }),
     getRangosCache(),
@@ -110,7 +113,7 @@ export default async function PersonalDetallePage({
   // listas (con Date sin convertir, a diferencia del resto del archivo)
   // sería a la vez redundante (ya viajan aparte como props propios de
   // LegajoTabs) e inconsistente con la convención de fechas-como-ISO-string.
-  const { historialEstados, licencias, licenciasPendientes, ...agenteSinListas } = agente;
+  const { historialEstados, licencias, licenciasPendientes, comentarios, ...agenteSinListas } = agente;
 
   const feriadosSerializados = feriados.map((f) => ({
     id: f.id,
@@ -136,6 +139,13 @@ export default async function PersonalDetallePage({
     motivo: h.motivo,
     usuarioNombre: h.usuarioNombre,
     createdAt: h.createdAt.toISOString(),
+  }));
+
+  const comentariosSerializados = comentarios.map((c) => ({
+    id: c.id,
+    texto: c.texto,
+    usuarioNombre: c.usuarioNombre,
+    createdAt: c.createdAt.toISOString(),
   }));
 
   const tipo = agente.tipoPersonal as TipoPersonal;
@@ -268,6 +278,7 @@ export default async function PersonalDetallePage({
           sectores={sectores}
           auditLogs={auditLogsSerialized}
           historialEstados={historialEstadosSerialized}
+          comentarios={comentariosSerializados}
           tabInicial={sp.tab === "licencias" ? "licencias" : undefined}
           licencias={licencias.map((l) => ({
             id: l.id,

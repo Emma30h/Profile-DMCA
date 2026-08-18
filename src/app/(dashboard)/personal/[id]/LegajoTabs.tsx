@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/agentes";
 import type { DatosPersonales, DatosLaborales } from "@/app/actions/agentes";
 import { crearLicencia, actualizarLicencia, eliminarLicencia } from "@/app/actions/licencias";
+import { crearComentario, eliminarComentario } from "@/app/actions/comentarios";
 import {
   crearLicenciaPendiente,
   actualizarLicenciaPendiente,
@@ -121,6 +122,13 @@ export interface HistorialEstadoEntry {
   estadoAnterior: string;
   estadoNuevo: string;
   motivo: string | null;
+  usuarioNombre: string | null;
+  createdAt: string;
+}
+
+export interface ComentarioEntry {
+  id: string;
+  texto: string;
   usuarioNombre: string | null;
   createdAt: string;
 }
@@ -1025,6 +1033,157 @@ function TabCambios({ auditLogs, historialEstados }: { auditLogs: AuditLogEntry[
   );
 }
 
+// ─── Tab Comentarios ──────────────────────────────────────────────────────────
+
+function PlusIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0-.867 12.142A2 2 0 0115.138 21H8.862a2 2 0 01-1.995-1.858L6 7" />
+    </svg>
+  );
+}
+
+function TabComentarios({ agenteId, comentarios, canEdit }: {
+  agenteId: string;
+  comentarios: ComentarioEntry[];
+  canEdit: boolean;
+}) {
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [confirmarEliminarId, setConfirmarEliminarId] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function handleAgregar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const textoLimpio = texto.trim();
+    if (!textoLimpio) return;
+    startTransition(async () => {
+      try {
+        await crearComentario(agenteId, textoLimpio);
+        setTexto("");
+        setMostrarForm(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al agregar la constancia");
+      }
+    });
+  }
+
+  function handleEliminar(id: string) {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await eliminarComentario(id);
+        setConfirmarEliminarId(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al eliminar la constancia");
+      }
+    });
+  }
+
+  return (
+    <div className="space-y-6">
+      {canEdit && (
+        mostrarForm ? (
+          <form onSubmit={handleAgregar} className="space-y-2">
+            <textarea
+              autoFocus
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              placeholder="Dejá una constancia sobre este legajo (ej. alta médica, cambio de situación, etc.)"
+              rows={3}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setMostrarForm(false); setTexto(""); setError(null); }}
+                disabled={pending}
+                className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={pending || !texto.trim()}
+                className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+              >
+                {pending ? "Guardando..." : "Agregar constancia"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setMostrarForm(true)}
+            className="flex items-center gap-2.5 text-sm text-slate-400 hover:text-slate-200 transition-colors group"
+          >
+            <span className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center shrink-0 transition-colors group-hover:border-blue-500 group-hover:text-blue-400">
+              <PlusIcon />
+            </span>
+            Agregar constancia
+          </button>
+        )
+      )}
+
+      {comentarios.length === 0 ? (
+        <div className="py-16 text-center">
+          <p className="text-4xl mb-4">📝</p>
+          <p className="text-sm font-medium text-slate-400">Sin constancias</p>
+          <p className="text-xs text-slate-500 mt-1">Las constancias que se dejen sobre este legajo aparecerán acá.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {comentarios.map((c) => (
+            <div key={c.id} className="border border-slate-800 rounded-lg p-4">
+              {confirmarEliminarId === c.id && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmarEliminarId(null)} />
+                  <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+                    <h2 className="text-base font-semibold text-slate-100">Eliminar constancia</h2>
+                    <p className="text-sm text-slate-400">¿Eliminás esta constancia? No se puede deshacer.</p>
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => setConfirmarEliminarId(null)} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
+                      <button type="button" onClick={() => handleEliminar(c.id)} disabled={pending} className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <span className="text-sm font-medium text-slate-200">{c.usuarioNombre ?? "Usuario desconocido"}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-500 tabular-nums">{fmtFechaHora(c.createdAt)}</span>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmarEliminarId(c.id)}
+                      aria-label="Eliminar constancia"
+                      className="text-slate-500 hover:text-red-400 transition-colors"
+                    >
+                      <TrashIcon />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{c.texto}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Tabs: edición ────────────────────────────────────────────────────────────
 
 const ESTADO_CIVIL_OPTIONS = ["Soltero/a", "Casado/a", "Divorciado/a", "Viudo/a", "Conviviente", "Separado/a"].map((v) => ({ value: v, label: v }));
@@ -1216,13 +1375,14 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
 
 // ─── Tabs navigation ──────────────────────────────────────────────────────────
 
-type TabId = "personal" | "laboral" | "historial" | "cambios" | "licencias" | "asistencia";
+type TabId = "personal" | "laboral" | "historial" | "cambios" | "comentarios" | "licencias" | "asistencia";
 
 const TABS: { id: TabId; label: string; locked?: boolean }[] = [
   { id: "personal", label: "Datos Personales" },
   { id: "laboral", label: "Datos Laborales" },
   { id: "historial", label: "Historial de Rangos" },
   { id: "cambios", label: "Historial de Cambios" },
+  { id: "comentarios", label: "Constancias" },
   { id: "licencias", label: "Licencias y Ausentismo" },
   { id: "asistencia", label: "Asistencia", locked: true },
 ];
@@ -1305,6 +1465,7 @@ export default function LegajoTabs({
   sectores,
   auditLogs = [],
   historialEstados = [],
+  comentarios = [],
   licencias = [],
   licenciasPendientes = [],
   canManageLicencias = false,
@@ -1324,6 +1485,7 @@ export default function LegajoTabs({
   sectores: SectorOption[];
   auditLogs?: AuditLogEntry[];
   historialEstados?: HistorialEstadoEntry[];
+  comentarios?: ComentarioEntry[];
   licencias?: LicenciaEntry[];
   licenciasPendientes?: LicenciaPendienteEntry[];
   canManageLicencias?: boolean;
@@ -1335,12 +1497,12 @@ export default function LegajoTabs({
   // Seguridad y Técnico (personal con jerarquía/uniformado): para un
   // Operador, solo se ven Datos Personales y Datos Laborales — ni siquiera
   // Asistencia. Civil Becario/Policial: se ve todo excepto Historial de
-  // Rangos, Historial de Cambios y Licencias y Ausentismo.
+  // Rangos, Historial de Cambios, Constancias y Licencias y Ausentismo.
   const tipoRestringido = agente.tipoPersonal === "SEGURIDAD" || agente.tipoPersonal === "TECNICO";
   const tabsOcultas: TabId[] = esOperador
     ? tipoRestringido
-      ? ["historial", "cambios", "licencias", "asistencia"]
-      : ["historial", "cambios", "licencias"]
+      ? ["historial", "cambios", "comentarios", "licencias", "asistencia"]
+      : ["historial", "cambios", "comentarios", "licencias"]
     : [];
   const tabsVisibles = TABS.filter((tab) => !tabsOcultas.includes(tab.id));
   const tabInicialSegura: TabId =
@@ -1577,6 +1739,9 @@ export default function LegajoTabs({
           />
         )}
         {activeTab === "cambios" && <TabCambios auditLogs={auditLogs} historialEstados={historialEstados} />}
+        {activeTab === "comentarios" && (
+          <TabComentarios agenteId={agente.id} comentarios={comentarios} canEdit={canEdit} />
+        )}
         {activeTab === "licencias" && (
           <TabLicencias
             agenteId={agente.id}
