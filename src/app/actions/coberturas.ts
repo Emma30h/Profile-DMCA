@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { ZONAS_CORDOBA_CAPITAL } from "@/lib/coberturaZonas";
+import { semanaActualCordoba } from "@/lib/semanaCordoba";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 // Directores/Jefes de Departamento cubriendo otra dependencia: Subcomisario y
@@ -86,18 +87,6 @@ export async function obtenerCoberturas(tipo: TipoCobertura, anio: number, mes: 
   return registros.map(mapearCobertura);
 }
 
-// Mismo criterio que diaDeTurnoActual() en turnos.ts: el servidor puede
-// correr en cualquier huso horario, así que "hoy"/"esta semana" se leen en
-// hora de Córdoba, no en la del proceso.
-function hoyCordoba(): Date {
-  const partes = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Argentina/Cordoba",
-    year: "numeric", month: "numeric", day: "numeric",
-  }).formatToParts(new Date());
-  const obtener = (tipo: string) => Number(partes.find((p) => p.type === tipo)?.value ?? 0);
-  return new Date(Date.UTC(obtener("year"), obtener("month") - 1, obtener("day")));
-}
-
 export interface CoberturasSemana {
   hoy: string; // YYYY-MM-DD
   desde: string; // YYYY-MM-DD, lunes
@@ -106,19 +95,8 @@ export interface CoberturasSemana {
   lineales: CoberturaTurnoInfo[];
 }
 
-// Semana calendario (lunes a domingo) que contiene el día de hoy — no una
-// ventana móvil de 7 días desde hoy, para que la tarjeta siempre muestre
-// "la semana" completa tal como se la nombra en /turnos.
 export async function obtenerCoberturasSemana(): Promise<CoberturasSemana> {
-  const hoy = hoyCordoba();
-  const diaSemana = hoy.getUTCDay(); // 0=domingo … 6=sábado
-  const offsetALunes = diaSemana === 0 ? 6 : diaSemana - 1;
-  const lunes = new Date(hoy);
-  lunes.setUTCDate(lunes.getUTCDate() - offsetALunes);
-  const domingo = new Date(lunes);
-  domingo.setUTCDate(domingo.getUTCDate() + 6);
-  const finExclusivo = new Date(lunes);
-  finExclusivo.setUTCDate(finExclusivo.getUTCDate() + 7);
+  const { hoy, lunes, domingo, finExclusivo } = semanaActualCordoba();
 
   const registros = await prisma.coberturaTurno.findMany({
     where: { fecha: { gte: lunes, lt: finExclusivo } },

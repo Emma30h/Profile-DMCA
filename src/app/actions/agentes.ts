@@ -516,6 +516,7 @@ export async function marcarEnCursoAscenso(agenteId: string): Promise<void> {
 
   revalidatePath(`/personal/${agenteId}`);
   revalidatePath("/personal");
+  revalidatePath("/mi-legajo");
 }
 
 export async function cancelarCursoAscenso(agenteId: string): Promise<void> {
@@ -528,6 +529,7 @@ export async function cancelarCursoAscenso(agenteId: string): Promise<void> {
 
   revalidatePath(`/personal/${agenteId}`);
   revalidatePath("/personal");
+  revalidatePath("/mi-legajo");
 }
 
 export async function confirmarAscenso(agenteId: string): Promise<void> {
@@ -585,4 +587,5 @@ export async function confirmarAscenso(agenteId: string): Promise<void> {
   revalidatePath(`/personal/${agenteId}`);
   revalidatePath("/personal");
   revalidatePath("/dashboard");
+  revalidatePath("/mi-legajo");
 }

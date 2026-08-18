@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TurnoHoyInfo } from "@/app/actions/turnos";
 import type { CoberturaTurnoInfo, CoberturasSemana } from "@/app/actions/coberturas";
+import type { EventoCursoAscensoSemanaInfo } from "@/app/actions/eventosCursoAscenso";
+import { TIPO_EVENTO_BADGE, TIPO_EVENTO_LABEL } from "@/lib/eventoCursoAscensoLabels";
 
 // Cada franja horaria la cubre una letra del grupo 1 y una del grupo 2 (ver
 // GRUPO_TURNO_LETRAS en types/index.ts para el agrupamiento A·C·E / B·D·F);
@@ -92,11 +94,46 @@ function GrupoCobertura({ titulo, items, hoy }: { titulo: string; items: Cobertu
   );
 }
 
-type Vista = "hoy" | "semana";
-const VISTAS: Vista[] = ["hoy", "semana"];
-const VISTA_LABEL: Record<Vista, string> = { hoy: "Turno de hoy", semana: "Turneros de la semana" };
+function ListaEventosAscenso({ eventos, hoy }: { eventos: EventoCursoAscensoSemanaInfo[]; hoy: string }) {
+  if (eventos.length === 0) {
+    return <div className="text-slate-500 text-[12px]">Sin eventos de ascenso cargados esta semana</div>;
+  }
+  return (
+    <div className="space-y-1">
+      {eventos.map((ev) => {
+        const esHoy = ev.fecha === hoy;
+        return (
+          <div key={ev.id} className={`text-[12px] rounded-md px-2 py-1 ${esHoy ? "bg-blue-500/10" : ""}`}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`font-medium capitalize ${esHoy ? "text-blue-300" : "text-slate-400"}`}>{fmtDiaCorto(ev.fecha)}</span>
+              <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${TIPO_EVENTO_BADGE[ev.tipo] ?? "bg-slate-800 text-slate-400"}`}>
+                {TIPO_EVENTO_LABEL[ev.tipo] ?? ev.tipo}
+              </span>
+            </div>
+            <div className="text-slate-200">
+              {ev.agente.rango ? `${ev.agente.rango} ` : ""}{ev.agente.nombreCompleto}
+            </div>
+            {ev.observacion && <div className="text-slate-500 truncate">{ev.observacion}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
-export default function TurnoHoyCard({ turnoHoy, semana }: { turnoHoy: TurnoHoyInfo; semana: CoberturasSemana }) {
+type Vista = "hoy" | "semana" | "ascensos";
+const VISTAS: Vista[] = ["hoy", "semana", "ascensos"];
+const VISTA_LABEL: Record<Vista, string> = {
+  hoy: "Turno de hoy",
+  semana: "Turneros de la semana",
+  ascensos: "Novedades de ascenso",
+};
+
+export default function TurnoHoyCard({ turnoHoy, semana, eventosAscenso }: {
+  turnoHoy: TurnoHoyInfo;
+  semana: CoberturasSemana;
+  eventosAscenso: EventoCursoAscensoSemanaInfo[];
+}) {
   const grupo = turnoHoy.grupoTurno;
   const [vista, setVista] = useState<Vista>("hoy");
   // La franja vigente y la fecha se recalculan solas cada un minuto (mismo
@@ -109,6 +146,32 @@ export default function TurnoHoyCard({ turnoHoy, semana }: { turnoHoy: TurnoHoyI
     return () => clearInterval(interval);
   }, []);
   const indiceVista = VISTAS.indexOf(vista);
+
+  // Swipe táctil (mobile): se decide recién en touchend, comparando el
+  // desplazamiento total contra un umbral — no se sigue el dedo en vivo con
+  // preventDefault (eso pelea con el passive listener que React usa por
+  // defecto para touchmove desde la v17, y de paso complicaría distinguir
+  // "quiere deslizar la tarjeta" de "quiere scrollear la página"). Un swipe
+  // hacia la izquierda avanza a la vista siguiente, igual que un carrusel.
+  const touchInicio = useRef<{ x: number; y: number } | null>(null);
+  const UMBRAL_SWIPE_PX = 40;
+
+  function handleTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    touchInicio.current = { x: t.clientX, y: t.clientY };
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (!touchInicio.current) return;
+    const t = e.changedTouches[0];
+    const deltaX = t.clientX - touchInicio.current.x;
+    const deltaY = t.clientY - touchInicio.current.y;
+    touchInicio.current = null;
+
+    if (Math.abs(deltaX) < UMBRAL_SWIPE_PX || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    if (deltaX < 0 && indiceVista < VISTAS.length - 1) setVista(VISTAS[indiceVista + 1]);
+    else if (deltaX > 0 && indiceVista > 0) setVista(VISTAS[indiceVista - 1]);
+  }
 
   return (
     <div className="p-4.5">
@@ -138,7 +201,12 @@ export default function TurnoHoyCard({ turnoHoy, semana }: { turnoHoy: TurnoHoyI
         </span>
       </div>
 
-      <div className="overflow-hidden">
+      <div
+        className="overflow-hidden"
+        style={{ touchAction: "pan-y" }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div
           className="flex transition-transform duration-[420ms] ease-[cubic-bezier(.65,0,.35,1)]"
           style={{ transform: `translateX(-${indiceVista * 100}%)` }}
@@ -206,6 +274,10 @@ export default function TurnoHoyCard({ turnoHoy, semana }: { turnoHoy: TurnoHoyI
           <div className="shrink-0 w-full space-y-3">
             <GrupoCobertura titulo="Cobertura de jefaturas" items={semana.jefaturas} hoy={semana.hoy} />
             <GrupoCobertura titulo="Lineales" items={semana.lineales} hoy={semana.hoy} />
+          </div>
+
+          <div className="shrink-0 w-full">
+            <ListaEventosAscenso eventos={eventosAscenso} hoy={semana.hoy} />
           </div>
         </div>
       </div>

@@ -11,6 +11,8 @@ import {
 import type { DatosPersonales, DatosLaborales } from "@/app/actions/agentes";
 import { crearLicencia, actualizarLicencia, eliminarLicencia } from "@/app/actions/licencias";
 import { crearComentario, eliminarComentario } from "@/app/actions/comentarios";
+import { crearEventoCursoAscenso, eliminarEventoCursoAscenso, type TipoEventoCursoAscenso } from "@/app/actions/eventosCursoAscenso";
+import { TIPO_EVENTO_BADGE, TIPO_EVENTO_LABEL } from "@/lib/eventoCursoAscensoLabels";
 import {
   crearLicenciaPendiente,
   actualizarLicenciaPendiente,
@@ -102,6 +104,12 @@ export interface AgenteDetalle {
     fechaHasta: string | null;
     observacion: string | null;
     rango: { nombre: string; cuerpo: string };
+  }>;
+  eventosCursoAscenso: Array<{
+    id: string;
+    tipo: string;
+    fecha: string;
+    observacion: string | null;
   }>;
 }
 
@@ -859,12 +867,185 @@ function CondicionAscenso({ agenteId, fechaInicioCursoAscenso, canEdit }: {
   );
 }
 
-function TabHistorial({ agenteId, historialRangos, tipoPersonal, fechaInicioCursoAscenso, canEdit }: {
+function EventosCursoAscenso({ agenteId, eventos, canEdit }: {
+  agenteId: string;
+  eventos: AgenteDetalle["eventosCursoAscenso"];
+  canEdit: boolean;
+}) {
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [tipo, setTipo] = useState<TipoEventoCursoAscenso>("CLASE");
+  const [fecha, setFecha] = useState("");
+  const [observacion, setObservacion] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [confirmarEliminarId, setConfirmarEliminarId] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function handleAgregar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    if (!fecha) { setError("La fecha es obligatoria"); return; }
+    startTransition(async () => {
+      try {
+        await crearEventoCursoAscenso(agenteId, { tipo, fecha, observacion: observacion.trim() || undefined });
+        setTipo("CLASE");
+        setFecha("");
+        setObservacion("");
+        setMostrarForm(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al agregar el evento");
+      }
+    });
+  }
+
+  function handleEliminar(id: string) {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await eliminarEventoCursoAscenso(id);
+        setConfirmarEliminarId(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al eliminar el evento");
+      }
+    });
+  }
+
+  return (
+    <div className="mb-6 pb-6 border-b border-slate-800">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Eventos del curso de ascenso</h3>
+        {canEdit && !mostrarForm && (
+          <button
+            type="button"
+            onClick={() => setMostrarForm(true)}
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors group"
+          >
+            <span className="w-6 h-6 rounded-full border border-slate-700 flex items-center justify-center shrink-0 transition-colors group-hover:border-blue-500 group-hover:text-blue-400">
+              <PlusIcon />
+            </span>
+            Agregar evento
+          </button>
+        )}
+      </div>
+
+      {mostrarForm && (
+        <form onSubmit={handleAgregar} className="mb-4 space-y-2 rounded-lg border border-slate-800 p-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Tipo</label>
+              <select
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value as TipoEventoCursoAscenso)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="CLASE">Clase</option>
+                <option value="EXAMEN">Examen</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Fecha</label>
+              <input
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                required
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Observación (opcional)</label>
+            <input
+              type="text"
+              value={observacion}
+              onChange={(e) => setObservacion(e.target.value)}
+              placeholder="Ej. materia, horario, lugar"
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => { setMostrarForm(false); setError(null); }}
+              disabled={pending}
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50"
+            >
+              {pending ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {eventos.length === 0 ? (
+        <p className="text-sm text-slate-500">Sin eventos cargados.</p>
+      ) : (
+        <div className="space-y-2">
+          {eventos.map((ev) => {
+            const tipoEvento = ev.tipo as TipoEventoCursoAscenso;
+            return (
+              <div key={ev.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 px-3 py-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${TIPO_EVENTO_BADGE[tipoEvento] ?? "bg-slate-800 text-slate-400"}`}>
+                    {TIPO_EVENTO_LABEL[tipoEvento] ?? ev.tipo}
+                  </span>
+                  <span className="text-sm text-slate-200 tabular-nums shrink-0">{fmt(ev.fecha)}</span>
+                  {ev.observacion && <span className="text-sm text-slate-400 truncate">{ev.observacion}</span>}
+                </div>
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmarEliminarId(ev.id)}
+                    aria-label="Eliminar evento"
+                    className="text-slate-500 hover:text-red-400 transition-colors shrink-0"
+                  >
+                    <TrashIcon />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {confirmarEliminarId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmarEliminarId(null)} />
+          <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h2 className="text-base font-semibold text-slate-100">Eliminar evento</h2>
+            <p className="text-sm text-slate-400">¿Eliminás este evento del curso? No se puede deshacer.</p>
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setConfirmarEliminarId(null)} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
+              <button type="button" onClick={() => handleEliminar(confirmarEliminarId)} disabled={pending} className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TabHistorial({ agenteId, historialRangos, eventosCursoAscenso, tipoPersonal, fechaInicioCursoAscenso, canManageAscenso }: {
   agenteId: string;
   historialRangos: AgenteDetalle["historialRangos"];
+  eventosCursoAscenso: AgenteDetalle["eventosCursoAscenso"];
   tipoPersonal: string;
   fechaInicioCursoAscenso: string | null;
-  canEdit: boolean;
+  // Deliberadamente distinto de canEdit: en /mi-legajo, canEdit también es
+  // true para un no-admin con permiso temporal de edición o legajo
+  // pendiente, pero marcar/cancelar/confirmar ascensos y cargar eventos del
+  // curso son acciones exclusivas de Admin/Superadmin en el servidor (ver
+  // verificarAdmin() en actions/agentes.ts y actions/eventosCursoAscenso.ts)
+  // — mostrar esos botones con el canEdit genérico los dejaba fallar con
+  // "Sin permiso" al hacer clic.
+  canManageAscenso: boolean;
 }) {
   const tieneJerarquia = tipoPersonal === "SEGURIDAD" || tipoPersonal === "TECNICO";
   if (!tieneJerarquia) {
@@ -872,7 +1053,8 @@ function TabHistorial({ agenteId, historialRangos, tipoPersonal, fechaInicioCurs
   }
   return (
     <div>
-      <CondicionAscenso agenteId={agenteId} fechaInicioCursoAscenso={fechaInicioCursoAscenso} canEdit={canEdit} />
+      <CondicionAscenso agenteId={agenteId} fechaInicioCursoAscenso={fechaInicioCursoAscenso} canEdit={canManageAscenso} />
+      <EventosCursoAscenso agenteId={agenteId} eventos={eventosCursoAscenso} canEdit={canManageAscenso} />
       {historialRangos.length === 0 ? (
         <div className="py-12 text-center text-slate-500 text-sm">No hay registros de ascensos cargados aún.</div>
       ) : (
@@ -1460,6 +1642,7 @@ function ContadorPermiso({ permisoHasta }: { permisoHasta: string }) {
 export default function LegajoTabs({
   agente,
   canEdit,
+  canManageAscenso = false,
   esOperador = false,
   rangos,
   sectores,
@@ -1476,6 +1659,8 @@ export default function LegajoTabs({
 }: {
   agente: AgenteDetalle;
   canEdit: boolean;
+  /** Distinto de canEdit: exclusivo de Admin/Superadmin (ver TabHistorial). */
+  canManageAscenso?: boolean;
   /** Rol OPERADOR viendo el legajo de otra persona (nunca el propio, ver
    * /mi-legajo): puede ver todos los legajos, pero con pestañas y secciones
    * restringidas para cuidar datos sensibles (licencias, historial,
@@ -1733,9 +1918,10 @@ export default function LegajoTabs({
           <TabHistorial
             agenteId={agente.id}
             historialRangos={agente.historialRangos}
+            eventosCursoAscenso={agente.eventosCursoAscenso}
             tipoPersonal={agente.tipoPersonal}
             fechaInicioCursoAscenso={agente.fechaInicioCursoAscenso}
-            canEdit={canEdit}
+            canManageAscenso={canManageAscenso}
           />
         )}
         {activeTab === "cambios" && <TabCambios auditLogs={auditLogs} historialEstados={historialEstados} />}

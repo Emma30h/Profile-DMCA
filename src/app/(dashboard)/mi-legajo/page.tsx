@@ -57,6 +57,9 @@ export default async function MiLegajoPage() {
             include: { rango: true },
             orderBy: { fechaDesde: "desc" },
           },
+          eventosCursoAscenso: {
+            orderBy: { fecha: "asc" },
+          },
         },
       },
     },
@@ -201,6 +204,11 @@ export default async function MiLegajoPage() {
       fechaHasta: h.fechaHasta?.toISOString() ?? null,
       createdAt: h.createdAt.toISOString(),
     })),
+    eventosCursoAscenso: agente.eventosCursoAscenso.map((e) => ({
+      ...e,
+      fecha: e.fecha.toISOString(),
+      createdAt: e.createdAt.toISOString(),
+    })),
   };
 
   return (
@@ -281,6 +289,7 @@ export default async function MiLegajoPage() {
       <LegajoTabs
         agente={agenteSerializado}
         canEdit={canEdit}
+        canManageAscenso={esAdmin}
         rangos={rangos}
         sectores={sectores}
         auditLogs={auditLogs}

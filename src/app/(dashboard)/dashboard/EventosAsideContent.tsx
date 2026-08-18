@@ -1,5 +1,6 @@
 import { obtenerTurnoHoy } from "@/app/actions/turnos";
 import { obtenerCoberturasSemana } from "@/app/actions/coberturas";
+import { obtenerEventosCursoAscensoSemana } from "@/app/actions/eventosCursoAscenso";
 import { obtenerEfemeridesHoy } from "@/lib/calendarioGarden";
 import { obtenerCumpleanosHoy } from "@/lib/cumpleanosPersonal";
 import TurnoHoyCard from "./TurnoHoyCard";
@@ -10,16 +11,17 @@ import CumpleanosGardenCard from "./CumpleanosGardenCard";
 // <Suspense> en page.tsx, esto puede tardar en resolver sin bloquear el resto
 // del dashboard, mostrando EventosAsideSkeleton mientras tanto.
 export default async function EventosAsideContent() {
-  const [turnoHoy, semana, efemerides, cumpleanos] = await Promise.all([
+  const [turnoHoy, semana, eventosAscenso, efemerides, cumpleanos] = await Promise.all([
     obtenerTurnoHoy(),
     obtenerCoberturasSemana(),
+    obtenerEventosCursoAscensoSemana(),
     obtenerEfemeridesHoy(),
     obtenerCumpleanosHoy(),
   ]);
 
   return (
     <div className="flex h-full flex-col divide-y divide-slate-700">
-      <TurnoHoyCard turnoHoy={turnoHoy} semana={semana} />
+      <TurnoHoyCard turnoHoy={turnoHoy} semana={semana} eventosAscenso={eventosAscenso} />
       <EfemeridesHoyCard eventos={efemerides} />
       {/* flex-1: absorbe el espacio sobrante cuando hay pocas novedades, así
           no queda un bloque de fondo vacío separado debajo de la última

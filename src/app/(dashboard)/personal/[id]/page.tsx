@@ -92,6 +92,9 @@ export default async function PersonalDetallePage({
         comentarios: {
           orderBy: { createdAt: "desc" },
         },
+        eventosCursoAscenso: {
+          orderBy: { fecha: "asc" },
+        },
       },
     }),
     getRangosCache(),
@@ -176,6 +179,11 @@ export default async function PersonalDetallePage({
       fechaDesde: h.fechaDesde.toISOString(),
       fechaHasta: h.fechaHasta?.toISOString() ?? null,
       createdAt: h.createdAt.toISOString(),
+    })),
+    eventosCursoAscenso: agente.eventosCursoAscenso.map((e) => ({
+      ...e,
+      fecha: e.fecha.toISOString(),
+      createdAt: e.createdAt.toISOString(),
     })),
   };
 
@@ -273,6 +281,7 @@ export default async function PersonalDetallePage({
         <LegajoTabs
           agente={agenteSerializado}
           canEdit={canEdit}
+          canManageAscenso={canEdit}
           esOperador={esOperador}
           rangos={rangos}
           sectores={sectores}
