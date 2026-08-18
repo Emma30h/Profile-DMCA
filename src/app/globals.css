@@ -151,8 +151,8 @@ textarea::placeholder {
 .aurora-blob {
   position: absolute;
   border-radius: 9999px;
-  filter: blur(90px);
-  opacity: 0.55;
+  filter: blur(80px);
+  opacity: 0.7;
   will-change: transform;
 }
 .aurora-blob-a { animation: aurora-drift-a 20s ease-in-out infinite; }
@@ -162,6 +162,83 @@ textarea::placeholder {
   .aurora-blob-a, .aurora-blob-b, .aurora-blob-c {
     animation: none;
   }
+}
+
+/* Panel de marca de login/signup: barrido tipo radar detrás del contenido —
+   referencia directa a "Ojos en Alerta" (vigilancia), gira lentísimo y se
+   funde con el degradé sin tapar el texto. mix-blend-mode: screen para que
+   sume luz en vez de tapar con un color plano. */
+@keyframes auth-radar-sweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.auth-radar-sweep {
+  position: absolute;
+  inset: -35%;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent 0%, transparent 80%, rgba(147, 197, 253, 0.4) 91%, rgba(147, 197, 253, 0.1) 96%, transparent 100%);
+  animation: auth-radar-sweep 10s linear infinite;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-radar-sweep { animation: none; }
+}
+
+/* Ping de sonar alrededor del emblema del panel de marca — dos anillos con
+   delay escalonado, más lento y suave que el animate-ping por defecto de
+   Tailwind para no competir con el formulario. */
+@keyframes auth-sonar-ping {
+  0% { transform: scale(1); opacity: 0.55; }
+  75%, 100% { transform: scale(1.9); opacity: 0; }
+}
+.auth-sonar-ping {
+  animation: auth-sonar-ping 2.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.auth-sonar-ping-delay {
+  animation-delay: 1.4s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-sonar-ping, .auth-sonar-ping-delay { animation: none; }
+}
+
+/* Contactos de radar: puntos que "destellan" al azar, cada uno generado
+   por JS (ver AuthBrandPanel) justo sobre el ángulo por el que va pasando
+   auth-radar-sweep en ese instante — a diferencia del barrido (que gira
+   siempre igual), cada contacto es efímero: aparece, brilla y desaparece
+   del DOM, así que la animación no es infinite. */
+@keyframes auth-radar-blip-pop {
+  0% { opacity: 0; transform: scale(0.5); box-shadow: 0 0 0 0 rgba(125, 211, 252, 0); animation-timing-function: ease-in-out; }
+  25% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 8px 2px rgba(125, 211, 252, 0.7); animation-timing-function: ease-in-out; }
+  45% { opacity: 0.85; transform: scale(1); box-shadow: 0 0 6px 1px rgba(125, 211, 252, 0.45); animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1); }
+  100% { opacity: 0; transform: scale(0.85); box-shadow: 0 0 0 0 rgba(125, 211, 252, 0); }
+}
+.auth-radar-blip-pop {
+  animation: auth-radar-blip-pop 3.6s forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-radar-blip-pop { display: none; }
+}
+
+/* Entrada de la tarjeta de login/signup y de los ítems del checklist de
+   marca: fundido + leve desplazamiento al montar, para que la pantalla no
+   aparezca de golpe. */
+@keyframes auth-card-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.auth-card-in {
+  animation: auth-card-in 0.55s ease-out both;
+}
+@keyframes auth-item-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.auth-item-in {
+  animation: auth-item-in 0.45s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-card-in, .auth-item-in { animation: none; }
 }
 
 /* Wizard de carga de legajo: al cambiar de paso (el contenedor se
