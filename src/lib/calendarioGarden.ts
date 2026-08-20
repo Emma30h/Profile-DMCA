@@ -10,6 +10,8 @@
 // sidebar) NO salen de acá — salen de los legajos propios de esta app, ver
 // src/lib/cumpleanosPersonal.ts.
 
+import { hoyCordoba } from "./semanaCordoba";
+
 export type TipoEfemeride = "cumpleanos" | "aniversario" | "dia" | "otro";
 
 export interface EfemerideHoy {
@@ -44,10 +46,14 @@ export async function obtenerEfemeridesHoy(): Promise<EfemerideHoy[]> {
   const baseUrl = process.env.CALENDARIO_GARDEN_URL;
   if (!baseUrl) return [];
 
-  const hoy = new Date();
-  const mes = hoy.getMonth() + 1;
-  const dia = hoy.getDate();
-  const anio = hoy.getFullYear();
+  // hoyCordoba() en vez de new Date(): el servidor puede correr en UTC (ej.
+  // Vercel), y a la tarde/noche en Córdoba (UTC-3) new Date().getDate() ya
+  // reporta el día siguiente — mostraría la efeméride de mañana en vez de
+  // la de hoy.
+  const hoy = hoyCordoba();
+  const mes = hoy.getUTCMonth() + 1;
+  const dia = hoy.getUTCDate();
+  const anio = hoy.getUTCFullYear();
 
   const efemeridesApi = await fetchJson<{ data: { events: EfemerideApiEvent[] } | null }>(
     `${baseUrl}/api/efemerides/current?month=${mes}&year=${anio}`
