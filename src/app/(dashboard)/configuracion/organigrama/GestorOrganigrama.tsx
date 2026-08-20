@@ -7,6 +7,7 @@ import {
   eliminarRolOrganigrama,
   moverRolOrganigrama,
 } from "@/app/actions/organigrama";
+import { normalizarBusqueda } from "@/lib/personalLabels";
 import type { SectorConRoles, RolCrudo, AgenteParaPicker } from "../../organigrama/lib";
 
 interface SectorConNivel extends SectorConRoles {
@@ -81,8 +82,8 @@ function BuscadorAgente({
 
   const filtrados = useMemo(() => {
     if (!query.trim()) return [];
-    const q = query.toLowerCase();
-    return agentes.filter((a) => `${a.apellidos} ${a.nombres}`.toLowerCase().includes(q)).slice(0, 8);
+    const q = normalizarBusqueda(query);
+    return agentes.filter((a) => normalizarBusqueda(`${a.apellidos} ${a.nombres}`).includes(q)).slice(0, 8);
   }, [agentes, query]);
 
   return (

@@ -33,6 +33,15 @@ export function cuilToDni(cuil: string): string {
   return dniConCeros.replace(/^0+/, "") || dniConCeros;
 }
 
+/** Normaliza texto para comparar ignorando mayúsculas/minúsculas y acentos
+ * (ej: buscar "sanchez" debe encontrar "Sánchez"). */
+export function normalizarBusqueda(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
 export function fmt(date: string | Date | null | undefined): string | null {
   if (!date) return null;
   const d = new Date(date);

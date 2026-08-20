@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useTransition } from "rea
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import GestorFeriados from "./GestorFeriados";
+import { normalizarBusqueda } from "@/lib/personalLabels";
 import { TIPO_LICENCIA_LABELS, LICENCIA_CATEGORIA_DE_TIPO, CATEGORIA_LICENCIA_INFO } from "@/types";
 
 interface Feriado {
@@ -855,8 +856,8 @@ export default function VistaLicencias({
     if (filtroPeriodoInicio && new Date(l.fechaFin).getTime() < new Date(filtroPeriodoInicio).getTime()) return false;
     if (filtroPeriodoFin && new Date(l.fechaInicio).getTime() > new Date(filtroPeriodoFin).getTime()) return false;
     if (filtroBusqueda) {
-      const q = filtroBusqueda.toLowerCase();
-      if (!`${l.agente.apellidos} ${l.agente.nombres}`.toLowerCase().includes(q)) return false;
+      const q = normalizarBusqueda(filtroBusqueda);
+      if (!normalizarBusqueda(`${l.agente.apellidos} ${l.agente.nombres}`).includes(q)) return false;
     }
     return true;
   });

@@ -9,6 +9,7 @@ import FiltrosPersonal from "./FiltrosPersonal";
 import type { AgenteResumen } from "./lib";
 import { buildQueryString } from "./queryString";
 import { useAgenteAnclado } from "@/lib/useAgenteAnclado";
+import { normalizarBusqueda } from "@/lib/personalLabels";
 import type { RolUsuario } from "@/types";
 import NominaBuilderBtn from "@/components/personal/NominaBuilderBtn";
 
@@ -193,7 +194,7 @@ export default function PersonalMasterShell({
   // este árbol.
   const agentes = useMemo(() => {
     const qDigits = q.replace(/\D/g, "");
-    const qLower = q.toLowerCase();
+    const qLower = normalizarBusqueda(q);
     const tipos = parseLista(tipoValue);
     const estados = parseLista(estadoValue);
     const turnosSel = parseLista(turnoValue);
@@ -205,8 +206,8 @@ export default function PersonalMasterShell({
     return agentesCompletos.filter((a) => {
       if (q) {
         const matchTexto =
-          a.nombres.toLowerCase().includes(qLower) ||
-          a.apellidos.toLowerCase().includes(qLower) ||
+          normalizarBusqueda(a.nombres).includes(qLower) ||
+          normalizarBusqueda(a.apellidos).includes(qLower) ||
           (qDigits.length > 0 && a.cuil.includes(qDigits));
         if (!matchTexto) return false;
       }
