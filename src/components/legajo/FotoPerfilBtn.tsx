@@ -123,22 +123,29 @@ export default function FotoPerfilBtn({ agenteId, fotoUrlActual, esAdmin, tieneS
     }
     setError(null);
     startTransition(async () => {
-      try {
-        if (esAdmin) {
-          const url = await subirFotoStorage(archivo, agenteId, rotacion);
-          if (!url) throw new Error("No se pudo subir la imagen.");
-          await actualizarFotoLegajo(agenteId, url);
+      if (esAdmin) {
+        const url = await subirFotoStorage(archivo, agenteId, rotacion);
+        if (!url) {
+          setError("No se pudo subir la imagen.");
+          return;
+        }
+        const res = await actualizarFotoLegajo(agenteId, url);
+        if (res.ok) {
           setAbierto(false);
           router.refresh();
         } else {
-          const path = `${agenteId}/pendiente-${Date.now()}.jpg`;
-          const url = await subirFotoStorage(archivo, agenteId, rotacion, path);
-          if (!url) throw new Error("No se pudo subir la imagen.");
-          await solicitarCambioFoto(agenteId, url, path);
-          setEnviado("subir");
+          setError(res.error);
         }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al subir la foto.");
+      } else {
+        const path = `${agenteId}/pendiente-${Date.now()}.jpg`;
+        const url = await subirFotoStorage(archivo, agenteId, rotacion, path);
+        if (!url) {
+          setError("No se pudo subir la imagen.");
+          return;
+        }
+        const res = await solicitarCambioFoto(agenteId, url, path);
+        if (res.ok) setEnviado("subir");
+        else setError(res.error);
       }
     });
   }
@@ -146,17 +153,18 @@ export default function FotoPerfilBtn({ agenteId, fotoUrlActual, esAdmin, tieneS
   function handleQuitarFotoActual() {
     setError(null);
     startTransition(async () => {
-      try {
-        if (esAdmin) {
-          await eliminarFotoLegajo(agenteId);
+      if (esAdmin) {
+        const res = await eliminarFotoLegajo(agenteId);
+        if (res.ok) {
           setAbierto(false);
           router.refresh();
         } else {
-          await solicitarQuitarFoto(agenteId);
-          setEnviado("quitar");
+          setError(res.error);
         }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al quitar la foto.");
+      } else {
+        const res = await solicitarQuitarFoto(agenteId);
+        if (res.ok) setEnviado("quitar");
+        else setError(res.error);
       }
     });
   }

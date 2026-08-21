@@ -52,12 +52,12 @@ export default function TipoPersonalBtn({ agenteId, tipoActual }: Props) {
     }
     setError(null);
     startTransition(async () => {
-      try {
-        await actualizarTipoPersonal(agenteId, nuevoTipo);
+      const res = await actualizarTipoPersonal(agenteId, nuevoTipo);
+      if (res.ok) {
         setAbierto(false);
         router.refresh();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al cambiar el tipo de personal.");
+      } else {
+        setError(res.error);
       }
     });
   }

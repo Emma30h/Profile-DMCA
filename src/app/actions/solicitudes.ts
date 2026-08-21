@@ -9,6 +9,7 @@ import {
   enviarPermisoVencido,
 } from "@/lib/email";
 import { verificarPassword } from "@/lib/verificarPassword";
+import type { ResultadoAccion } from "@/types";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 const HORAS_PERMISO = 48;
@@ -36,7 +37,7 @@ async function verificarAdmin() {
 
 // ─── Crear solicitud ──────────────────────────────────────────────────────────
 
-export async function crearSolicitudEdicion(password: string, motivo?: string) {
+async function _crearSolicitudEdicion(password: string, motivo?: string) {
   const usuario = await getUsuarioActual();
 
   if (ROLES_ADMIN.includes(usuario.rol)) {
@@ -86,9 +87,18 @@ export async function crearSolicitudEdicion(password: string, motivo?: string) {
   revalidatePath("/configuracion/solicitudes");
 }
 
+export async function crearSolicitudEdicion(password: string, motivo?: string): Promise<ResultadoAccion> {
+  try {
+    await _crearSolicitudEdicion(password, motivo);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al crear la solicitud" };
+  }
+}
+
 // ─── Aprobar solicitud ────────────────────────────────────────────────────────
 
-export async function aprobarSolicitud(solicitudId: string) {
+async function _aprobarSolicitud(solicitudId: string) {
   await verificarAdmin();
 
   const solicitud = await prisma.solicitudEdicion.findUnique({
@@ -135,9 +145,18 @@ export async function aprobarSolicitud(solicitudId: string) {
   revalidatePath("/mi-legajo");
 }
 
+export async function aprobarSolicitud(solicitudId: string): Promise<ResultadoAccion> {
+  try {
+    await _aprobarSolicitud(solicitudId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al aprobar la solicitud" };
+  }
+}
+
 // ─── Rechazar solicitud ───────────────────────────────────────────────────────
 
-export async function rechazarSolicitud(solicitudId: string, motivo: string) {
+async function _rechazarSolicitud(solicitudId: string, motivo: string) {
   await verificarAdmin();
 
   const solicitud = await prisma.solicitudEdicion.findUnique({
@@ -181,17 +200,35 @@ export async function rechazarSolicitud(solicitudId: string, motivo: string) {
   revalidatePath("/mi-legajo");
 }
 
+export async function rechazarSolicitud(solicitudId: string, motivo: string): Promise<ResultadoAccion> {
+  try {
+    await _rechazarSolicitud(solicitudId, motivo);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al rechazar la solicitud" };
+  }
+}
+
 // ─── Marcar notificaciones como leídas ───────────────────────────────────────
+// Sin try/catch en el llamador (es un fire-and-forget al abrir la campanita):
+// si esto tirase, un unhandled error dentro de startTransition escala al
+// error boundary más cercano y rompe la pantalla por algo no crítico. Por
+// eso, a diferencia del resto de este archivo, acá alcanza con no dejar que
+// se propague — no hay mensaje que mostrarle al usuario.
+export async function marcarNotificacionesLeidas(): Promise<ResultadoAccion> {
+  try {
+    const usuario = await getUsuarioActual();
 
-export async function marcarNotificacionesLeidas() {
-  const usuario = await getUsuarioActual();
+    await prisma.notificacion.updateMany({
+      where: { usuarioId: usuario.id, leida: false },
+      data: { leida: true },
+    });
 
-  await prisma.notificacion.updateMany({
-    where: { usuarioId: usuario.id, leida: false },
-    data: { leida: true },
-  });
-
-  revalidatePath("/");
+    revalidatePath("/");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al marcar las notificaciones" };
+  }
 }
 
 // ─── Notificar permiso vencido (llamar desde cron o middleware) ───────────────

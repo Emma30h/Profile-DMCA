@@ -98,14 +98,17 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
         return;
       }
       startTransition(async () => {
-        try {
-          const url = await subirFotoStorage(archivo, agenteId, rotacion);
-          if (!url) throw new Error("No se pudo subir la imagen.");
-          await actualizarFotoLegajoAdmin(agenteId, url);
+        const url = await subirFotoStorage(archivo, agenteId, rotacion);
+        if (!url) {
+          setError("No se pudo subir la imagen.");
+          return;
+        }
+        const res = await actualizarFotoLegajoAdmin(agenteId, url);
+        if (res.ok) {
           setAbierto(false);
           router.refresh();
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Error al subir la foto.");
+        } else {
+          setError(res.error);
         }
       });
     } else {
@@ -114,12 +117,12 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
         return;
       }
       startTransition(async () => {
-        try {
-          await subirFotoLegajoDesdeUrl(agenteId, link.trim(), rotacion);
+        const res = await subirFotoLegajoDesdeUrl(agenteId, link.trim(), rotacion);
+        if (res.ok) {
           setAbierto(false);
           router.refresh();
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Error al traer la foto desde el link.");
+        } else {
+          setError(res.error);
         }
       });
     }
@@ -128,12 +131,12 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
   function handleQuitarFotoActual() {
     setError(null);
     startTransition(async () => {
-      try {
-        await eliminarFotoLegajoAdmin(agenteId);
+      const res = await eliminarFotoLegajoAdmin(agenteId);
+      if (res.ok) {
         setAbierto(false);
         router.refresh();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al quitar la foto.");
+      } else {
+        setError(res.error);
       }
     });
   }

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { invalidateAgentesCache } from "@/lib/redis";
 import { enviarLegajoAprobado, enviarLegajoRechazado } from "@/lib/email";
+import type { ResultadoAccion } from "@/types";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 
@@ -74,7 +75,7 @@ export interface DatosNuevoLegajo {
   fotoUrl: string;
 }
 
-export async function crearLegajoPropio(data: DatosNuevoLegajo): Promise<{ agenteId: string }> {
+async function _crearLegajoPropio(data: DatosNuevoLegajo): Promise<{ agenteId: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -191,6 +192,17 @@ export async function crearLegajoPropio(data: DatosNuevoLegajo): Promise<{ agent
   return { agenteId: agente.id };
 }
 
+export async function crearLegajoPropio(
+  data: DatosNuevoLegajo
+): Promise<{ ok: true; agenteId: string } | { ok: false; error: string }> {
+  try {
+    const { agenteId } = await _crearLegajoPropio(data);
+    return { ok: true, agenteId };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al crear el legajo" };
+  }
+}
+
 const MAX_INTENTOS_CUIL = 3;
 
 // Vinculación por autoservicio: el usuario ya confirmó su email y ahora
@@ -201,7 +213,7 @@ const MAX_INTENTOS_CUIL = 3;
 // se aplica solo: queda como SolicitudVinculacion pendiente hasta que un
 // admin la confirme (ver src/lib/vincularLegajoAuto.ts para el mismo
 // criterio en el registro).
-export async function vincularPorCuil(
+async function _vincularPorCuil(
   cuilInput: string
 ): Promise<{ pendiente: boolean; intentosRestantes: number }> {
   const supabase = await createClient();
@@ -266,7 +278,18 @@ export async function vincularPorCuil(
   return { pendiente: true, intentosRestantes: MAX_INTENTOS_CUIL - usuario.intentosCuil };
 }
 
-export async function actualizarFotoLegajo(agenteId: string, fotoUrl: string): Promise<void> {
+export async function vincularPorCuil(
+  cuilInput: string
+): Promise<{ ok: true; pendiente: boolean; intentosRestantes: number } | { ok: false; error: string }> {
+  try {
+    const { pendiente, intentosRestantes } = await _vincularPorCuil(cuilInput);
+    return { ok: true, pendiente, intentosRestantes };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al vincular por CUIL" };
+  }
+}
+
+async function _actualizarFotoLegajo(agenteId: string, fotoUrl: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -290,8 +313,17 @@ export async function actualizarFotoLegajo(agenteId: string, fotoUrl: string): P
   revalidatePath(`/personal/${agenteId}`);
 }
 
+export async function actualizarFotoLegajo(agenteId: string, fotoUrl: string): Promise<ResultadoAccion> {
+  try {
+    await _actualizarFotoLegajo(agenteId, fotoUrl);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar la foto" };
+  }
+}
+
 // Saca la propia foto (equivalente self-service de eliminarFotoLegajoAdmin).
-export async function eliminarFotoLegajo(agenteId: string): Promise<void> {
+async function _eliminarFotoLegajo(agenteId: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -317,13 +349,22 @@ export async function eliminarFotoLegajo(agenteId: string): Promise<void> {
   revalidatePath("/perfil");
   revalidatePath("/personal");
   revalidatePath(`/personal/${agenteId}`);
+}
+
+export async function eliminarFotoLegajo(agenteId: string): Promise<ResultadoAccion> {
+  try {
+    await _eliminarFotoLegajo(agenteId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al eliminar la foto" };
+  }
 }
 
 // Variante para que un admin cargue/reemplace la foto de CUALQUIER legajo
 // (a diferencia de actualizarFotoLegajo, que solo permite al propio agente
 // tocar su foto). Se usa después de subir el archivo al storage desde el
 // cliente, cuando el admin elige "subir archivo" en vez de pegar un link.
-export async function actualizarFotoLegajoAdmin(agenteId: string, fotoUrl: string): Promise<void> {
+async function _actualizarFotoLegajoAdmin(agenteId: string, fotoUrl: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -343,8 +384,17 @@ export async function actualizarFotoLegajoAdmin(agenteId: string, fotoUrl: strin
   revalidatePath("/personal");
 }
 
+export async function actualizarFotoLegajoAdmin(agenteId: string, fotoUrl: string): Promise<ResultadoAccion> {
+  try {
+    await _actualizarFotoLegajoAdmin(agenteId, fotoUrl);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar la foto" };
+  }
+}
+
 // Saca la foto ya guardada en el legajo (ej. se subió a un agente equivocado).
-export async function eliminarFotoLegajoAdmin(agenteId: string): Promise<void> {
+async function _eliminarFotoLegajoAdmin(agenteId: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -368,10 +418,19 @@ export async function eliminarFotoLegajoAdmin(agenteId: string): Promise<void> {
   revalidatePath("/personal");
 }
 
+export async function eliminarFotoLegajoAdmin(agenteId: string): Promise<ResultadoAccion> {
+  try {
+    await _eliminarFotoLegajoAdmin(agenteId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al eliminar la foto" };
+  }
+}
+
 // Trae la imagen desde un link externo (ej. imgbox) y la guarda en el mismo
 // bucket que usa el autoservicio, para no depender de que el admin baje y
 // vuelva a subir el archivo a mano.
-export async function subirFotoLegajoDesdeUrl(
+async function _subirFotoLegajoDesdeUrl(
   agenteId: string,
   urlOrigen: string,
   rotacionGrados = 0
@@ -450,7 +509,20 @@ export async function subirFotoLegajoDesdeUrl(
   revalidatePath("/personal");
 }
 
-export async function aprobarLegajo(agenteId: string): Promise<void> {
+export async function subirFotoLegajoDesdeUrl(
+  agenteId: string,
+  urlOrigen: string,
+  rotacionGrados = 0
+): Promise<ResultadoAccion> {
+  try {
+    await _subirFotoLegajoDesdeUrl(agenteId, urlOrigen, rotacionGrados);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al subir la foto" };
+  }
+}
+
+async function _aprobarLegajo(agenteId: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -490,7 +562,16 @@ export async function aprobarLegajo(agenteId: string): Promise<void> {
   revalidatePath("/dashboard");
 }
 
-export async function rechazarLegajo(agenteId: string, motivo: string): Promise<void> {
+export async function aprobarLegajo(agenteId: string): Promise<ResultadoAccion> {
+  try {
+    await _aprobarLegajo(agenteId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al aprobar el legajo" };
+  }
+}
+
+async function _rechazarLegajo(agenteId: string, motivo: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -532,11 +613,20 @@ export async function rechazarLegajo(agenteId: string, motivo: string): Promise<
   revalidatePath("/dashboard");
 }
 
+export async function rechazarLegajo(agenteId: string, motivo: string): Promise<ResultadoAccion> {
+  try {
+    await _rechazarLegajo(agenteId, motivo);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al rechazar el legajo" };
+  }
+}
+
 // Deshace un rechazo cargado por error — a diferencia de aprobarLegajo, no
 // activa el legajo (el admin puede no haberlo terminado de revisar), solo
 // borra el motivo y lo deja como pendiente sin observaciones. No depende de
 // que el agente haga nada.
-export async function deshacerRechazoLegajo(agenteId: string): Promise<void> {
+async function _deshacerRechazoLegajo(agenteId: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -555,4 +645,13 @@ export async function deshacerRechazoLegajo(agenteId: string): Promise<void> {
   revalidatePath(`/personal/${agenteId}`);
   revalidatePath("/personal");
   revalidatePath("/mi-legajo");
+}
+
+export async function deshacerRechazoLegajo(agenteId: string): Promise<ResultadoAccion> {
+  try {
+    await _deshacerRechazoLegajo(agenteId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al deshacer el rechazo" };
+  }
 }

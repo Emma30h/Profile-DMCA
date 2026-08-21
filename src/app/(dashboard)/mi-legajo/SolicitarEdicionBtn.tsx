@@ -43,12 +43,12 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
   function handleConfirmar() {
     setError(null);
     startTransition(async () => {
-      try {
-        await crearSolicitudEdicion(password, escribirMotivo ? motivo : undefined);
+      const res = await crearSolicitudEdicion(password, escribirMotivo ? motivo : undefined);
+      if (res.ok) {
         setEnviado(true);
         setModalAbierto(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Ocurrió un error");
+      } else {
+        setError(res.error);
       }
     });
   }

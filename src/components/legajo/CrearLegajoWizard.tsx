@@ -297,33 +297,34 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
   function handleSubmit() {
     startTransition(async () => {
       setError("");
-      try {
-        const payload: DatosNuevoLegajo = {
-          ...form,
-          cuil: form.cuil.replace(/\D/g, ""),
-          nacionalidad: form.nacionalidad === "OTRO"
-            ? form.nacionalidadPersonalizada
-            : form.nacionalidad,
-          provinciaOrigen: form.provinciaOrigen === "Otra"
-            ? form.provinciaPersonalizada
-            : form.provinciaOrigen,
-          fotoUrl: "",
-        };
+      const payload: DatosNuevoLegajo = {
+        ...form,
+        cuil: form.cuil.replace(/\D/g, ""),
+        nacionalidad: form.nacionalidad === "OTRO"
+          ? form.nacionalidadPersonalizada
+          : form.nacionalidad,
+        provinciaOrigen: form.provinciaOrigen === "Otra"
+          ? form.provinciaPersonalizada
+          : form.provinciaOrigen,
+        fotoUrl: "",
+      };
 
-        const { agenteId } = await crearLegajoPropio(payload);
-
-        // Upload foto si hay una seleccionada
-        if (form.fotoFile) {
-          const url = await subirFotoStorage(form.fotoFile, agenteId);
-          if (url) {
-            await actualizarFotoLegajo(agenteId, url);
-          }
-        }
-
-        setListo(true);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al crear el legajo");
+      const resultado = await crearLegajoPropio(payload);
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
       }
+      const { agenteId } = resultado;
+
+      // Upload foto si hay una seleccionada
+      if (form.fotoFile) {
+        const url = await subirFotoStorage(form.fotoFile, agenteId);
+        if (url) {
+          await actualizarFotoLegajo(agenteId, url);
+        }
+      }
+
+      setListo(true);
     });
   }
 

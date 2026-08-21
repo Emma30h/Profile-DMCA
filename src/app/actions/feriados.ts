@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import type { ResultadoAccion } from "@/types";
 
 async function verificarAdmin() {
   const supabase = await createClient();
@@ -34,53 +35,68 @@ export async function crearFeriado(data: {
   fecha: string; // ISO date string "YYYY-MM-DD"
   nombre: string;
   aplica: boolean;
-}) {
-  await verificarAdmin();
+}): Promise<ResultadoAccion> {
+  try {
+    await verificarAdmin();
 
-  if (!data.nombre.trim()) throw new Error("El nombre es obligatorio");
+    if (!data.nombre.trim()) throw new Error("El nombre es obligatorio");
 
-  const fecha = new Date(data.fecha);
-  if (isNaN(fecha.getTime())) throw new Error("Fecha inválida");
+    const fecha = new Date(data.fecha);
+    if (isNaN(fecha.getTime())) throw new Error("Fecha inválida");
 
-  await prisma.feriado.create({
-    data: {
-      fecha,
-      nombre: data.nombre.trim(),
-      aplica: data.aplica,
-    },
-  });
+    await prisma.feriado.create({
+      data: {
+        fecha,
+        nombre: data.nombre.trim(),
+        aplica: data.aplica,
+      },
+    });
 
-  revalidatePath("/licencias");
+    revalidatePath("/licencias");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al crear el feriado" };
+  }
 }
 
 export async function actualizarFeriado(
   id: string,
   data: { fecha?: string; nombre?: string; aplica?: boolean }
-) {
-  await verificarAdmin();
+): Promise<ResultadoAccion> {
+  try {
+    await verificarAdmin();
 
-  let fecha: Date | undefined;
-  if (data.fecha !== undefined) {
-    fecha = new Date(data.fecha);
-    if (isNaN(fecha.getTime())) throw new Error("Fecha inválida");
+    let fecha: Date | undefined;
+    if (data.fecha !== undefined) {
+      fecha = new Date(data.fecha);
+      if (isNaN(fecha.getTime())) throw new Error("Fecha inválida");
+    }
+
+    await prisma.feriado.update({
+      where: { id },
+      data: {
+        ...(fecha !== undefined && { fecha }),
+        ...(data.nombre !== undefined && { nombre: data.nombre.trim() }),
+        ...(data.aplica !== undefined && { aplica: data.aplica }),
+      },
+    });
+
+    revalidatePath("/licencias");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar el feriado" };
   }
-
-  await prisma.feriado.update({
-    where: { id },
-    data: {
-      ...(fecha !== undefined && { fecha }),
-      ...(data.nombre !== undefined && { nombre: data.nombre.trim() }),
-      ...(data.aplica !== undefined && { aplica: data.aplica }),
-    },
-  });
-
-  revalidatePath("/licencias");
 }
 
-export async function eliminarFeriado(id: string) {
-  await verificarAdmin();
+export async function eliminarFeriado(id: string): Promise<ResultadoAccion> {
+  try {
+    await verificarAdmin();
 
-  await prisma.feriado.delete({ where: { id } });
+    await prisma.feriado.delete({ where: { id } });
 
-  revalidatePath("/licencias");
+    revalidatePath("/licencias");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al eliminar el feriado" };
+  }
 }

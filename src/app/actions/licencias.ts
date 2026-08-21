@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { TIPOS_LICENCIA, TIPO_LICENCIA_LABELS, type TipoLicencia } from "@/types";
+import { TIPOS_LICENCIA, TIPO_LICENCIA_LABELS, type TipoLicencia, type ResultadoAccion } from "@/types";
 
 const TIPOS_LICENCIA_VALIDOS = TIPOS_LICENCIA;
 const TIPO_LABELS = TIPO_LICENCIA_LABELS;
@@ -91,60 +91,65 @@ export async function crearLicencia(data: {
   fechaFin: string;
   motivo?: string;
   observacion?: string;
-}) {
-  const current = await verificarPermiso();
-  await verificarSector(current, data.agenteId);
+}): Promise<ResultadoAccion> {
+  try {
+    const current = await verificarPermiso();
+    await verificarSector(current, data.agenteId);
 
-  if (!TIPOS_LICENCIA_VALIDOS.includes(data.tipo)) throw new Error("Tipo de licencia inválido");
+    if (!TIPOS_LICENCIA_VALIDOS.includes(data.tipo)) throw new Error("Tipo de licencia inválido");
 
-  const fechaInicio = new Date(data.fechaInicio);
-  const fechaFin = new Date(data.fechaFin);
-  if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) throw new Error("Fechas inválidas");
-  if (fechaFin < fechaInicio) throw new Error("La fecha de fin no puede ser anterior a la de inicio");
+    const fechaInicio = new Date(data.fechaInicio);
+    const fechaFin = new Date(data.fechaFin);
+    if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) throw new Error("Fechas inválidas");
+    if (fechaFin < fechaInicio) throw new Error("La fecha de fin no puede ser anterior a la de inicio");
 
-  validarDuracionMedica(data.tipo, fechaInicio, fechaFin);
-  await validarTipoSegunAgente(data.tipo, data.agenteId);
+    validarDuracionMedica(data.tipo, fechaInicio, fechaFin);
+    await validarTipoSegunAgente(data.tipo, data.agenteId);
 
-  const diasHabiles = diasCorridos(fechaInicio, fechaFin);
+    const diasHabiles = diasCorridos(fechaInicio, fechaFin);
 
-  const agente = await prisma.agente.findUnique({
-    where: { id: data.agenteId },
-    select: { usuarioId: true, nombres: true, apellidos: true },
-  });
-  if (!agente) throw new Error("Agente no encontrado");
+    const agente = await prisma.agente.findUnique({
+      where: { id: data.agenteId },
+      select: { usuarioId: true, nombres: true, apellidos: true },
+    });
+    if (!agente) throw new Error("Agente no encontrado");
 
-  const licencia = await prisma.licencia.create({
-    data: {
-      agenteId: data.agenteId,
-      tipo: data.tipo,
-      estado: "APROBADA",
-      fechaInicio,
-      fechaFin,
-      diasHabiles,
-      motivo: data.motivo?.trim() || null,
-      observacion: data.observacion?.trim() || null,
-    },
-  });
-
-  // Notificar al agente si tiene usuario vinculado
-  if (agente.usuarioId) {
-    const tipoLabel = TIPO_LABELS[data.tipo];
-    const inicio = fechaInicio.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
-    const fin = fechaFin.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
-
-    await prisma.notificacion.create({
+    const licencia = await prisma.licencia.create({
       data: {
-        usuarioId: agente.usuarioId,
-        tipo: "LICENCIA_NUEVA",
-        mensaje: `Se registró una licencia ${tipoLabel} del ${inicio} al ${fin} (${diasHabiles} ${diasHabiles === 1 ? "día" : "días"}).`,
-        referenciaId: licencia.id,
+        agenteId: data.agenteId,
+        tipo: data.tipo,
+        estado: "APROBADA",
+        fechaInicio,
+        fechaFin,
+        diasHabiles,
+        motivo: data.motivo?.trim() || null,
+        observacion: data.observacion?.trim() || null,
       },
     });
-  }
 
-  revalidatePath(`/personal/${data.agenteId}`);
-  revalidatePath("/licencias");
-  revalidatePath("/mi-legajo");
+    // Notificar al agente si tiene usuario vinculado
+    if (agente.usuarioId) {
+      const tipoLabel = TIPO_LABELS[data.tipo];
+      const inicio = fechaInicio.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const fin = fechaFin.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+      await prisma.notificacion.create({
+        data: {
+          usuarioId: agente.usuarioId,
+          tipo: "LICENCIA_NUEVA",
+          mensaje: `Se registró una licencia ${tipoLabel} del ${inicio} al ${fin} (${diasHabiles} ${diasHabiles === 1 ? "día" : "días"}).`,
+          referenciaId: licencia.id,
+        },
+      });
+    }
+
+    revalidatePath(`/personal/${data.agenteId}`);
+    revalidatePath("/licencias");
+    revalidatePath("/mi-legajo");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al crear la licencia" };
+  }
 }
 
 export async function actualizarLicencia(
@@ -156,63 +161,73 @@ export async function actualizarLicencia(
     motivo?: string;
     observacion?: string;
   }
-) {
-  const current = await verificarPermiso();
+): Promise<ResultadoAccion> {
+  try {
+    const current = await verificarPermiso();
 
-  const licencia = await prisma.licencia.findUnique({
-    where: { id: licenciaId },
-    select: { agenteId: true, tipo: true, fechaInicio: true, fechaFin: true, diasHabiles: true },
-  });
-  if (!licencia) throw new Error("Licencia no encontrada");
+    const licencia = await prisma.licencia.findUnique({
+      where: { id: licenciaId },
+      select: { agenteId: true, tipo: true, fechaInicio: true, fechaFin: true, diasHabiles: true },
+    });
+    if (!licencia) throw new Error("Licencia no encontrada");
 
-  await verificarSector(current, licencia.agenteId);
+    await verificarSector(current, licencia.agenteId);
 
-  const updateData: Record<string, unknown> = {};
+    const updateData: Record<string, unknown> = {};
 
-  if (data.tipo) {
-    if (!TIPOS_LICENCIA_VALIDOS.includes(data.tipo)) throw new Error("Tipo de licencia inválido");
-    await validarTipoSegunAgente(data.tipo, licencia.agenteId);
-    updateData.tipo = data.tipo;
+    if (data.tipo) {
+      if (!TIPOS_LICENCIA_VALIDOS.includes(data.tipo)) throw new Error("Tipo de licencia inválido");
+      await validarTipoSegunAgente(data.tipo, licencia.agenteId);
+      updateData.tipo = data.tipo;
+    }
+
+    const inicioFinal = data.fechaInicio ? new Date(data.fechaInicio) : licencia.fechaInicio;
+    const finFinal = data.fechaFin ? new Date(data.fechaFin) : licencia.fechaFin;
+
+    if (data.fechaInicio || data.fechaFin) {
+      if (finFinal < inicioFinal) throw new Error("La fecha de fin no puede ser anterior a la de inicio");
+      updateData.fechaInicio = inicioFinal;
+      updateData.fechaFin = finFinal;
+    }
+
+    updateData.diasHabiles = diasCorridos(inicioFinal, finFinal);
+
+    const tipoFinal = data.tipo ?? (licencia.tipo as TipoLicencia);
+    validarDuracionMedica(tipoFinal, inicioFinal, finFinal);
+
+    if (data.motivo !== undefined) updateData.motivo = data.motivo.trim() || null;
+    if (data.observacion !== undefined) updateData.observacion = data.observacion.trim() || null;
+
+    await prisma.licencia.update({ where: { id: licenciaId }, data: updateData });
+
+    revalidatePath(`/personal/${licencia.agenteId}`);
+    revalidatePath("/licencias");
+    revalidatePath("/mi-legajo");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar la licencia" };
   }
-
-  const inicioFinal = data.fechaInicio ? new Date(data.fechaInicio) : licencia.fechaInicio;
-  const finFinal = data.fechaFin ? new Date(data.fechaFin) : licencia.fechaFin;
-
-  if (data.fechaInicio || data.fechaFin) {
-    if (finFinal < inicioFinal) throw new Error("La fecha de fin no puede ser anterior a la de inicio");
-    updateData.fechaInicio = inicioFinal;
-    updateData.fechaFin = finFinal;
-  }
-
-  updateData.diasHabiles = diasCorridos(inicioFinal, finFinal);
-
-  const tipoFinal = data.tipo ?? (licencia.tipo as TipoLicencia);
-  validarDuracionMedica(tipoFinal, inicioFinal, finFinal);
-
-  if (data.motivo !== undefined) updateData.motivo = data.motivo.trim() || null;
-  if (data.observacion !== undefined) updateData.observacion = data.observacion.trim() || null;
-
-  await prisma.licencia.update({ where: { id: licenciaId }, data: updateData });
-
-  revalidatePath(`/personal/${licencia.agenteId}`);
-  revalidatePath("/licencias");
-  revalidatePath("/mi-legajo");
 }
 
-export async function eliminarLicencia(licenciaId: string) {
-  const current = await verificarPermiso();
+export async function eliminarLicencia(licenciaId: string): Promise<ResultadoAccion> {
+  try {
+    const current = await verificarPermiso();
 
-  const licencia = await prisma.licencia.findUnique({
-    where: { id: licenciaId },
-    select: { agenteId: true },
-  });
-  if (!licencia) throw new Error("Licencia no encontrada");
+    const licencia = await prisma.licencia.findUnique({
+      where: { id: licenciaId },
+      select: { agenteId: true },
+    });
+    if (!licencia) throw new Error("Licencia no encontrada");
 
-  await verificarSector(current, licencia.agenteId);
+    await verificarSector(current, licencia.agenteId);
 
-  await prisma.licencia.delete({ where: { id: licenciaId } });
+    await prisma.licencia.delete({ where: { id: licenciaId } });
 
-  revalidatePath(`/personal/${licencia.agenteId}`);
-  revalidatePath("/licencias");
-  revalidatePath("/mi-legajo");
+    revalidatePath(`/personal/${licencia.agenteId}`);
+    revalidatePath("/licencias");
+    revalidatePath("/mi-legajo");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al eliminar la licencia" };
+  }
 }

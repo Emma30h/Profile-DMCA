@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import type { ResultadoAccion } from "@/types";
 
 const ROLES_PERMITIDOS = ["SUPERADMIN", "ADMIN"];
 
@@ -22,26 +23,36 @@ async function verificarAcceso() {
   return { usuarioNombre: [current.nombre, current.apellido].filter(Boolean).join(" ") || user.email! };
 }
 
-export async function crearComentario(agenteId: string, texto: string) {
-  const { usuarioNombre } = await verificarAcceso();
+export async function crearComentario(agenteId: string, texto: string): Promise<ResultadoAccion> {
+  try {
+    const { usuarioNombre } = await verificarAcceso();
 
-  const textoLimpio = texto.trim();
-  if (!textoLimpio) throw new Error("La constancia no puede estar vacía");
+    const textoLimpio = texto.trim();
+    if (!textoLimpio) throw new Error("La constancia no puede estar vacía");
 
-  await prisma.comentario.create({
-    data: { agenteId, texto: textoLimpio, usuarioNombre },
-  });
+    await prisma.comentario.create({
+      data: { agenteId, texto: textoLimpio, usuarioNombre },
+    });
 
-  revalidatePath(`/personal/${agenteId}`);
+    revalidatePath(`/personal/${agenteId}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al crear la constancia" };
+  }
 }
 
-export async function eliminarComentario(id: string) {
-  await verificarAcceso();
+export async function eliminarComentario(id: string): Promise<ResultadoAccion> {
+  try {
+    await verificarAcceso();
 
-  const comentario = await prisma.comentario.findUnique({ where: { id }, select: { agenteId: true } });
-  if (!comentario) throw new Error("La constancia ya no existe");
+    const comentario = await prisma.comentario.findUnique({ where: { id }, select: { agenteId: true } });
+    if (!comentario) throw new Error("La constancia ya no existe");
 
-  await prisma.comentario.delete({ where: { id } });
+    await prisma.comentario.delete({ where: { id } });
 
-  revalidatePath(`/personal/${comentario.agenteId}`);
+    revalidatePath(`/personal/${comentario.agenteId}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al eliminar la constancia" };
+  }
 }

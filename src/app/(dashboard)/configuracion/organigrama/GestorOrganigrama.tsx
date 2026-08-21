@@ -261,17 +261,14 @@ function FilaRolEditable({
   function guardar() {
     setError(null);
     startTransition(async () => {
-      try {
-        await actualizarRolOrganigrama(rol.id, {
-          etiqueta: draft.etiqueta,
-          licencia: draft.licencia,
-          agenteId: draft.agenteId || null,
-          rangoLibre: draft.agenteId ? null : draft.rangoLibre,
-          nombreLibre: draft.agenteId ? null : draft.nombreLibre,
-        });
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo guardar");
-      }
+      const res = await actualizarRolOrganigrama(rol.id, {
+        etiqueta: draft.etiqueta,
+        licencia: draft.licencia,
+        agenteId: draft.agenteId || null,
+        rangoLibre: draft.agenteId ? null : draft.rangoLibre,
+        nombreLibre: draft.agenteId ? null : draft.nombreLibre,
+      });
+      if (!res.ok) setError(res.error);
     });
   }
 
@@ -279,22 +276,16 @@ function FilaRolEditable({
     if (!confirm(`¿Eliminar "${draft.etiqueta || "este puesto"}" de la nómina?`)) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await eliminarRolOrganigrama(rol.id);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo eliminar");
-      }
+      const res = await eliminarRolOrganigrama(rol.id);
+      if (!res.ok) setError(res.error);
     });
   }
 
   function mover(direccion: "arriba" | "abajo") {
     setError(null);
     startTransition(async () => {
-      try {
-        await moverRolOrganigrama(rol.id, direccion);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo mover");
-      }
+      const res = await moverRolOrganigrama(rol.id, direccion);
+      if (!res.ok) setError(res.error);
     });
   }
 
@@ -362,17 +353,17 @@ function FilaNuevoRol({ sectorId, agentes }: { sectorId: string; agentes: Agente
   function agregar() {
     setError(null);
     startTransition(async () => {
-      try {
-        await agregarRolOrganigrama(sectorId, {
-          etiqueta: draft.etiqueta,
-          agenteId: draft.agenteId || null,
-          rangoLibre: draft.agenteId ? null : draft.rangoLibre,
-          nombreLibre: draft.agenteId ? null : draft.nombreLibre,
-        });
+      const res = await agregarRolOrganigrama(sectorId, {
+        etiqueta: draft.etiqueta,
+        agenteId: draft.agenteId || null,
+        rangoLibre: draft.agenteId ? null : draft.rangoLibre,
+        nombreLibre: draft.agenteId ? null : draft.nombreLibre,
+      });
+      if (res.ok) {
         setDraft(DRAFT_VACIO);
         setAbierto(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo agregar");
+      } else {
+        setError(res.error);
       }
     });
   }

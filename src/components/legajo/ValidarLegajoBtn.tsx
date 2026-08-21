@@ -19,11 +19,8 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
   function handleAprobar() {
     startTransition(async () => {
       setError("");
-      try {
-        await aprobarLegajo(agenteId);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al aprobar");
-      }
+      const res = await aprobarLegajo(agenteId);
+      if (!res.ok) setError(res.error);
     });
   }
 
@@ -31,12 +28,12 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
     if (!motivo.trim()) { setError("Escribí el motivo de rechazo"); return; }
     startTransition(async () => {
       setError("");
-      try {
-        await rechazarLegajo(agenteId, motivo);
+      const res = await rechazarLegajo(agenteId, motivo);
+      if (res.ok) {
         setModo("idle");
         setMotivo("");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al rechazar");
+      } else {
+        setError(res.error);
       }
     });
   }
@@ -44,11 +41,8 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
   function handleDeshacerRechazo() {
     startTransition(async () => {
       setError("");
-      try {
-        await deshacerRechazoLegajo(agenteId);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al deshacer el rechazo");
-      }
+      const res = await deshacerRechazoLegajo(agenteId);
+      if (!res.ok) setError(res.error);
     });
   }
 

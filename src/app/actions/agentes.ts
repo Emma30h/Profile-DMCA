@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { invalidateAgentesCache } from "@/lib/redis";
+import type { ResultadoAccion } from "@/types";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 
@@ -141,7 +142,7 @@ export interface DatosPersonales {
   empresaSepelio: string;
 }
 
-export async function actualizarAgentePersonal(
+async function _actualizarAgentePersonal(
   agenteId: string,
   data: DatosPersonales
 ) {
@@ -232,6 +233,18 @@ export async function actualizarAgentePersonal(
   revalidatePath("/dashboard");
 }
 
+export async function actualizarAgentePersonal(
+  agenteId: string,
+  data: DatosPersonales
+): Promise<ResultadoAccion> {
+  try {
+    await _actualizarAgentePersonal(agenteId, data);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar los datos personales" };
+  }
+}
+
 // ─── Datos laborales ──────────────────────────────────────────────────────────
 
 export interface DatosLaborales {
@@ -264,7 +277,7 @@ export interface DatosLaborales {
   detalleTitulos: string;
 }
 
-export async function actualizarAgenteLaboral(
+async function _actualizarAgenteLaboral(
   agenteId: string,
   data: DatosLaborales
 ) {
@@ -402,6 +415,18 @@ export async function actualizarAgenteLaboral(
   revalidatePath("/dashboard");
 }
 
+export async function actualizarAgenteLaboral(
+  agenteId: string,
+  data: DatosLaborales
+): Promise<ResultadoAccion> {
+  try {
+    await _actualizarAgenteLaboral(agenteId, data);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar los datos laborales" };
+  }
+}
+
 // ─── Tipo de personal (corrección de carga, solo ADMIN/SUPERADMIN) ────────────
 // No es editable desde el formulario de Datos Laborales porque de este valor
 // depende qué otros campos tiene el agente (rango, armamento, chaleco, TNO) —
@@ -415,7 +440,7 @@ const TIPO_PERSONAL_LABEL: Record<string, string> = {
   CIVIL_POLICIAL: "Civil Policial",
 };
 
-export async function actualizarTipoPersonal(agenteId: string, nuevoTipo: string): Promise<void> {
+async function _actualizarTipoPersonal(agenteId: string, nuevoTipo: string) {
   const { usuarioId, usuarioNombre } = await verificarAdmin();
 
   if (!TIPOS_PERSONAL_VALIDOS.includes(nuevoTipo)) {
@@ -476,6 +501,15 @@ export async function actualizarTipoPersonal(agenteId: string, nuevoTipo: string
   revalidatePath("/dashboard");
 }
 
+export async function actualizarTipoPersonal(agenteId: string, nuevoTipo: string): Promise<ResultadoAccion> {
+  try {
+    await _actualizarTipoPersonal(agenteId, nuevoTipo);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar el tipo de personal" };
+  }
+}
+
 // ─── Condición de ascenso (solo Seguridad/Técnico, solo ADMIN/SUPERADMIN) ─────
 
 async function verificarAdmin(): Promise<{ usuarioId: string; usuarioNombre: string }> {
@@ -502,7 +536,7 @@ function verificarTieneRango(tipoPersonal: string) {
   }
 }
 
-export async function marcarEnCursoAscenso(agenteId: string): Promise<void> {
+async function _marcarEnCursoAscenso(agenteId: string) {
   await verificarAdmin();
 
   const agente = await prisma.agente.findUnique({ where: { id: agenteId }, select: { tipoPersonal: true } });
@@ -519,7 +553,16 @@ export async function marcarEnCursoAscenso(agenteId: string): Promise<void> {
   revalidatePath("/mi-legajo");
 }
 
-export async function cancelarCursoAscenso(agenteId: string): Promise<void> {
+export async function marcarEnCursoAscenso(agenteId: string): Promise<ResultadoAccion> {
+  try {
+    await _marcarEnCursoAscenso(agenteId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al marcar el curso de ascenso" };
+  }
+}
+
+async function _cancelarCursoAscenso(agenteId: string) {
   await verificarAdmin();
 
   await prisma.agente.update({
@@ -532,7 +575,16 @@ export async function cancelarCursoAscenso(agenteId: string): Promise<void> {
   revalidatePath("/mi-legajo");
 }
 
-export async function confirmarAscenso(agenteId: string): Promise<void> {
+export async function cancelarCursoAscenso(agenteId: string): Promise<ResultadoAccion> {
+  try {
+    await _cancelarCursoAscenso(agenteId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al cancelar el curso de ascenso" };
+  }
+}
+
+async function _confirmarAscenso(agenteId: string) {
   const { usuarioId, usuarioNombre } = await verificarAdmin();
 
   const agente = await prisma.agente.findUnique({
@@ -588,4 +640,13 @@ export async function confirmarAscenso(agenteId: string): Promise<void> {
   revalidatePath("/personal");
   revalidatePath("/dashboard");
   revalidatePath("/mi-legajo");
+}
+
+export async function confirmarAscenso(agenteId: string): Promise<ResultadoAccion> {
+  try {
+    await _confirmarAscenso(agenteId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al confirmar el ascenso" };
+  }
 }

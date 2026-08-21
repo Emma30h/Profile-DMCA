@@ -243,7 +243,7 @@ function FilaUsuario({
 
   function handleRol(e: React.ChangeEvent<HTMLSelectElement>) {
     const nuevoRol = e.target.value as RolUsuario;
-    startTransition(() => actualizarRol(usuario.id, nuevoRol));
+    startTransition(async () => { await actualizarRol(usuario.id, nuevoRol); });
   }
 
   function handleToggle() {
@@ -277,7 +277,7 @@ function FilaUsuario({
 
   function handleVincular(e: React.ChangeEvent<HTMLSelectElement>) {
     const val = e.target.value;
-    startVincularTransition(() => vincularAgente(usuario.id, val === "" ? null : val));
+    startVincularTransition(async () => { await vincularAgente(usuario.id, val === "" ? null : val); });
   }
 
   function handleAbrirEliminar() {

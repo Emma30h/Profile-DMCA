@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import type { GrupoTurno } from "@/types";
+import type { GrupoTurno, ResultadoAccion } from "@/types";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 // Superior de Turno (20-8hs): Oficiales Jefes de menor grado — Subcomisario.
@@ -184,12 +184,12 @@ export async function obtenerElegiblesTurno(): Promise<ElegiblesTurno> {
   return { subcomisarios, oficialesSuperiores, otrosParaSuperiorTurno, otrosParaJefeFinDe };
 }
 
-export async function generarMesAutomatico(params: {
+async function _generarMesAutomatico(params: {
   anio: number;
   mes: number;
   fechaAncla: string; // YYYY-MM-DD
   grupoEnAncla: GrupoTurno;
-}): Promise<void> {
+}) {
   await verificarAdmin();
   const { anio, mes, fechaAncla, grupoEnAncla } = params;
 
@@ -227,11 +227,25 @@ export async function generarMesAutomatico(params: {
   revalidatePath("/turnos");
 }
 
-export async function actualizarDiaTurno(params: {
+export async function generarMesAutomatico(params: {
+  anio: number;
+  mes: number;
+  fechaAncla: string; // YYYY-MM-DD
+  grupoEnAncla: GrupoTurno;
+}): Promise<ResultadoAccion> {
+  try {
+    await _generarMesAutomatico(params);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al generar el mes automáticamente" };
+  }
+}
+
+async function _actualizarDiaTurno(params: {
   fecha: string; // YYYY-MM-DD
   campo: "grupoTurno" | "superiorTurnoId" | "jefeFinDeId" | "superiorTurnoManual" | "jefeFinDeManual" | "observacion";
   valor: string | null;
-}): Promise<void> {
+}) {
   await verificarAdmin();
   const { fecha, campo, valor } = params;
   const fechaDate = new Date(`${fecha}T00:00:00.000Z`);
@@ -256,4 +270,17 @@ export async function actualizarDiaTurno(params: {
   revalidatePath("/turnos");
   revalidatePath("/dashboard");
   revalidatePath("/perfil");
+}
+
+export async function actualizarDiaTurno(params: {
+  fecha: string; // YYYY-MM-DD
+  campo: "grupoTurno" | "superiorTurnoId" | "jefeFinDeId" | "superiorTurnoManual" | "jefeFinDeManual" | "observacion";
+  valor: string | null;
+}): Promise<ResultadoAccion> {
+  try {
+    await _actualizarDiaTurno(params);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar el día" };
+  }
 }

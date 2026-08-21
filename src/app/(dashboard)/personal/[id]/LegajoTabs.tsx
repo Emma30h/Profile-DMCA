@@ -760,34 +760,25 @@ function CondicionAscenso({ agenteId, fechaInicioCursoAscenso, canEdit }: {
   function handleMarcar() {
     setError(null);
     startTransition(async () => {
-      try {
-        await marcarEnCursoAscenso(agenteId);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al marcar el curso de ascenso");
-      }
+      const res = await marcarEnCursoAscenso(agenteId);
+      if (!res.ok) setError(res.error);
     });
   }
 
   function handleCancelar() {
     setError(null);
     startTransition(async () => {
-      try {
-        await cancelarCursoAscenso(agenteId);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al cancelar el curso de ascenso");
-      }
+      const res = await cancelarCursoAscenso(agenteId);
+      if (!res.ok) setError(res.error);
     });
   }
 
   function handleConfirmar() {
     setError(null);
     startTransition(async () => {
-      try {
-        await confirmarAscenso(agenteId);
-        setConfirmando(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al confirmar el ascenso");
-      }
+      const res = await confirmarAscenso(agenteId);
+      if (res.ok) setConfirmando(false);
+      else setError(res.error);
     });
   }
 
@@ -885,14 +876,14 @@ function EventosCursoAscenso({ agenteId, eventos, canEdit }: {
     setError(null);
     if (!fecha) { setError("La fecha es obligatoria"); return; }
     startTransition(async () => {
-      try {
-        await crearEventoCursoAscenso(agenteId, { tipo, fecha, observacion: observacion.trim() || undefined });
+      const res = await crearEventoCursoAscenso(agenteId, { tipo, fecha, observacion: observacion.trim() || undefined });
+      if (res.ok) {
         setTipo("CLASE");
         setFecha("");
         setObservacion("");
         setMostrarForm(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al agregar el evento");
+      } else {
+        setError(res.error);
       }
     });
   }
@@ -900,12 +891,9 @@ function EventosCursoAscenso({ agenteId, eventos, canEdit }: {
   function handleEliminar(id: string) {
     setError(null);
     startTransition(async () => {
-      try {
-        await eliminarEventoCursoAscenso(id);
-        setConfirmarEliminarId(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al eliminar el evento");
-      }
+      const res = await eliminarEventoCursoAscenso(id);
+      if (res.ok) setConfirmarEliminarId(null);
+      else setError(res.error);
     });
   }
 
@@ -1250,12 +1238,12 @@ function TabComentarios({ agenteId, comentarios, canEdit }: {
     const textoLimpio = texto.trim();
     if (!textoLimpio) return;
     startTransition(async () => {
-      try {
-        await crearComentario(agenteId, textoLimpio);
+      const res = await crearComentario(agenteId, textoLimpio);
+      if (res.ok) {
         setTexto("");
         setMostrarForm(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al agregar la constancia");
+      } else {
+        setError(res.error);
       }
     });
   }
@@ -1263,12 +1251,9 @@ function TabComentarios({ agenteId, comentarios, canEdit }: {
   function handleEliminar(id: string) {
     setError(null);
     startTransition(async () => {
-      try {
-        await eliminarComentario(id);
-        setConfirmarEliminarId(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al eliminar la constancia");
-      }
+      const res = await eliminarComentario(id);
+      if (res.ok) setConfirmarEliminarId(null);
+      else setError(res.error);
     });
   }
 
@@ -1770,16 +1755,14 @@ export default function LegajoTabs({
   function handleGuardar() {
     setErrorEdit(null);
     startTransition(async () => {
-      try {
-        if (activeTab === "personal") {
-          await actualizarAgentePersonal(agente.id, formPersonal);
-        } else if (activeTab === "laboral") {
-          await actualizarAgenteLaboral(agente.id, formLaboral);
-        }
-        setEditando(false);
-      } catch {
-        setErrorEdit("Ocurrió un error al guardar. Intentá de nuevo.");
-      }
+      const res =
+        activeTab === "personal"
+          ? await actualizarAgentePersonal(agente.id, formPersonal)
+          : activeTab === "laboral"
+          ? await actualizarAgenteLaboral(agente.id, formLaboral)
+          : { ok: true as const };
+      if (res.ok) setEditando(false);
+      else setErrorEdit(res.error);
     });
   }
 
@@ -2222,19 +2205,16 @@ function TabLicencias({
     setError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      try {
-        await crearLicencia({
-          agenteId,
-          tipo: fd.get("tipo") as TipoLicencia,
-          fechaInicio: fd.get("fechaInicio") as string,
-          fechaFin: fd.get("fechaFin") as string,
-          motivo: fd.get("motivo") as string,
-          observacion: fd.get("observacion") as string,
-        });
-        setMostrarForm(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al crear la licencia");
-      }
+      const res = await crearLicencia({
+        agenteId,
+        tipo: fd.get("tipo") as TipoLicencia,
+        fechaInicio: fd.get("fechaInicio") as string,
+        fechaFin: fd.get("fechaFin") as string,
+        motivo: fd.get("motivo") as string,
+        observacion: fd.get("observacion") as string,
+      });
+      if (res.ok) setMostrarForm(false);
+      else setError(res.error);
     });
   }
 
@@ -2243,30 +2223,24 @@ function TabLicencias({
     setError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      try {
-        await actualizarLicencia(id, {
-          tipo: fd.get("tipo") as TipoLicencia,
-          fechaInicio: fd.get("fechaInicio") as string,
-          fechaFin: fd.get("fechaFin") as string,
-          motivo: fd.get("motivo") as string,
-          observacion: fd.get("observacion") as string,
-        });
-        setEditandoId(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al actualizar la licencia");
-      }
+      const res = await actualizarLicencia(id, {
+        tipo: fd.get("tipo") as TipoLicencia,
+        fechaInicio: fd.get("fechaInicio") as string,
+        fechaFin: fd.get("fechaFin") as string,
+        motivo: fd.get("motivo") as string,
+        observacion: fd.get("observacion") as string,
+      });
+      if (res.ok) setEditandoId(null);
+      else setError(res.error);
     });
   }
 
   function handleEliminarLicencia(id: string) {
     setError(null);
     startTransition(async () => {
-      try {
-        await eliminarLicencia(id);
-        setConfirmarEliminarId(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al eliminar la licencia");
-      }
+      const res = await eliminarLicencia(id);
+      if (res.ok) setConfirmarEliminarId(null);
+      else setError(res.error);
     });
   }
 
@@ -2275,20 +2249,17 @@ function TabLicencias({
     setError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      try {
-        await crearLicenciaPendiente({
-          agenteId,
-          tipo: fd.get("tipo") as TipoLicenciaPendiente,
-          tipoOtroDetalle: fd.get("tipoOtroDetalle") as string,
-          unidad: fd.get("unidad") as UnidadDias,
-          anio: parseInt(fd.get("anio") as string),
-          cantidadDias: parseInt(fd.get("cantidadDias") as string),
-          referencia: fd.get("referencia") as string,
-        });
-        setMostrarForm(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al crear el registro");
-      }
+      const res = await crearLicenciaPendiente({
+        agenteId,
+        tipo: fd.get("tipo") as TipoLicenciaPendiente,
+        tipoOtroDetalle: fd.get("tipoOtroDetalle") as string,
+        unidad: fd.get("unidad") as UnidadDias,
+        anio: parseInt(fd.get("anio") as string),
+        cantidadDias: parseInt(fd.get("cantidadDias") as string),
+        referencia: fd.get("referencia") as string,
+      });
+      if (res.ok) setMostrarForm(false);
+      else setError(res.error);
     });
   }
 
@@ -2297,31 +2268,25 @@ function TabLicencias({
     setError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      try {
-        await actualizarLicenciaPendiente(id, {
-          tipo: fd.get("tipo") as TipoLicenciaPendiente,
-          tipoOtroDetalle: fd.get("tipoOtroDetalle") as string,
-          unidad: fd.get("unidad") as UnidadDias,
-          anio: parseInt(fd.get("anio") as string),
-          cantidadDias: parseInt(fd.get("cantidadDias") as string),
-          referencia: fd.get("referencia") as string,
-        });
-        setEditandoId(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al actualizar el registro");
-      }
+      const res = await actualizarLicenciaPendiente(id, {
+        tipo: fd.get("tipo") as TipoLicenciaPendiente,
+        tipoOtroDetalle: fd.get("tipoOtroDetalle") as string,
+        unidad: fd.get("unidad") as UnidadDias,
+        anio: parseInt(fd.get("anio") as string),
+        cantidadDias: parseInt(fd.get("cantidadDias") as string),
+        referencia: fd.get("referencia") as string,
+      });
+      if (res.ok) setEditandoId(null);
+      else setError(res.error);
     });
   }
 
   function handleEliminarPendiente(id: string) {
     setError(null);
     startTransition(async () => {
-      try {
-        await eliminarLicenciaPendiente(id);
-        setConfirmarEliminarId(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al eliminar el registro");
-      }
+      const res = await eliminarLicenciaPendiente(id);
+      if (res.ok) setConfirmarEliminarId(null);
+      else setError(res.error);
     });
   }
 
@@ -2330,28 +2295,22 @@ function TabLicencias({
     setError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      try {
-        await registrarUso(licenciaPendienteId, {
-          fecha: fd.get("fecha") as string,
-          cantidadDias: parseInt(fd.get("cantidadDias") as string),
-          referencia: fd.get("referencia") as string,
-        });
-        setUsoFormId(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al registrar el uso");
-      }
+      const res = await registrarUso(licenciaPendienteId, {
+        fecha: fd.get("fecha") as string,
+        cantidadDias: parseInt(fd.get("cantidadDias") as string),
+        referencia: fd.get("referencia") as string,
+      });
+      if (res.ok) setUsoFormId(null);
+      else setError(res.error);
     });
   }
 
   function handleEliminarUso(id: string) {
     setError(null);
     startTransition(async () => {
-      try {
-        await eliminarUso(id);
-        setConfirmarEliminarUsoId(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al eliminar el uso");
-      }
+      const res = await eliminarUso(id);
+      if (res.ok) setConfirmarEliminarUsoId(null);
+      else setError(res.error);
     });
   }
 

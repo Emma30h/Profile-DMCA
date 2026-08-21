@@ -38,7 +38,7 @@ export interface PrevisualizacionImport {
 
 const MAX_TAMANO_BYTES = 10 * 1024 * 1024; // 10 MB
 
-export async function previsualizarImportacion(formData: FormData): Promise<PrevisualizacionImport> {
+async function _previsualizarImportacion(formData: FormData): Promise<PrevisualizacionImport> {
   await verificarAdmin();
 
   const archivo = formData.get("archivo");
@@ -76,12 +76,23 @@ export async function previsualizarImportacion(formData: FormData): Promise<Prev
   return { nuevos, errores };
 }
 
+export async function previsualizarImportacion(
+  formData: FormData
+): Promise<{ ok: true; data: PrevisualizacionImport } | { ok: false; error: string }> {
+  try {
+    const data = await _previsualizarImportacion(formData);
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo procesar el archivo" };
+  }
+}
+
 export interface ResultadoImport {
   creados: number;
   fallidos: { cuil: string; motivo: string }[];
 }
 
-export async function confirmarImportacion(filas: DatosImportLegajo[]): Promise<ResultadoImport> {
+async function _confirmarImportacion(filas: DatosImportLegajo[]): Promise<ResultadoImport> {
   await verificarAdmin();
 
   const fallidos: { cuil: string; motivo: string }[] = [];
@@ -163,4 +174,15 @@ export async function confirmarImportacion(filas: DatosImportLegajo[]): Promise<
   }
 
   return { creados, fallidos };
+}
+
+export async function confirmarImportacion(
+  filas: DatosImportLegajo[]
+): Promise<{ ok: true; data: ResultadoImport } | { ok: false; error: string }> {
+  try {
+    const data = await _confirmarImportacion(filas);
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo completar la importación" };
+  }
 }

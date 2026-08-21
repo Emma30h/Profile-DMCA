@@ -41,16 +41,13 @@ export default function GestorFeriados({ feriados: inicial }: { feriados: Feriad
     setError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      try {
-        await crearFeriado({
-          fecha: fd.get("fecha") as string,
-          nombre: fd.get("nombre") as string,
-          aplica: fd.get("aplica") === "true",
-        });
-        setMostrarForm(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al crear el feriado");
-      }
+      const res = await crearFeriado({
+        fecha: fd.get("fecha") as string,
+        nombre: fd.get("nombre") as string,
+        aplica: fd.get("aplica") === "true",
+      });
+      if (res.ok) setMostrarForm(false);
+      else setError(res.error);
     });
   }
 
@@ -59,28 +56,22 @@ export default function GestorFeriados({ feriados: inicial }: { feriados: Feriad
     setError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      try {
-        await actualizarFeriado(id, {
-          fecha: fd.get("fecha") as string,
-          nombre: fd.get("nombre") as string,
-          aplica: fd.get("aplica") === "true",
-        });
-        setEditandoId(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al actualizar el feriado");
-      }
+      const res = await actualizarFeriado(id, {
+        fecha: fd.get("fecha") as string,
+        nombre: fd.get("nombre") as string,
+        aplica: fd.get("aplica") === "true",
+      });
+      if (res.ok) setEditandoId(null);
+      else setError(res.error);
     });
   }
 
   function handleEliminar(id: string) {
     setError(null);
     startTransition(async () => {
-      try {
-        await eliminarFeriado(id);
-        setConfirmarEliminarId(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al eliminar el feriado");
-      }
+      const res = await eliminarFeriado(id);
+      if (res.ok) setConfirmarEliminarId(null);
+      else setError(res.error);
     });
   }
 

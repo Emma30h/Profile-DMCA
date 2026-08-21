@@ -140,18 +140,18 @@ export default function VistaCobertura({
     setError(null);
     setGuardando(true);
     try {
-      if (editandoId) {
-        await actualizarCobertura(editandoId, form);
-      } else {
-        await crearCobertura({ ...form, tipo });
+      const res = editandoId
+        ? await actualizarCobertura(editandoId, form)
+        : await crearCobertura({ ...form, tipo });
+      if (!res.ok) {
+        setError(res.error);
+        return;
       }
       const fresh = await obtenerCoberturas(tipo, anio, mes);
       setDatos(fresh);
       setMostrarForm(false);
       setForm(formVacio(anio, mes));
       setEditandoId(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
     } finally {
       setGuardando(false);
     }
@@ -161,12 +161,14 @@ export default function VistaCobertura({
     setError(null);
     setGuardando(true);
     try {
-      await eliminarCobertura(id);
+      const res = await eliminarCobertura(id);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
       const fresh = await obtenerCoberturas(tipo, anio, mes);
       setDatos(fresh);
       setConfirmarEliminarId(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al eliminar");
     } finally {
       setGuardando(false);
     }

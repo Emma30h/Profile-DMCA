@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { enviarCodigoEliminarUsuario } from "@/lib/email";
 import { verificarPassword } from "@/lib/verificarPassword";
-import type { RolUsuario } from "@/types";
+import type { RolUsuario, ResultadoAccion } from "@/types";
 
 const ROLES_ADMIN: RolUsuario[] = ["SUPERADMIN", "ADMIN"];
 
@@ -25,13 +25,18 @@ async function verificarAdmin() {
   return current;
 }
 
-export async function actualizarRol(usuarioId: string, rol: RolUsuario) {
-  await verificarAdmin();
-  await prisma.usuario.update({
-    where: { id: usuarioId },
-    data: { rol },
-  });
-  revalidatePath("/configuracion/usuarios");
+export async function actualizarRol(usuarioId: string, rol: RolUsuario): Promise<ResultadoAccion> {
+  try {
+    await verificarAdmin();
+    await prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { rol },
+    });
+    revalidatePath("/configuracion/usuarios");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar el rol" };
+  }
 }
 
 // Activar/desactivar exige la contraseña del admin — desactivar corta el
@@ -222,24 +227,29 @@ export async function confirmarEliminarUsuario(
   }
 }
 
-export async function vincularAgente(usuarioId: string, agenteId: string | null) {
-  await verificarAdmin();
-  if (agenteId) {
-    // Desvincular si ese agente ya tenía otro usuario asignado
-    await prisma.agente.updateMany({
-      where: { usuarioId, NOT: { id: agenteId } },
-      data: { usuarioId: null },
-    });
-    await prisma.agente.update({
-      where: { id: agenteId },
-      data: { usuarioId },
-    });
-  } else {
-    // Desvincular
-    await prisma.agente.updateMany({
-      where: { usuarioId },
-      data: { usuarioId: null },
-    });
+export async function vincularAgente(usuarioId: string, agenteId: string | null): Promise<ResultadoAccion> {
+  try {
+    await verificarAdmin();
+    if (agenteId) {
+      // Desvincular si ese agente ya tenía otro usuario asignado
+      await prisma.agente.updateMany({
+        where: { usuarioId, NOT: { id: agenteId } },
+        data: { usuarioId: null },
+      });
+      await prisma.agente.update({
+        where: { id: agenteId },
+        data: { usuarioId },
+      });
+    } else {
+      // Desvincular
+      await prisma.agente.updateMany({
+        where: { usuarioId },
+        data: { usuarioId: null },
+      });
+    }
+    revalidatePath("/configuracion/usuarios");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al vincular el agente" };
   }
-  revalidatePath("/configuracion/usuarios");
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { invalidateAgentesCache } from "@/lib/redis";
+import type { ResultadoAccion } from "@/types";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 
@@ -19,7 +20,7 @@ async function verificarAdmin() {
   return usuario;
 }
 
-export async function aprobarSolicitudVinculacion(solicitudId: string): Promise<void> {
+async function _aprobarSolicitudVinculacion(solicitudId: string) {
   await verificarAdmin();
 
   const solicitud = await prisma.solicitudVinculacion.findUnique({
@@ -91,7 +92,16 @@ export async function aprobarSolicitudVinculacion(solicitudId: string): Promise<
   revalidatePath("/configuracion/usuarios");
 }
 
-export async function rechazarSolicitudVinculacion(solicitudId: string, motivo: string): Promise<void> {
+export async function aprobarSolicitudVinculacion(solicitudId: string): Promise<ResultadoAccion> {
+  try {
+    await _aprobarSolicitudVinculacion(solicitudId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al aprobar la vinculación" };
+  }
+}
+
+async function _rechazarSolicitudVinculacion(solicitudId: string, motivo: string) {
   await verificarAdmin();
 
   const solicitud = await prisma.solicitudVinculacion.findUnique({
@@ -116,4 +126,13 @@ export async function rechazarSolicitudVinculacion(solicitudId: string, motivo: 
 
   revalidatePath("/mi-legajo");
   revalidatePath("/configuracion/solicitudes");
+}
+
+export async function rechazarSolicitudVinculacion(solicitudId: string, motivo: string): Promise<ResultadoAccion> {
+  try {
+    await _rechazarSolicitudVinculacion(solicitudId, motivo);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al rechazar la vinculación" };
+  }
 }

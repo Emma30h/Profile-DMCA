@@ -31,21 +31,21 @@ export default function VincularPorCuilForm({
     setError(null);
     setTardando(false);
     startTransition(async () => {
-      try {
-        const resultado = await vincularPorCuil(cuil);
-        if (resultado.pendiente) {
-          router.refresh();
-          return;
-        }
-        setIntentosRestantes(resultado.intentosRestantes);
-        setError(
-          resultado.intentosRestantes > 0
-            ? `No encontramos un legajo con ese CUIL. Te quedan ${resultado.intentosRestantes} intento${resultado.intentosRestantes === 1 ? "" : "s"}.`
-            : "No encontramos un legajo con ese CUIL. Se agotaron los intentos."
-        );
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Ocurrió un error al vincular el legajo.");
+      const resultado = await vincularPorCuil(cuil);
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
       }
+      if (resultado.pendiente) {
+        router.refresh();
+        return;
+      }
+      setIntentosRestantes(resultado.intentosRestantes);
+      setError(
+        resultado.intentosRestantes > 0
+          ? `No encontramos un legajo con ese CUIL. Te quedan ${resultado.intentosRestantes} intento${resultado.intentosRestantes === 1 ? "" : "s"}.`
+          : "No encontramos un legajo con ese CUIL. Se agotaron los intentos."
+      );
     });
   }
 

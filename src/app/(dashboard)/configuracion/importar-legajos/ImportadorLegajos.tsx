@@ -29,14 +29,11 @@ export default function ImportadorLegajos() {
     setResultado(null);
     setPreview(null);
     startCarga(async () => {
-      try {
-        const formData = new FormData();
-        formData.set("archivo", archivo);
-        const res = await previsualizarImportacion(formData);
-        setPreview(res);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo procesar el archivo");
-      }
+      const formData = new FormData();
+      formData.set("archivo", archivo);
+      const res = await previsualizarImportacion(formData);
+      if (res.ok) setPreview(res.data);
+      else setError(res.error);
     });
   }
 
@@ -56,12 +53,12 @@ export default function ImportadorLegajos() {
   function onConfirmar() {
     if (!preview || preview.nuevos.length === 0) return;
     startConfirmacion(async () => {
-      try {
-        const res = await confirmarImportacion(preview.nuevos.map((f) => f.datos));
-        setResultado(res);
+      const res = await confirmarImportacion(preview.nuevos.map((f) => f.datos));
+      if (res.ok) {
+        setResultado(res.data);
         setPreview(null);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo completar la importación");
+      } else {
+        setError(res.error);
       }
     });
   }

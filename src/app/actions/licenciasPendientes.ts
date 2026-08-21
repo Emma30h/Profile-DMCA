@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import type { TipoLicenciaPendiente, UnidadDias } from "@/types";
+import type { TipoLicenciaPendiente, UnidadDias, ResultadoAccion } from "@/types";
 
 const TIPOS_VALIDOS: TipoLicenciaPendiente[] = ["ANUAL_ORDINARIA", "DIA_ESTIMULO", "OTRO"];
 const UNIDADES_VALIDAS: UnidadDias[] = ["HABILES", "CORRIDOS"];
@@ -84,54 +84,59 @@ export async function crearLicenciaPendiente(data: {
   anio: number;
   cantidadDias: number;
   referencia?: string;
-}) {
-  const current = await verificarPermiso();
-  await verificarSector(current, data.agenteId);
+}): Promise<ResultadoAccion> {
+  try {
+    const current = await verificarPermiso();
+    await verificarSector(current, data.agenteId);
 
-  validarDatos(data);
+    validarDatos(data);
 
-  const agente = await prisma.agente.findUnique({
-    where: { id: data.agenteId },
-    select: { usuarioId: true },
-  });
-  if (!agente) throw new Error("Agente no encontrado");
+    const agente = await prisma.agente.findUnique({
+      where: { id: data.agenteId },
+      select: { usuarioId: true },
+    });
+    if (!agente) throw new Error("Agente no encontrado");
 
-  const pendiente = await prisma.licenciaPendiente.create({
-    data: {
-      agenteId: data.agenteId,
-      tipo: data.tipo,
-      tipoOtroDetalle: data.tipo === "OTRO" ? data.tipoOtroDetalle!.trim() : null,
-      unidad: data.unidad,
-      anio: data.anio,
-      cantidadDias: data.cantidadDias,
-      referencia: data.referencia?.trim() || null,
-    },
-  });
-
-  if (agente.usuarioId) {
-    const tipoLabel = TIPO_LABELS[data.tipo];
-    const esHabiles = data.unidad === "HABILES";
-    const unidadLabel =
-      data.cantidadDias === 1
-        ? (esHabiles ? "día hábil" : "día corrido")
-        : (esHabiles ? "días hábiles" : "días corridos");
-
-    await prisma.notificacion.create({
+    const pendiente = await prisma.licenciaPendiente.create({
       data: {
-        usuarioId: agente.usuarioId,
-        tipo: "LICENCIA_PENDIENTE_NUEVA",
-        mensaje: `Se registró un saldo pendiente ${tipoLabel} de ${data.cantidadDias} ${unidadLabel} (${data.anio}).`,
-        referenciaId: pendiente.id,
+        agenteId: data.agenteId,
+        tipo: data.tipo,
+        tipoOtroDetalle: data.tipo === "OTRO" ? data.tipoOtroDetalle!.trim() : null,
+        unidad: data.unidad,
+        anio: data.anio,
+        cantidadDias: data.cantidadDias,
+        referencia: data.referencia?.trim() || null,
       },
     });
-  }
 
-  revalidatePath(`/personal/${data.agenteId}`);
-  revalidatePath("/licencias");
-  revalidatePath("/mi-legajo");
+    if (agente.usuarioId) {
+      const tipoLabel = TIPO_LABELS[data.tipo];
+      const esHabiles = data.unidad === "HABILES";
+      const unidadLabel =
+        data.cantidadDias === 1
+          ? (esHabiles ? "día hábil" : "día corrido")
+          : (esHabiles ? "días hábiles" : "días corridos");
+
+      await prisma.notificacion.create({
+        data: {
+          usuarioId: agente.usuarioId,
+          tipo: "LICENCIA_PENDIENTE_NUEVA",
+          mensaje: `Se registró un saldo pendiente ${tipoLabel} de ${data.cantidadDias} ${unidadLabel} (${data.anio}).`,
+          referenciaId: pendiente.id,
+        },
+      });
+    }
+
+    revalidatePath(`/personal/${data.agenteId}`);
+    revalidatePath("/licencias");
+    revalidatePath("/mi-legajo");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al crear el saldo pendiente" };
+  }
 }
 
-export async function actualizarLicenciaPendiente(
+async function _actualizarLicenciaPendiente(
   licenciaPendienteId: string,
   data: {
     tipo?: TipoLicenciaPendiente;
@@ -178,7 +183,26 @@ export async function actualizarLicenciaPendiente(
   revalidatePath("/mi-legajo");
 }
 
-export async function eliminarLicenciaPendiente(licenciaPendienteId: string) {
+export async function actualizarLicenciaPendiente(
+  licenciaPendienteId: string,
+  data: {
+    tipo?: TipoLicenciaPendiente;
+    tipoOtroDetalle?: string;
+    unidad?: UnidadDias;
+    anio?: number;
+    cantidadDias?: number;
+    referencia?: string;
+  }
+): Promise<ResultadoAccion> {
+  try {
+    await _actualizarLicenciaPendiente(licenciaPendienteId, data);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar el saldo pendiente" };
+  }
+}
+
+async function _eliminarLicenciaPendiente(licenciaPendienteId: string) {
   const current = await verificarPermiso();
 
   const existente = await prisma.licenciaPendiente.findUnique({
@@ -196,6 +220,15 @@ export async function eliminarLicenciaPendiente(licenciaPendienteId: string) {
   revalidatePath("/mi-legajo");
 }
 
+export async function eliminarLicenciaPendiente(licenciaPendienteId: string): Promise<ResultadoAccion> {
+  try {
+    await _eliminarLicenciaPendiente(licenciaPendienteId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al eliminar el saldo pendiente" };
+  }
+}
+
 async function verificarSectorPorUso(current: { rol: string; agente: { sectorId: string | null } | null }, usoId: string) {
   const uso = await prisma.usoLicenciaPendiente.findUnique({
     where: { id: usoId },
@@ -206,7 +239,7 @@ async function verificarSectorPorUso(current: { rol: string; agente: { sectorId:
   return uso;
 }
 
-export async function registrarUso(
+async function _registrarUso(
   licenciaPendienteId: string,
   data: { fecha: string; cantidadDias: number; referencia?: string }
 ) {
@@ -247,7 +280,19 @@ export async function registrarUso(
   revalidatePath("/mi-legajo");
 }
 
-export async function eliminarUso(usoId: string) {
+export async function registrarUso(
+  licenciaPendienteId: string,
+  data: { fecha: string; cantidadDias: number; referencia?: string }
+): Promise<ResultadoAccion> {
+  try {
+    await _registrarUso(licenciaPendienteId, data);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al registrar el uso" };
+  }
+}
+
+async function _eliminarUso(usoId: string) {
   const current = await verificarPermiso();
   const uso = await verificarSectorPorUso(current, usoId);
 
@@ -256,4 +301,13 @@ export async function eliminarUso(usoId: string) {
   revalidatePath(`/personal/${uso.licenciaPendiente.agenteId}`);
   revalidatePath("/licencias");
   revalidatePath("/mi-legajo");
+}
+
+export async function eliminarUso(usoId: string): Promise<ResultadoAccion> {
+  try {
+    await _eliminarUso(usoId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al eliminar el uso" };
+  }
 }

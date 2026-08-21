@@ -61,23 +61,17 @@ function FilaPendiente({ solicitud }: { solicitud: SolicitudVinculacionItem }) {
   function handleAprobar() {
     setError(null);
     startTransition(async () => {
-      try {
-        await aprobarSolicitudVinculacion(solicitud.id);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al aprobar");
-      }
+      const res = await aprobarSolicitudVinculacion(solicitud.id);
+      if (!res.ok) setError(res.error);
     });
   }
 
   function handleRechazar() {
     setError(null);
     startTransition(async () => {
-      try {
-        await rechazarSolicitudVinculacion(solicitud.id, motivo);
-        setModalRechazo(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al rechazar");
-      }
+      const res = await rechazarSolicitudVinculacion(solicitud.id, motivo);
+      if (res.ok) setModalRechazo(false);
+      else setError(res.error);
     });
   }
 

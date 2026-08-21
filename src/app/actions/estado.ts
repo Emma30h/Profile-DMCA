@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { invalidateAgentesCache } from "@/lib/redis";
+import type { ResultadoAccion } from "@/types";
 
 const ROLES_PERMITIDOS = ["SUPERADMIN", "ADMIN"];
 
@@ -14,7 +15,7 @@ const ESTADO_LABELS: Record<string, string> = {
   PASE: "Pase",
 };
 
-export async function cambiarEstadoAgente(
+async function _cambiarEstadoAgente(
   agenteId: string,
   nuevoEstado: string,
   motivo?: string,
@@ -111,10 +112,24 @@ export async function cambiarEstadoAgente(
   };
 }
 
+export async function cambiarEstadoAgente(
+  agenteId: string,
+  nuevoEstado: string,
+  motivo?: string,
+  fecha?: string
+): Promise<ResultadoAccion & { estadoAnteriorLabel?: string; estadoNuevoLabel?: string }> {
+  try {
+    const { estadoAnteriorLabel, estadoNuevoLabel } = await _cambiarEstadoAgente(agenteId, nuevoEstado, motivo, fecha);
+    return { ok: true, estadoAnteriorLabel, estadoNuevoLabel };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al cambiar el estado" };
+  }
+}
+
 /** Corrige la fecha de vigencia del estado actual (el registro de
  *  HistorialEstado más reciente cuyo estadoNuevo coincide con el estado
  *  vigente), sin disparar un cambio de estado nuevo. */
-export async function actualizarFechaVigenciaEstado(agenteId: string, nuevaFecha: string) {
+async function _actualizarFechaVigenciaEstado(agenteId: string, nuevaFecha: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -153,4 +168,13 @@ export async function actualizarFechaVigenciaEstado(agenteId: string, nuevaFecha
   revalidatePath("/personal");
   revalidatePath("/mi-legajo");
   revalidatePath("/dashboard");
+}
+
+export async function actualizarFechaVigenciaEstado(agenteId: string, nuevaFecha: string): Promise<ResultadoAccion> {
+  try {
+    await _actualizarFechaVigenciaEstado(agenteId, nuevaFecha);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar la fecha" };
+  }
 }

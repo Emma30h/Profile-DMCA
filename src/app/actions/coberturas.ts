@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { ZONAS_CORDOBA_CAPITAL } from "@/lib/coberturaZonas";
 import { semanaActualCordoba } from "@/lib/semanaCordoba";
+import type { ResultadoAccion } from "@/types";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 // Directores/Jefes de Departamento cubriendo otra dependencia: Subcomisario y
@@ -156,33 +157,48 @@ function normalizar(data: DatosCobertura) {
   };
 }
 
-export async function crearCobertura(data: DatosCobertura & { tipo: TipoCobertura }) {
-  await verificarAdmin();
-  const normalizado = normalizar(data);
+export async function crearCobertura(data: DatosCobertura & { tipo: TipoCobertura }): Promise<ResultadoAccion> {
+  try {
+    await verificarAdmin();
+    const normalizado = normalizar(data);
 
-  await prisma.coberturaTurno.create({
-    data: { tipo: data.tipo, ...normalizado },
-  });
+    await prisma.coberturaTurno.create({
+      data: { tipo: data.tipo, ...normalizado },
+    });
 
-  revalidatePath("/turnos");
+    revalidatePath("/turnos");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al crear la cobertura" };
+  }
 }
 
-export async function actualizarCobertura(id: string, data: DatosCobertura) {
-  await verificarAdmin();
-  const normalizado = normalizar(data);
+export async function actualizarCobertura(id: string, data: DatosCobertura): Promise<ResultadoAccion> {
+  try {
+    await verificarAdmin();
+    const normalizado = normalizar(data);
 
-  await prisma.coberturaTurno.update({
-    where: { id },
-    data: normalizado,
-  });
+    await prisma.coberturaTurno.update({
+      where: { id },
+      data: normalizado,
+    });
 
-  revalidatePath("/turnos");
+    revalidatePath("/turnos");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al actualizar la cobertura" };
+  }
 }
 
-export async function eliminarCobertura(id: string) {
-  await verificarAdmin();
-  await prisma.coberturaTurno.delete({ where: { id } });
-  revalidatePath("/turnos");
+export async function eliminarCobertura(id: string): Promise<ResultadoAccion> {
+  try {
+    await verificarAdmin();
+    await prisma.coberturaTurno.delete({ where: { id } });
+    revalidatePath("/turnos");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al eliminar la cobertura" };
+  }
 }
 
 export interface AgenteElegibleCobertura {

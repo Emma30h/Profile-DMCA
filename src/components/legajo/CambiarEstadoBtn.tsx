@@ -91,16 +91,16 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
     if (!nuevaFechaVigencia) return;
     setErrorFecha(null);
     startTransitionFecha(async () => {
-      try {
-        await actualizarFechaVigenciaEstado(agenteId, nuevaFechaVigencia);
+      const res = await actualizarFechaVigenciaEstado(agenteId, nuevaFechaVigencia);
+      if (res.ok) {
         // new Date("yyyy-mm-dd") interpreta el string como medianoche UTC,
         // igual que el server action — así el texto queda consistente con
         // lo que va a devolver el próximo fetch.
         setDesdeOverride(new Date(nuevaFechaVigencia).toISOString());
         setEditandoFecha(false);
         router.refresh();
-      } catch (e) {
-        setErrorFecha(e instanceof Error ? e.message : "Error al actualizar la fecha.");
+      } else {
+        setErrorFecha(res.error);
       }
     });
   }
@@ -117,12 +117,12 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
     }
     setError(null);
     startTransition(async () => {
-      try {
-        await cambiarEstadoAgente(agenteId, nuevoEstado, motivo.trim() || undefined, fecha);
+      const res = await cambiarEstadoAgente(agenteId, nuevoEstado, motivo.trim() || undefined, fecha);
+      if (res.ok) {
         setAbierto(false);
         router.refresh();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al cambiar el estado.");
+      } else {
+        setError(res.error);
       }
     });
   }

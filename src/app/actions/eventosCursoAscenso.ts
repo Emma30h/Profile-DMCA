@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { semanaActualCordoba } from "@/lib/semanaCordoba";
+import type { ResultadoAccion } from "@/types";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 
@@ -26,20 +27,25 @@ export interface DatosEventoCursoAscenso {
   observacion?: string;
 }
 
-export async function crearEventoCursoAscenso(agenteId: string, data: DatosEventoCursoAscenso) {
-  await verificarAdmin();
+export async function crearEventoCursoAscenso(agenteId: string, data: DatosEventoCursoAscenso): Promise<ResultadoAccion> {
+  try {
+    await verificarAdmin();
 
-  if (data.tipo !== "CLASE" && data.tipo !== "EXAMEN") throw new Error("Tipo de evento inválido");
+    if (data.tipo !== "CLASE" && data.tipo !== "EXAMEN") throw new Error("Tipo de evento inválido");
 
-  const fecha = new Date(`${data.fecha}T00:00:00.000Z`);
-  if (isNaN(fecha.getTime())) throw new Error("Fecha inválida");
+    const fecha = new Date(`${data.fecha}T00:00:00.000Z`);
+    if (isNaN(fecha.getTime())) throw new Error("Fecha inválida");
 
-  await prisma.eventoCursoAscenso.create({
-    data: { agenteId, tipo: data.tipo, fecha, observacion: data.observacion?.trim() || null },
-  });
+    await prisma.eventoCursoAscenso.create({
+      data: { agenteId, tipo: data.tipo, fecha, observacion: data.observacion?.trim() || null },
+    });
 
-  revalidatePath(`/personal/${agenteId}`);
-  revalidatePath("/mi-legajo");
+    revalidatePath(`/personal/${agenteId}`);
+    revalidatePath("/mi-legajo");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al crear el evento" };
+  }
 }
 
 export interface EventoCursoAscensoSemanaInfo {
@@ -75,14 +81,19 @@ export async function obtenerEventosCursoAscensoSemana(): Promise<EventoCursoAsc
   }));
 }
 
-export async function eliminarEventoCursoAscenso(id: string) {
-  await verificarAdmin();
+export async function eliminarEventoCursoAscenso(id: string): Promise<ResultadoAccion> {
+  try {
+    await verificarAdmin();
 
-  const evento = await prisma.eventoCursoAscenso.findUnique({ where: { id }, select: { agenteId: true } });
-  if (!evento) throw new Error("El evento ya no existe");
+    const evento = await prisma.eventoCursoAscenso.findUnique({ where: { id }, select: { agenteId: true } });
+    if (!evento) throw new Error("El evento ya no existe");
 
-  await prisma.eventoCursoAscenso.delete({ where: { id } });
+    await prisma.eventoCursoAscenso.delete({ where: { id } });
 
-  revalidatePath(`/personal/${evento.agenteId}`);
-  revalidatePath("/mi-legajo");
+    revalidatePath(`/personal/${evento.agenteId}`);
+    revalidatePath("/mi-legajo");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al eliminar el evento" };
+  }
 }

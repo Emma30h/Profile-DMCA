@@ -220,11 +220,13 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
   ) {
     setGuardando(fecha);
     try {
-      await actualizarDiaTurno({ fecha, campo, valor: valor || null });
+      const res = await actualizarDiaTurno({ fecha, campo, valor: valor || null });
+      if (!res.ok) {
+        alert(res.error);
+        return;
+      }
       const fresh = await obtenerMesTurno(anio, mes);
       setDias(fresh);
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "No se pudo guardar el cambio");
     } finally {
       setGuardando(null);
     }
@@ -234,12 +236,14 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
     if (!fechaAncla) return;
     setGenerando(true);
     try {
-      await generarMesAutomatico({ anio, mes, fechaAncla, grupoEnAncla });
+      const res = await generarMesAutomatico({ anio, mes, fechaAncla, grupoEnAncla });
+      if (!res.ok) {
+        alert(res.error);
+        return;
+      }
       const fresh = await obtenerMesTurno(anio, mes);
       setDias(fresh);
       setModalGenerar(false);
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "No se pudo generar el mes");
     } finally {
       setGenerando(false);
     }

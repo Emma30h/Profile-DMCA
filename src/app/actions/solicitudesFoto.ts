@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { invalidateAgentesCache } from "@/lib/redis";
+import type { ResultadoAccion } from "@/types";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
 const BUCKET = "fotos-legajos";
@@ -58,7 +59,7 @@ async function notificarAdmins(mensaje: string) {
 
 // ─── Crear solicitud (self-service, no-admin) ─────────────────────────────────
 
-export async function solicitarCambioFoto(
+async function _solicitarCambioFoto(
   agenteId: string,
   fotoUrlPropuesta: string,
   fotoPathPropuesta: string
@@ -84,7 +85,20 @@ export async function solicitarCambioFoto(
   revalidatePath("/configuracion/solicitudes");
 }
 
-export async function solicitarQuitarFoto(agenteId: string): Promise<void> {
+export async function solicitarCambioFoto(
+  agenteId: string,
+  fotoUrlPropuesta: string,
+  fotoPathPropuesta: string
+): Promise<ResultadoAccion> {
+  try {
+    await _solicitarCambioFoto(agenteId, fotoUrlPropuesta, fotoPathPropuesta);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al solicitar el cambio de foto" };
+  }
+}
+
+async function _solicitarQuitarFoto(agenteId: string): Promise<void> {
   const usuario = await getUsuarioPropietario(agenteId);
   await verificarSinPendiente(agenteId);
 
@@ -106,9 +120,18 @@ export async function solicitarQuitarFoto(agenteId: string): Promise<void> {
   revalidatePath("/configuracion/solicitudes");
 }
 
+export async function solicitarQuitarFoto(agenteId: string): Promise<ResultadoAccion> {
+  try {
+    await _solicitarQuitarFoto(agenteId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al solicitar quitar la foto" };
+  }
+}
+
 // ─── Revisión (admin) ──────────────────────────────────────────────────────────
 
-export async function aprobarSolicitudFoto(solicitudId: string): Promise<void> {
+async function _aprobarSolicitudFoto(solicitudId: string): Promise<void> {
   await verificarAdmin();
 
   const solicitud = await prisma.solicitudFoto.findUnique({
@@ -157,7 +180,16 @@ export async function aprobarSolicitudFoto(solicitudId: string): Promise<void> {
   revalidatePath("/configuracion/solicitudes");
 }
 
-export async function rechazarSolicitudFoto(solicitudId: string, motivo: string): Promise<void> {
+export async function aprobarSolicitudFoto(solicitudId: string): Promise<ResultadoAccion> {
+  try {
+    await _aprobarSolicitudFoto(solicitudId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al aprobar la solicitud" };
+  }
+}
+
+async function _rechazarSolicitudFoto(solicitudId: string, motivo: string): Promise<void> {
   await verificarAdmin();
 
   const solicitud = await prisma.solicitudFoto.findUnique({
@@ -190,4 +222,13 @@ export async function rechazarSolicitudFoto(solicitudId: string, motivo: string)
 
   revalidatePath("/perfil");
   revalidatePath("/configuracion/solicitudes");
+}
+
+export async function rechazarSolicitudFoto(solicitudId: string, motivo: string): Promise<ResultadoAccion> {
+  try {
+    await _rechazarSolicitudFoto(solicitudId, motivo);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error al rechazar la solicitud" };
+  }
 }

@@ -1,3 +1,11 @@
+// Este Next.js redacta en producción cualquier error tirado con `throw` desde
+// una función "use server" (ver node_modules/next/dist/docs — "avoid using
+// try/catch blocks and throw errors, instead model expected errors as return
+// values"). Toda Server Action que pueda fallar por un motivo que el usuario
+// necesita ver (validación, permisos) debe devolver ResultadoAccion en vez de
+// tirar hacia el cliente, para que el mensaje real llegue a la pantalla.
+export type ResultadoAccion = { ok: true } | { ok: false; error: string };
+
 // ─── Tipos de dominio (reemplazan los enums de Prisma para compatibilidad SQLite) ───
 
 export type TipoPersonal = "SEGURIDAD" | "TECNICO" | "CIVIL_BECARIO" | "CIVIL_POLICIAL";
