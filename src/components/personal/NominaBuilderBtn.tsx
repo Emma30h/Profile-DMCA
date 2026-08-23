@@ -6,6 +6,7 @@ import type { RolUsuario } from "@/types";
 import type { AgenteResumen } from "@/app/(dashboard)/personal/lib";
 import { CAMPOS_NOMINA_META, GRUPOS_NOMINA, CAMPOS_NOMINA_DEFAULT } from "@/lib/personalLabels";
 import { obtenerDatosNomina } from "@/app/actions/nomina";
+import { ButtonSpinner } from "@/components/ui/Spinner";
 
 // Limpieza de una versión anterior de este componente, que usaba una clase
 // en <body> para colapsar el resto de la app durante la impresión — se
@@ -13,15 +14,6 @@ import { obtenerDatosNomina } from "@/app/actions/nomina";
 // pero por las dudas se saca cualquier rastro que haya quedado pegado.
 if (typeof window !== "undefined") {
   document.body.classList.remove("imprimiendo-nomina");
-}
-
-function Spinner({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg className={`${className} animate-spin`} fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-    </svg>
-  );
 }
 
 function IconChevronLeft() {
@@ -469,7 +461,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                   disabled={columnas.length === 0 || cargandoPreview}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
                 >
-                  {cargandoPreview && <Spinner />}
+                  {cargandoPreview && <ButtonSpinner />}
                   Vista previa
                 </button>
               ) : (
@@ -496,7 +488,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                     disabled={columnas.length === 0 || accionEnCurso !== null}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--c-green-strong)] hover:bg-[var(--c-green-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
                   >
-                    {accionEnCurso === "excel" && <Spinner />}
+                    {accionEnCurso === "excel" && <ButtonSpinner />}
                     Excel
                   </button>
                 </>

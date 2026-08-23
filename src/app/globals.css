@@ -78,6 +78,11 @@
   --font-head: var(--font-barlow-condensed);
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
+  /* Registrado acá (no como .animate-arc-breathe suelta, a diferencia del
+     resto de las animaciones de este archivo) para que Tailwind genere
+     también la variante motion-safe:, que Spinner.tsx necesita. */
+  --animate-arc-breathe: arc-breathe 1.6s ease-in-out infinite;
+
   /* ─── Paleta "Monitoreo" ───────────────────────────────────────────────
      Redefine los tokens de color y radio de Tailwind (no clases nuevas)
      para que todo lo que ya usa slate, blue, green, emerald, red, rose y
@@ -186,6 +191,13 @@ textarea::placeholder {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Spinner.tsx: el arco crece y se contrae en vez de solo girar, a partir
+   de 40px de diámetro (más chico, queda fijo y gira nomás). */
+@keyframes arc-breathe {
+  0%, 100% { stroke-dasharray: 20 244; }
+  50% { stroke-dasharray: 150 114; }
 }
 
 @keyframes fade-in {

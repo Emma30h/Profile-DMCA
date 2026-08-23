@@ -12,6 +12,7 @@ import {
 } from "@/app/actions/coberturas";
 import { ZONAS_CORDOBA_CAPITAL } from "@/lib/coberturaZonas";
 import { fmtMes, SelectorAgenteModal } from "./VistaTurnos";
+import { Spinner } from "@/components/ui/Spinner";
 
 interface Props {
   tipo: TipoCobertura;
@@ -266,7 +267,7 @@ export default function VistaCobertura({
         )}
         {cargando && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
-            <span className="h-6 w-6 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
+            <Spinner size={24} className="text-[var(--c-blue)]" />
           </div>
         )}
       </div>

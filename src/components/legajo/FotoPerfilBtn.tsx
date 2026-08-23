@@ -8,6 +8,7 @@ import { solicitarCambioFoto, solicitarQuitarFoto } from "@/app/actions/solicitu
 import { subirFotoStorage } from "@/lib/fotoLegajo";
 import { esDispositivoMobil } from "@/lib/device";
 import CapturarFotoModal from "./CapturarFotoModal";
+import { ButtonSpinner } from "@/components/ui/Spinner";
 
 interface Props {
   agenteId: string;
@@ -19,15 +20,6 @@ interface Props {
 }
 
 type Rotacion = 0 | 90 | 180 | 270;
-
-function Spinner({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg className={`${className} animate-spin`} fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-    </svg>
-  );
-}
 
 function RotarIcon({ className = "w-3 h-3" }: { className?: string }) {
   return (
@@ -270,7 +262,7 @@ export default function FotoPerfilBtn({ agenteId, fotoUrlActual, esAdmin, tieneS
                       />
                       {pending && (
                         <div className="absolute inset-0 rounded-lg bg-[var(--c-bg)]/70 flex items-center justify-center">
-                          <Spinner className="h-6 w-6 text-white" />
+                          <ButtonSpinner size={24} className="text-white" />
                         </div>
                       )}
                       {!pending && previewCargada && (

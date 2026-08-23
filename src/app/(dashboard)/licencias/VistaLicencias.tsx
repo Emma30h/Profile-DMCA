@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import GestorFeriados from "./GestorFeriados";
 import { normalizarBusqueda } from "@/lib/personalLabels";
 import { TIPO_LICENCIA_LABELS, LICENCIA_CATEGORIA_DE_TIPO, CATEGORIA_LICENCIA_INFO } from "@/types";
+import { Spinner } from "@/components/ui/Spinner";
 
 interface Feriado {
   id: string;
@@ -1259,7 +1260,7 @@ export default function VistaLicencias({
                 className="inline-flex items-center gap-2 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] px-3 py-1.5 text-xs font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] transition-colors disabled:opacity-70"
               >
                 {cargandoMas && (
-                  <span className="h-3 w-3 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
+                  <Spinner size={16} className="text-[var(--c-blue)]" />
                 )}
                 Cargar más
               </button>
@@ -1299,7 +1300,7 @@ export default function VistaLicencias({
             <CalendarioMes anio={calAnio} mes={calMes} licencias={licenciasFiltradas} feriados={feriados} />
             {cargandoMes && (
               <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
-                <span className="h-8 w-8 rounded-full border-2 border-[var(--c-line)] border-t-[var(--c-blue)] animate-spin" />
+                <Spinner size={32} className="text-[var(--c-blue)]" />
               </div>
             )}
           </div>

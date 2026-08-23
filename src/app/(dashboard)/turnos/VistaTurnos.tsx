@@ -12,6 +12,7 @@ import {
 } from "@/app/actions/turnos";
 import { obtenerFeriadosMes } from "@/app/actions/feriados";
 import { GRUPO_TURNO_LETRAS, type GrupoTurno } from "@/types";
+import { Spinner } from "@/components/ui/Spinner";
 
 interface Props {
   anioInicial: number;
@@ -403,7 +404,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
                   >
                     {estaGuardando && (
                       <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
-                        <span className="h-4 w-4 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
+                        <Spinner size={16} className="text-[var(--c-blue)]" />
                       </div>
                     )}
                     <span className={`text-[11px] font-medium ${esHoy ? "text-[var(--c-blue-text)]" : "text-[var(--c-text-muted)]"}`}>{dia}</span>
@@ -416,7 +417,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
         </div>
         {cargando && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
-            <span className="h-6 w-6 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
+            <Spinner size={24} className="text-[var(--c-blue)]" />
           </div>
         )}
       </div>
@@ -440,7 +441,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
             >
               {estaGuardando && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
-                  <span className="h-5 w-5 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
+                  <Spinner size={20} className="text-[var(--c-blue)]" />
                 </div>
               )}
               <div className="flex items-baseline gap-2">
@@ -454,7 +455,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
         })}
         {cargando && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
-            <span className="h-6 w-6 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
+            <Spinner size={24} className="text-[var(--c-blue)]" />
           </div>
         )}
       </div>

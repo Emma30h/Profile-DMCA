@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, useTransition } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import dynamic from "next/dynamic";
 import ListaAgentes from "./ListaAgentes";
 import FiltrosPersonal from "./FiltrosPersonal";
 import type { AgenteResumen } from "./lib";
@@ -12,8 +12,14 @@ import { useAgenteAnclado } from "@/lib/useAgenteAnclado";
 import { normalizarBusqueda } from "@/lib/personalLabels";
 import type { RolUsuario } from "@/types";
 import NominaBuilderBtn from "@/components/personal/NominaBuilderBtn";
+import { Spinner } from "@/components/ui/Spinner";
 
 const ROLES_ADMIN: RolUsuario[] = ["SUPERADMIN", "ADMIN"];
+
+// WebGL no corre en el servidor, y no hace falta en el primer render: sólo
+// decora la tarjeta de "sin selección", así que se carga en un chunk aparte
+// que ni siquiera pesa en /personal/[id] (cuando hay un legajo abierto).
+const GloboDecorativo = dynamic(() => import("@/components/personal/GloboDecorativo"), { ssr: false });
 
 function IconImportar() {
   return (
@@ -41,7 +47,7 @@ export function usePersonalNav(): PersonalNavContextValue {
 function SelectSpinner() {
   return (
     <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-8">
-      <span className="h-10 w-10 rounded-full border-2 border-[var(--c-line)] border-t-[var(--c-blue)] animate-spin" />
+      <Spinner size={40} className="text-[var(--c-blue)]" />
       <p className="text-sm text-[var(--c-text-muted)]">Cargando legajo…</p>
     </div>
   );
@@ -84,19 +90,15 @@ function EmptyState({ fitViewport }: { fitViewport: boolean }) {
       // aunque la cadena de h-full/flex-1 hacia arriba (main -> ... -> acá)
       // no llegue a resolver una altura real — sin esto, un h-full contra un
       // ancestro con alto "auto" colapsa a 0 y la tarjeta queda invisible.
-      className={`bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] px-8 text-center flex flex-col items-center justify-center min-h-[420px] ${
+      className={`relative overflow-hidden bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] px-8 text-center flex flex-col items-center justify-center min-h-[420px] ${
         fitViewport ? "h-full" : "py-20"
       }`}
     >
-      <Image
-        src="/logo-ojos-en-alerta-blanco.png"
-        alt=""
-        width={320}
-        height={245}
-        className="mb-5"
-      />
-      <p className="text-[var(--c-text-secondary)] font-semibold">Seleccioná un agente</p>
-      <p className="text-sm text-[var(--c-text-faint)] mt-1">
+      <div className="absolute inset-0 opacity-70 pointer-events-none">
+        <GloboDecorativo />
+      </div>
+      <p className="relative text-[var(--c-text-secondary)] font-semibold">Seleccioná un agente</p>
+      <p className="relative text-sm text-[var(--c-text-faint)] mt-1">
         Elegí un agente de la lista para ver su legajo completo.
       </p>
     </div>
@@ -298,7 +300,12 @@ export default function PersonalMasterShell({
     // Mientras la transición no llegue al umbral de arriba, se sigue
     // mostrando el contenido anterior (React lo mantiene vigente hasta que
     // el nuevo llega) en vez de saltar a un estado de carga intermedio.
-    contenido = children ?? <EmptyState fitViewport={fitViewport} />;
+    // No confiar en "children ?? EmptyState": en el App Router, children
+    // llega envuelto en el boundary interno de Next para la ruta (siempre es
+    // un elemento válido, incluso cuando /personal/page.tsx devuelve null),
+    // así que "??" nunca caía a EmptyState. Se decide por selectedId, que sí
+    // refleja de forma confiable si hay o no un agente elegido.
+    contenido = hadSelection ? children : <EmptyState fitViewport={fitViewport} />;
   }
 
   return (
@@ -366,7 +373,7 @@ export default function PersonalMasterShell({
               />
               {filtrosPending && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--c-bg-elev)]/80">
-                  <span className="h-8 w-8 rounded-full border-2 border-[var(--c-line)] border-t-[var(--c-blue)] animate-spin" />
+                  <Spinner size={32} className="text-[var(--c-blue)]" />
                 </div>
               )}
             </div>

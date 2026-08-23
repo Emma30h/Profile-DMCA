@@ -10,6 +10,7 @@ import { useSeleccionMultiple } from "@/lib/useSeleccionMultiple";
 import AgenteAvatar from "@/components/AgenteAvatar";
 import { buildQueryString, type FiltrosPersonalParams } from "./queryString";
 import { cuilToDni } from "@/lib/personalLabels";
+import { Spinner } from "@/components/ui/Spinner";
 
 const PAGINA = 30;
 
@@ -284,7 +285,7 @@ export default function ListaAgentes({
           className="inline-flex items-center gap-2 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] px-3 py-1.5 text-xs font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] transition-colors disabled:opacity-70"
         >
           {cargandoMas && (
-            <span className="h-3 w-3 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
+            <Spinner size={16} className="text-[var(--c-blue)]" />
           )}
           Cargar más
         </button>
