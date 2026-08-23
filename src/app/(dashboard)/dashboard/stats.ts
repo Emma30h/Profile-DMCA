@@ -8,14 +8,15 @@ import { compararTurnos } from "../personal/lib";
 // próximas a iniciar" (sub-línea del KPI) — confirmado con el usuario.
 const VENTANA_DIAS_ALERTA = 7;
 
-// Los 3 sectores que, organizativamente, son el Departamento Alerta Ciudadana
+// Los 2 sectores que, organizativamente, son el Departamento Alerta Ciudadana
 // aunque en la tabla Sector estén cargados como filas independientes (ver
 // memoria del proyecto sobre la jerarquía de sectores no reflejada en la BD).
+// División Alerta y División Coordinación Vecinal se fusionaron en un único
+// sector ("División Alerta y Coordinación Vecinal") en agosto 2026.
 const NOMBRE_ALERTA_CIUDADANA = "Departamento Alerta Ciudadana";
 const SECTORES_ALERTA_CIUDADANA = new Set([
   NOMBRE_ALERTA_CIUDADANA,
-  "División Alerta",
-  "División Coordinación Vecinal",
+  "División Alerta y Coordinación Vecinal",
 ]);
 
 const ORIGEN_LABEL: Record<OrigenInstitucional, string> = {
