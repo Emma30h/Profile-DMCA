@@ -36,9 +36,9 @@ function ordenarJerarquico(sectores: SectorConRoles[]): SectorConNivel[] {
 }
 
 const ESTILO_TIPO: Record<string, string> = {
-  DIRECCION: "bg-slate-700 text-slate-200",
-  DEPARTAMENTO: "bg-slate-700 text-slate-200",
-  DIVISION: "bg-amber-800 text-amber-100",
+  DIRECCION: "bg-[var(--c-line)] text-[var(--c-text)]",
+  DEPARTAMENTO: "bg-[var(--c-line)] text-[var(--c-text)]",
+  DIVISION: "bg-[var(--c-amber-strong)] text-[var(--c-amber)]",
 };
 
 interface DraftRol {
@@ -98,10 +98,10 @@ function BuscadorAgente({
         onFocus={() => setAbierto(true)}
         onBlur={() => setTimeout(() => setAbierto(false), 150)}
         placeholder="Buscar agente por apellido..."
-        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2.5 py-1.5 text-sm text-[var(--c-text)] placeholder:text-[var(--c-text-faint)] focus:outline-none focus:ring-1 focus:ring-[var(--c-blue)]"
       />
       {abierto && filtrados.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 shadow-lg">
+        <div className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] shadow-lg">
           {filtrados.map((a) => (
             <button
               key={a.id}
@@ -111,10 +111,10 @@ function BuscadorAgente({
                 setQuery("");
                 setAbierto(false);
               }}
-              className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+              className="w-full text-left px-3 py-2 text-sm text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)] transition-colors"
             >
               {a.apellidos} {a.nombres}
-              {a.rango && <span className="text-slate-500"> · {a.rango}</span>}
+              {a.rango && <span className="text-[var(--c-text-faint)]"> · {a.rango}</span>}
             </button>
           ))}
         </div>
@@ -144,7 +144,7 @@ function CamposRol({
         onChange={(e) => setDraft((d) => ({ ...d, etiqueta: e.target.value }))}
         placeholder="Etiqueta (Jefe, 2°...)"
         disabled={pending}
-        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2.5 py-1.5 text-xs text-[var(--c-text)] focus:outline-none focus:ring-1 focus:ring-[var(--c-blue)]"
       />
 
       <div className="flex items-center gap-1.5 text-xs">
@@ -153,7 +153,7 @@ function CamposRol({
           onClick={() => setDraft((d) => ({ ...d, agenteId: null, agenteNombre: null }))}
           disabled={pending}
           className={`px-2 py-1 rounded-md border transition-colors ${
-            !conLegajo ? "bg-blue-500/15 border-blue-500/40 text-blue-300" : "border-slate-700 text-slate-400 hover:text-slate-200"
+            !conLegajo ? "bg-[var(--c-blue)]/15 border-[var(--c-blue)]/40 text-[var(--c-blue-soft)]" : "border-[var(--c-line)] text-[var(--c-text-muted)] hover:text-[var(--c-text)]"
           }`}
         >
           Sin legajo
@@ -163,7 +163,7 @@ function CamposRol({
           onClick={() => setDraft((d) => ({ ...d, rangoLibre: "", nombreLibre: "", agenteId: d.agenteId ?? "" }))}
           disabled={pending}
           className={`px-2 py-1 rounded-md border transition-colors ${
-            conLegajo ? "bg-blue-500/15 border-blue-500/40 text-blue-300" : "border-slate-700 text-slate-400 hover:text-slate-200"
+            conLegajo ? "bg-[var(--c-blue)]/15 border-[var(--c-blue)]/40 text-[var(--c-blue-soft)]" : "border-[var(--c-line)] text-[var(--c-text-muted)] hover:text-[var(--c-text)]"
           }`}
         >
           Con legajo
@@ -172,13 +172,13 @@ function CamposRol({
 
       {conLegajo ? (
         draft.agenteId && draft.agenteNombre ? (
-          <div className="flex items-center gap-2 text-sm text-slate-100 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5">
+          <div className="flex items-center gap-2 text-sm text-[var(--c-text)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] rounded-lg px-3 py-1.5">
             <span className="flex-1 truncate">{draft.agenteNombre}</span>
             <button
               type="button"
               onClick={() => setDraft((d) => ({ ...d, agenteId: "", agenteNombre: null }))}
               disabled={pending}
-              className="text-slate-500 hover:text-slate-300"
+              className="text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)]"
             >
               ✕
             </button>
@@ -203,7 +203,7 @@ function CamposRol({
             onChange={(e) => setDraft((d) => ({ ...d, rangoLibre: e.target.value }))}
             placeholder="Rango (ej. Subcrio.)"
             disabled={pending}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2.5 py-1.5 text-sm text-[var(--c-text)] focus:outline-none focus:ring-1 focus:ring-[var(--c-blue)]"
           />
           <input
             type="text"
@@ -211,18 +211,18 @@ function CamposRol({
             onChange={(e) => setDraft((d) => ({ ...d, nombreLibre: e.target.value }))}
             placeholder="Nombre completo"
             disabled={pending}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2.5 py-1.5 text-sm text-[var(--c-text)] focus:outline-none focus:ring-1 focus:ring-[var(--c-blue)]"
           />
         </div>
       )}
 
-      <label className="flex items-center gap-1.5 text-xs text-slate-400">
+      <label className="flex items-center gap-1.5 text-xs text-[var(--c-text-muted)]">
         <input
           type="checkbox"
           checked={draft.licencia}
           onChange={(e) => setDraft((d) => ({ ...d, licencia: e.target.checked }))}
           disabled={pending}
-          className="rounded border-slate-600"
+          className="rounded border-[var(--c-line-strong)]"
         />
         En licencia
       </label>
@@ -290,7 +290,7 @@ function FilaRolEditable({
   }
 
   return (
-    <div className={`rounded-lg border border-slate-800 bg-slate-950/60 p-3 space-y-2.5 ${pending ? "opacity-60" : ""}`}>
+    <div className={`rounded-lg border border-[var(--c-bg-elev-2)] bg-[var(--c-bg)]/60 p-3 space-y-2.5 ${pending ? "opacity-60" : ""}`}>
       <div className="flex items-start gap-2">
         <div className="flex-1 space-y-2.5">
           <CamposRol draft={draft} setDraft={setDraft} agentes={agentes} pending={pending} />
@@ -300,7 +300,7 @@ function FilaRolEditable({
             type="button"
             onClick={() => mover("arriba")}
             disabled={pending || esPrimero}
-            className="p-1 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            className="p-1 rounded text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             title="Subir"
           >
             ↑
@@ -309,7 +309,7 @@ function FilaRolEditable({
             type="button"
             onClick={() => mover("abajo")}
             disabled={pending || esUltimo}
-            className="p-1 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            className="p-1 rounded text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             title="Bajar"
           >
             ↓
@@ -318,7 +318,7 @@ function FilaRolEditable({
             type="button"
             onClick={eliminar}
             disabled={pending}
-            className="p-1 rounded text-red-400 hover:bg-red-500/10 transition-colors"
+            className="p-1 rounded text-[var(--c-coral)] hover:bg-[var(--c-coral)]/10 transition-colors"
             title="Eliminar"
           >
             ✕
@@ -327,12 +327,12 @@ function FilaRolEditable({
       </div>
 
       <div className="flex items-center justify-end gap-3">
-        {error && <span className="text-xs text-red-400">{error}</span>}
+        {error && <span className="text-xs text-[var(--c-coral)]">{error}</span>}
         <button
           type="button"
           onClick={guardar}
           disabled={pending || sinCambios || datosIncompletos}
-          className="text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 transition-colors"
+          className="text-xs font-medium px-3 py-1.5 rounded-md bg-[var(--c-blue)] text-white hover:bg-[var(--c-blue-strong)] disabled:opacity-40 disabled:hover:bg-[var(--c-blue)] transition-colors"
         >
           {pending ? "Guardando…" : "Guardar"}
         </button>
@@ -373,7 +373,7 @@ function FilaNuevoRol({ sectorId, agentes }: { sectorId: string; agentes: Agente
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="w-full text-left text-xs font-medium text-blue-400 hover:text-blue-300 px-3 py-2 rounded-lg border border-dashed border-slate-700 hover:border-blue-500/40 transition-colors"
+        className="w-full text-left text-xs font-medium text-[var(--c-blue-text)] hover:text-[var(--c-blue-soft)] px-3 py-2 rounded-lg border border-dashed border-[var(--c-line)] hover:border-[var(--c-blue)]/40 transition-colors"
       >
         + Agregar puesto
       </button>
@@ -381,10 +381,10 @@ function FilaNuevoRol({ sectorId, agentes }: { sectorId: string; agentes: Agente
   }
 
   return (
-    <div className="rounded-lg border border-blue-500/30 bg-slate-950/60 p-3 space-y-2.5">
+    <div className="rounded-lg border border-[var(--c-blue)]/30 bg-[var(--c-bg)]/60 p-3 space-y-2.5">
       <CamposRol draft={draft} setDraft={setDraft} agentes={agentes} pending={pending} />
       <div className="flex items-center justify-end gap-3">
-        {error && <span className="text-xs text-red-400">{error}</span>}
+        {error && <span className="text-xs text-[var(--c-coral)]">{error}</span>}
         <button
           type="button"
           onClick={() => {
@@ -393,7 +393,7 @@ function FilaNuevoRol({ sectorId, agentes }: { sectorId: string; agentes: Agente
             setAbierto(false);
           }}
           disabled={pending}
-          className="text-xs font-medium px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 transition-colors"
+          className="text-xs font-medium px-3 py-1.5 rounded-md text-[var(--c-text-muted)] hover:text-[var(--c-text)] transition-colors"
         >
           Cancelar
         </button>
@@ -401,7 +401,7 @@ function FilaNuevoRol({ sectorId, agentes }: { sectorId: string; agentes: Agente
           type="button"
           onClick={agregar}
           disabled={pending || !puedeAgregar}
-          className="text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 transition-colors"
+          className="text-xs font-medium px-3 py-1.5 rounded-md bg-[var(--c-blue)] text-white hover:bg-[var(--c-blue-strong)] disabled:opacity-40 disabled:hover:bg-[var(--c-blue)] transition-colors"
         >
           {pending ? "Agregando…" : "Agregar"}
         </button>
@@ -424,19 +424,19 @@ export default function GestorOrganigrama({
       {ordenados.map((sector) => (
         <div
           key={sector.id}
-          className="bg-slate-900 rounded-xl border border-slate-700 p-4 space-y-3"
+          className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4 space-y-3"
           style={{ marginLeft: Math.min(sector.nivel, 2) * 20 }}
         >
           <div className="flex items-center gap-2.5">
-            <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${ESTILO_TIPO[sector.tipo] ?? "bg-slate-700 text-slate-200"}`}>
+            <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${ESTILO_TIPO[sector.tipo] ?? "bg-[var(--c-line)] text-[var(--c-text)]"}`}>
               {sector.tipo}
             </span>
-            <h3 className="text-sm font-semibold text-slate-100">{sector.nombre}</h3>
+            <h3 className="text-sm font-semibold text-[var(--c-text)]">{sector.nombre}</h3>
           </div>
 
           <div className="space-y-2">
             {sector.roles.length === 0 && (
-              <p className="text-xs text-slate-500 italic">Sin nómina cargada todavía.</p>
+              <p className="text-xs text-[var(--c-text-faint)] italic">Sin nómina cargada todavía.</p>
             )}
             {sector.roles.map((rol, i) => (
               <FilaRolEditable

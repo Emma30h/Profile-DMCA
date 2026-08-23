@@ -7,9 +7,9 @@ import { formatFechaHora } from "@/lib/fecha";
 
 const ESTADO_BADGE: Record<string, string> = {
   PENDIENTE: "bg-yellow-500/15 text-yellow-400",
-  ACTIVO: "bg-green-500/15 text-green-400",
-  BAJA: "bg-slate-800 text-slate-400",
-  PASE: "bg-blue-500/15 text-blue-300",
+  ACTIVO: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
+  BAJA: "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]",
+  PASE: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
 };
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -133,7 +133,7 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
         type="button"
         onClick={handleAbrir}
         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 ${
-          ESTADO_BADGE[estadoActual] ?? "bg-slate-800 text-slate-400"
+          ESTADO_BADGE[estadoActual] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"
         }`}
       >
         {ESTADO_LABELS[estadoActual] ?? estadoActual}
@@ -151,12 +151,12 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
           />
 
           {/* Modal */}
-          <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-md p-6 space-y-5">
+          <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-md p-6 space-y-5">
             <div>
-              <h2 className="text-base font-semibold text-slate-100">Cambiar estado del legajo</h2>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <h2 className="text-base font-semibold text-[var(--c-text)]">Cambiar estado del legajo</h2>
+              <p className="text-sm text-[var(--c-text-muted)] mt-0.5">
                 Estado actual:{" "}
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_BADGE[estadoActual] ?? "bg-slate-800 text-slate-400"}`}>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_BADGE[estadoActual] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                   {ESTADO_LABELS[estadoActual] ?? estadoActual}
                 </span>
               </p>
@@ -171,13 +171,13 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
                           setNuevaFechaVigencia(e.target.value);
                           setErrorFecha(null);
                         }}
-                        className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-100 bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [color-scheme:dark]"
+                        className="rounded-lg border border-[var(--c-line)] px-2 py-1 text-xs text-[var(--c-text)] bg-[var(--c-bg-elev)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent [color-scheme:dark]"
                       />
                       <button
                         type="button"
                         onClick={handleGuardarFecha}
                         disabled={pendingFecha || !nuevaFechaVigencia}
-                        className="text-xs font-medium text-blue-400 hover:text-blue-300 disabled:opacity-50"
+                        className="text-xs font-medium text-[var(--c-blue-text)] hover:text-[var(--c-blue-soft)] disabled:opacity-50"
                       >
                         {pendingFecha ? "Guardando..." : "Guardar"}
                       </button>
@@ -185,21 +185,21 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
                         type="button"
                         onClick={() => { setEditandoFecha(false); setErrorFecha(null); }}
                         disabled={pendingFecha}
-                        className="text-xs font-medium text-slate-500 hover:text-slate-300 disabled:opacity-50"
+                        className="text-xs font-medium text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] disabled:opacity-50"
                       >
                         Cancelar
                       </button>
                     </div>
-                    {errorFecha && <p className="text-xs text-red-400">{errorFecha}</p>}
+                    {errorFecha && <p className="text-xs text-[var(--c-coral)]">{errorFecha}</p>}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 mt-1.5">
+                  <p className="text-xs text-[var(--c-text-faint)] mt-1.5">
                     Vigente desde {formatFechaHora(desdeMostrado, { utc: true, separador: " " })}
-                    {motivoVigente && <> — <span className="text-slate-400">{motivoVigente}</span></>}{" "}
+                    {motivoVigente && <> — <span className="text-[var(--c-text-muted)]">{motivoVigente}</span></>}{" "}
                     <button
                       type="button"
                       onClick={handleAbrirEditarFecha}
-                      className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                      className="text-[var(--c-blue-text)] hover:text-[var(--c-blue-soft)] underline underline-offset-2"
                     >
                       editar fecha
                     </button>
@@ -210,14 +210,14 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Nuevo estado</label>
+                <label className="block text-xs text-[var(--c-text-muted)] mb-1">Nuevo estado</label>
                 <select
                   value={nuevoEstado}
                   onChange={(e) => {
                     setNuevoEstado(e.target.value);
                     setError(null);
                   }}
-                  className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-100 bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2 text-sm text-[var(--c-text)] bg-[var(--c-bg-elev)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent"
                 >
                   {opciones.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -226,9 +226,9 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
               </div>
 
               <div>
-                <label className="block text-xs text-slate-400 mb-1">
+                <label className="block text-xs text-[var(--c-text-muted)] mb-1">
                   Fecha efectiva
-                  <span className="text-red-500 ml-0.5">*</span>
+                  <span className="text-[var(--c-coral)] ml-0.5">*</span>
                 </label>
                 <input
                   type="date"
@@ -237,18 +237,18 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
                     setFecha(e.target.value);
                     setError(null);
                   }}
-                  className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-100 bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [color-scheme:dark]"
+                  className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2 text-sm text-[var(--c-text)] bg-[var(--c-bg-elev)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent [color-scheme:dark]"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-[var(--c-text-faint)] mt-1">
                   Podés poner una fecha pasada si estás cargando el cambio con demora — el dashboard usa esta fecha, no la de hoy.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs text-slate-400 mb-1">
+                <label className="block text-xs text-[var(--c-text-muted)] mb-1">
                   Motivo
                   {REQUIERE_MOTIVO.includes(nuevoEstado) && (
-                    <span className="text-red-500 ml-0.5">*</span>
+                    <span className="text-[var(--c-coral)] ml-0.5">*</span>
                   )}
                 </label>
                 <textarea
@@ -263,12 +263,12 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
                       ? "Motivo obligatorio para este cambio..."
                       : "Motivo (opcional)..."
                   }
-                  className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2 text-sm text-[var(--c-text)] placeholder-[var(--c-text-faint)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent"
                 />
               </div>
 
               {error && (
-                <p className="text-sm text-red-400">{error}</p>
+                <p className="text-sm text-[var(--c-coral)]">{error}</p>
               )}
             </div>
 
@@ -277,7 +277,7 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
                 type="button"
                 onClick={handleCerrar}
                 disabled={pending}
-                className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors disabled:opacity-50"
+                className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -285,7 +285,7 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
                 type="button"
                 onClick={handleConfirmar}
                 disabled={pending || !nuevoEstado}
-                className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
               >
                 {pending ? "Guardando..." : "Confirmar"}
               </button>

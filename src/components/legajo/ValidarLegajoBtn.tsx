@@ -49,19 +49,19 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
   return (
     <div
       className={`rounded-xl p-4 space-y-3 border ${
-        yaRechazado ? "bg-red-500/10 border-red-500/25" : "bg-yellow-500/10 border-yellow-500/25"
+        yaRechazado ? "bg-[var(--c-coral)]/10 border-[var(--c-coral)]/25" : "bg-yellow-500/10 border-yellow-500/25"
       }`}
     >
       {yaRechazado ? (
         <>
           <div className="flex items-center gap-2">
-            <span className="text-red-400 text-lg">❌</span>
-            <p className="text-sm font-semibold text-red-300">Este legajo fue rechazado</p>
+            <span className="text-[var(--c-coral)] text-lg">❌</span>
+            <p className="text-sm font-semibold text-[var(--c-coral)]">Este legajo fue rechazado</p>
           </div>
-          <p className="text-xs text-red-400">
+          <p className="text-xs text-[var(--c-coral)]">
             Motivo: {motivoRechazo}
           </p>
-          <p className="text-xs text-red-500/80">
+          <p className="text-xs text-[var(--c-coral)]/80">
             No se puede aprobar mientras el rechazo esté vigente. Deshacelo cuando quieras volver a
             revisar el legajo — ya sea porque fue un error tuyo o porque el agente ya lo corrigió.
           </p>
@@ -86,14 +86,14 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
               <button
                 disabled
                 title="Deshacé el rechazo para volver a habilitar la aprobación"
-                className="flex-1 py-2 text-sm font-semibold bg-slate-800 text-slate-500 rounded-lg cursor-not-allowed"
+                className="flex-1 py-2 text-sm font-semibold bg-[var(--c-bg-elev-2)] text-[var(--c-text-faint)] rounded-lg cursor-not-allowed"
               >
                 ✅ Aprobar legajo
               </button>
               <button
                 onClick={handleDeshacerRechazo}
                 disabled={isPending}
-                className="flex-1 py-2 text-sm font-medium text-slate-300 border border-slate-700 rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 text-sm font-medium text-[var(--c-text-secondary)] border border-[var(--c-line)] rounded-lg hover:bg-[var(--c-bg-elev-2)] disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5"
               >
                 {isPending && <Spinner />}
                 {isPending ? <TextoCargando>Deshaciendo</TextoCargando> : "↩️ Deshacer rechazo (fue un error)"}
@@ -104,7 +104,7 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
               <button
                 onClick={handleAprobar}
                 disabled={isPending}
-                className="flex-1 py-2 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 text-sm font-semibold bg-[var(--c-green-strong)] hover:bg-[var(--c-green-strong)] text-white rounded-lg disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5"
               >
                 {isPending && <Spinner />}
                 {isPending ? <TextoCargando>Procesando</TextoCargando> : "✅ Aprobar legajo"}
@@ -112,7 +112,7 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
               <button
                 onClick={() => { setModo("rechazar"); setError(""); }}
                 disabled={isPending}
-                className="flex-1 py-2 text-sm font-semibold bg-slate-900 hover:bg-red-500/10 text-red-400 border border-red-300 rounded-lg disabled:opacity-50 transition-colors"
+                className="flex-1 py-2 text-sm font-semibold bg-[var(--c-bg-elev)] hover:bg-[var(--c-coral)]/10 text-[var(--c-coral)] border border-[var(--c-coral)] rounded-lg disabled:opacity-50 transition-colors"
               >
                 ❌ Rechazar
               </button>
@@ -123,7 +123,7 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
 
       {modo === "rechazar" && (
         <div className="space-y-2 pt-1">
-          <label className="block text-xs font-medium text-slate-300">
+          <label className="block text-xs font-medium text-[var(--c-text-secondary)]">
             Motivo de rechazo (le llegará al agente)
           </label>
           <textarea
@@ -131,13 +131,13 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
             onChange={(e) => setMotivo(e.target.value)}
             rows={3}
             placeholder="Ej: Faltan datos en la sección médica. Por favor completá el grupo sanguíneo."
-            className="w-full border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+            className="w-full border border-[var(--c-line)] rounded-lg px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-coral)] resize-none"
           />
           <div className="flex gap-2">
             <button
               onClick={handleRechazar}
               disabled={isPending}
-              className="flex-1 py-2 text-sm font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5"
+              className="flex-1 py-2 text-sm font-semibold bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)] text-white rounded-lg disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5"
             >
               {isPending && <Spinner />}
               {isPending ? <TextoCargando>Enviando</TextoCargando> : "Confirmar rechazo"}
@@ -145,7 +145,7 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
             <button
               onClick={() => { setModo("idle"); setError(""); setMotivo(""); }}
               disabled={isPending}
-              className="px-4 py-2 text-sm text-slate-400 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 text-sm text-[var(--c-text-muted)] border border-[var(--c-line)] rounded-lg hover:bg-[var(--c-bg-elev-2)] transition-colors"
             >
               Cancelar
             </button>
@@ -154,7 +154,7 @@ export default function ValidarLegajoBtn({ agenteId, motivoRechazo }: Props) {
       )}
 
       {error && (
-        <p className="text-xs text-red-400">{error}</p>
+        <p className="text-xs text-[var(--c-coral)]">{error}</p>
       )}
     </div>
   );

@@ -304,7 +304,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
         type="button"
         onClick={abrir}
         disabled={agentes.length === 0}
-        className="shrink-0 inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:pointer-events-none"
+        className="shrink-0 inline-flex items-center gap-1.5 text-sm text-[var(--c-text-secondary)] hover:text-[var(--c-text)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] border border-[var(--c-line)] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:pointer-events-none"
       >
         <IconTabla />
         Armar nómina
@@ -315,7 +315,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
           <div className="absolute inset-0 bg-black/40" onClick={cerrar} />
 
           <div
-            className={`relative bg-slate-900 rounded-xl shadow-xl w-full max-h-[85vh] flex flex-col transition-[max-width] ${
+            className={`relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-h-[85vh] flex flex-col transition-[max-width] ${
               vista === "previsualizar" ? "max-w-4xl" : "max-w-lg"
             }`}
           >
@@ -324,16 +324,16 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                 <button
                   type="button"
                   onClick={volverAElegir}
-                  className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 mb-2 transition-colors"
+                  className="inline-flex items-center gap-1 text-xs text-[var(--c-text-muted)] hover:text-[var(--c-text)] mb-2 transition-colors"
                 >
                   <IconChevronLeft />
                   Editar columnas
                 </button>
               )}
-              <h2 className="text-base font-semibold text-slate-100">
+              <h2 className="text-base font-semibold text-[var(--c-text)]">
                 {vista === "elegir" ? "Armar nómina" : "Vista previa"}
               </h2>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <p className="text-sm text-[var(--c-text-muted)] mt-0.5">
                 {vista === "elegir"
                   ? `Se incluirán los ${agentes.length} ${agentes.length === 1 ? "agente actualmente listado" : "agentes actualmente listados"}. Elegí las columnas.`
                   : "Usá las flechas para reordenar columnas, arrastrá una fila (desde el ícono ⠿) para reordenar personal, y click derecho sobre una fila o columna para eliminarla."}
@@ -344,20 +344,20 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
               <div className="flex-1 min-h-0 overflow-y-auto px-6 space-y-4">
                 {gruposVisibles.map((g) => (
                   <div key={g.id}>
-                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">{g.titulo}</h3>
+                    <h3 className="text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1.5">{g.titulo}</h3>
                     <div className="space-y-0.5">
                       {camposVisibles.filter((c) => c.grupo === g.id).map((c) => (
                         <label
                           key={c.id}
-                          className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-slate-800 cursor-pointer transition-colors"
+                          className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-[var(--c-bg-elev-2)] cursor-pointer transition-colors"
                         >
                           <input
                             type="checkbox"
                             checked={columnas.includes(c.id)}
                             onChange={() => toggleCampo(c.id)}
-                            className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                            className="h-4 w-4 rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev-2)] text-[var(--c-blue)] focus:ring-2 focus:ring-[var(--c-blue)] focus:ring-offset-0"
                           />
-                          <span className="text-sm text-slate-200">{c.label}</span>
+                          <span className="text-sm text-[var(--c-text)]">{c.label}</span>
                         </label>
                       ))}
                     </div>
@@ -369,7 +369,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                 <table className="text-xs border-collapse">
                   <thead>
                     <tr>
-                      <th className="border border-slate-700 bg-slate-800 w-6" />
+                      <th className="border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] w-6" />
                       {columnas.map((id, i) => (
                         <th
                           key={id}
@@ -377,7 +377,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                             e.preventDefault();
                             setMenuContextual({ tipo: "columna", id, x: e.clientX, y: e.clientY });
                           }}
-                          className="border border-slate-700 bg-slate-800 px-2 py-1.5 text-left text-slate-200 whitespace-nowrap"
+                          className="border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] px-2 py-1.5 text-left text-[var(--c-text)] whitespace-nowrap"
                         >
                           <div className="flex items-center gap-1">
                             <button
@@ -385,7 +385,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                               onClick={() => moverColumna(id, -1)}
                               disabled={i === 0}
                               title="Mover a la izquierda"
-                              className="text-slate-500 hover:text-slate-200 disabled:opacity-20 disabled:pointer-events-none"
+                              className="text-[var(--c-text-faint)] hover:text-[var(--c-text)] disabled:opacity-20 disabled:pointer-events-none"
                             >
                               <IconChevronLeft />
                             </button>
@@ -394,7 +394,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                               onClick={() => moverColumna(id, 1)}
                               disabled={i === columnas.length - 1}
                               title="Mover a la derecha"
-                              className="text-slate-500 hover:text-slate-200 disabled:opacity-20 disabled:pointer-events-none"
+                              className="text-[var(--c-text-faint)] hover:text-[var(--c-text)] disabled:opacity-20 disabled:pointer-events-none"
                             >
                               <IconChevronRight />
                             </button>
@@ -429,15 +429,15 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                           e.preventDefault();
                           setMenuContextual({ tipo: "fila", index: i, x: e.clientX, y: e.clientY });
                         }}
-                        className={`cursor-grab active:cursor-grabbing odd:bg-slate-900 even:bg-slate-900/60 ${
+                        className={`cursor-grab active:cursor-grabbing odd:bg-[var(--c-bg-elev)] even:bg-[var(--c-bg-elev)]/60 ${
                           filaArrastrada === i ? "opacity-40" : ""
-                        } ${filaSobre === i && filaArrastrada !== i ? "outline outline-2 outline-blue-500 -outline-offset-2" : ""}`}
+                        } ${filaSobre === i && filaArrastrada !== i ? "outline outline-2 outline-[var(--c-blue)] -outline-offset-2" : ""}`}
                       >
-                        <td className="border border-slate-800 px-1 py-1 text-slate-600">
+                        <td className="border border-[var(--c-bg-elev-2)] px-1 py-1 text-[var(--c-line-strong)]">
                           <IconGrip />
                         </td>
                         {columnas.map((id) => (
-                          <td key={id} className="border border-slate-800 px-2 py-1 text-slate-300 whitespace-nowrap">
+                          <td key={id} className="border border-[var(--c-bg-elev-2)] px-2 py-1 text-[var(--c-text-secondary)] whitespace-nowrap">
                             {f[id]}
                           </td>
                         ))}
@@ -449,16 +449,16 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
             )}
 
             {error && (
-              <div className="mx-6 mt-3 rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2 text-sm text-red-400">
+              <div className="mx-6 mt-3 rounded-lg bg-[var(--c-coral)]/10 border border-[var(--c-coral)]/30 px-3 py-2 text-sm text-[var(--c-coral)]">
                 {error}
               </div>
             )}
 
-            <div className="flex flex-wrap justify-end gap-2 px-6 py-4 border-t border-slate-800 mt-4">
+            <div className="flex flex-wrap justify-end gap-2 px-6 py-4 border-t border-[var(--c-bg-elev-2)] mt-4">
               <button
                 type="button"
                 onClick={cerrar}
-                className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors"
+                className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors"
               >
                 Cerrar
               </button>
@@ -467,7 +467,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                   type="button"
                   onClick={previsualizar}
                   disabled={columnas.length === 0 || cargandoPreview}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
                 >
                   {cargandoPreview && <Spinner />}
                   Vista previa
@@ -478,7 +478,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                     type="button"
                     onClick={imprimir}
                     disabled={columnas.length === 0}
-                    className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors disabled:opacity-50"
+                    className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
                   >
                     Imprimir
                   </button>
@@ -486,7 +486,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                     type="button"
                     onClick={descargarCsv}
                     disabled={columnas.length === 0}
-                    className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors disabled:opacity-50"
+                    className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
                   >
                     CSV
                   </button>
@@ -494,7 +494,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
                     type="button"
                     onClick={descargarExcel}
                     disabled={columnas.length === 0 || accionEnCurso !== null}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--c-green-strong)] hover:bg-[var(--c-green-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
                   >
                     {accionEnCurso === "excel" && <Spinner />}
                     Excel
@@ -509,7 +509,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
 
       {menuContextual && createPortal(
         <div
-          className="fixed z-[60] rounded-lg border border-slate-700 bg-slate-800 py-1 shadow-lg shadow-black/40"
+          className="fixed z-[60] rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] py-1 shadow-lg shadow-black/40"
           style={{ left: menuContextual.x, top: menuContextual.y }}
         >
           <button
@@ -519,7 +519,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
               else quitarColumna(menuContextual.id);
               setMenuContextual(null);
             }}
-            className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-slate-700 whitespace-nowrap"
+            className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm text-[var(--c-coral)] hover:bg-[var(--c-line)] whitespace-nowrap"
           >
             <IconX />
             {menuContextual.tipo === "fila" ? "Eliminar fila" : "Eliminar columna"}
@@ -535,7 +535,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
             <thead>
               <tr>
                 {columnas.map((id) => (
-                  <th key={id} className="border border-slate-300 px-2 py-1 text-left bg-slate-100">
+                  <th key={id} className="border border-[var(--c-text-secondary)] px-2 py-1 text-left bg-[var(--c-text)]">
                     {labelDe(id)}
                   </th>
                 ))}
@@ -545,7 +545,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
               {filasPreview.map((f, i) => (
                 <tr key={i}>
                   {columnas.map((id) => (
-                    <td key={id} className="border border-slate-300 px-2 py-1">
+                    <td key={id} className="border border-[var(--c-text-secondary)] px-2 py-1">
                       {f[id]}
                     </td>
                   ))}

@@ -121,23 +121,23 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
 
   if (meses.length === 0) {
     return (
-      <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5">
-        <h3 className="text-sm font-semibold text-slate-100 mb-1">Ingresos y bajas de personal</h3>
-        <p className="text-[12.5px] text-slate-500">Todavía no hay fechas de ingreso cargadas en los legajos.</p>
+      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
+        <h3 className="text-sm font-semibold text-[var(--c-text)] mb-1">Ingresos y bajas de personal</h3>
+        <p className="text-[12.5px] text-[var(--c-text-faint)]">Todavía no hay fechas de ingreso cargadas en los legajos.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5">
+    <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
       <div className="flex items-center justify-between mb-3.5 gap-2.5 flex-wrap">
-        <h3 className="text-sm font-semibold text-slate-100">Ingresos y bajas de personal</h3>
+        <h3 className="text-sm font-semibold text-[var(--c-text)]">Ingresos y bajas de personal</h3>
         <div className="flex items-center gap-2.5">
-          <span className="text-[11px] text-slate-500">{RANGO_LABEL[rango]}</span>
+          <span className="text-[11px] text-[var(--c-text-faint)]">{RANGO_LABEL[rango]}</span>
           <button
             type="button"
             onClick={() => setComoTabla((v) => !v)}
-            className="text-[11px] font-semibold text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-600 rounded-md px-2.5 py-1 transition-colors"
+            className="text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
           >
             {comoTabla ? "Ver como gráfico" : "Ver como tabla"}
           </button>
@@ -152,8 +152,8 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
             onClick={() => aplicarRango(r)}
             className={`text-[11px] font-semibold rounded-md px-2.5 py-1 border transition-colors ${
               rango === r
-                ? "bg-blue-500 text-white border-blue-500"
-                : "text-slate-400 border-slate-700 hover:text-slate-200 hover:border-slate-600"
+                ? "bg-[var(--c-blue)] text-white border-[var(--c-blue)]"
+                : "text-[var(--c-text-muted)] border-[var(--c-line)] hover:text-[var(--c-text)] hover:border-[var(--c-line-strong)]"
             }`}
           >
             {r === "todo" ? "Todo" : r.toUpperCase()}
@@ -162,18 +162,18 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
       </div>
 
       <div className="flex items-center gap-2.5 flex-wrap mb-4">
-        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-300 bg-slate-950 border border-slate-800 pl-2 pr-2.5 py-1 rounded-full">
-          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-green-500" />
-          Ingresos <b className="text-slate-100 font-bold tabular-nums">{flujo.totalAltas}</b>
+        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--c-green)]" />
+          Ingresos <b className="text-[var(--c-text)] font-bold tabular-nums">{flujo.totalAltas}</b>
         </span>
-        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-300 bg-slate-950 border border-slate-800 pl-2 pr-2.5 py-1 rounded-full">
-          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-red-500" />
-          Bajas <b className="text-slate-100 font-bold tabular-nums">{flujo.totalBajas}</b>
+        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--c-coral)]" />
+          Bajas <b className="text-[var(--c-text)] font-bold tabular-nums">{flujo.totalBajas}</b>
         </span>
-        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-300 bg-slate-950 border border-slate-800 pl-2 pr-2.5 py-1 rounded-full">
-          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-slate-500" />
+        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--c-text-faint)]" />
           Neto del período{" "}
-          <b className={`font-bold tabular-nums ${flujo.totalNeto >= 0 ? "text-green-400" : "text-red-400"}`}>
+          <b className={`font-bold tabular-nums ${flujo.totalNeto >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-coral)]"}`}>
             {flujo.totalNeto >= 0 ? "+" : ""}
             {flujo.totalNeto}
           </b>
@@ -184,7 +184,7 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
         <div className={`dashboard-slide-track h-full ${comoTabla ? "mostrar-detalle" : ""}`}>
           <div className="dashboard-slide-pane">
           <div className="flex items-start gap-2.5">
-            <div className="flex flex-col justify-between shrink-0 w-5 text-right text-[10px] text-slate-500" style={{ height: 201 }}>
+            <div className="flex flex-col justify-between shrink-0 w-5 text-right text-[10px] text-[var(--c-text-faint)]" style={{ height: 201 }}>
               <span>{escalaMax}</span>
               <span>0</span>
               <span>{escalaMax}</span>
@@ -217,7 +217,7 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
                   return (
                   <div
                     key={m.key}
-                    className={`flex flex-col items-center rounded-lg py-0.5 transition-colors ${hoverKey === m.key ? "bg-slate-800/70" : ""} ${clickable ? "cursor-pointer" : ""}`}
+                    className={`flex flex-col items-center rounded-lg py-0.5 transition-colors ${hoverKey === m.key ? "bg-[var(--c-bg-elev-2)]/70" : ""} ${clickable ? "cursor-pointer" : ""}`}
                     style={{ flex: "0 0 var(--col-w, 70px)", width: "var(--col-w, 70px)" }}
                     onPointerMove={(e) => {
                       if (panState.current.panning && panState.current.moved) return;
@@ -234,10 +234,10 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
                   >
                     <div className="w-full flex flex-col items-center justify-end" style={{ height: 100 }}>
                       {i === indiceMaxAltas && m.altas > 0 && (
-                        <span className="text-[10px] font-bold text-slate-100 mb-1 whitespace-nowrap">+{m.altas}</span>
+                        <span className="text-[10px] font-bold text-[var(--c-text)] mb-1 whitespace-nowrap">+{m.altas}</span>
                       )}
                       <div
-                        className="rounded-t-[4px] bg-green-500 transition-[filter,width] duration-150"
+                        className="rounded-t-[4px] bg-[var(--c-green)] transition-[filter,width] duration-150"
                         style={{
                           height: `${(m.altas / escalaMax) * 100}px`,
                           width: "min(24px, calc(var(--col-w, 70px) * .32))",
@@ -245,10 +245,10 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
                         }}
                       />
                     </div>
-                    <div className="h-px w-full bg-slate-800" />
+                    <div className="h-px w-full bg-[var(--c-bg-elev-2)]" />
                     <div className="w-full flex flex-col items-center justify-start" style={{ height: 100 }}>
                       <div
-                        className="rounded-b-[4px] bg-red-500 transition-[filter,width] duration-150"
+                        className="rounded-b-[4px] bg-[var(--c-coral)] transition-[filter,width] duration-150"
                         style={{
                           height: `${(m.bajas / escalaMax) * 100}px`,
                           width: "min(24px, calc(var(--col-w, 70px) * .32))",
@@ -256,10 +256,10 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
                         }}
                       />
                       {i === indiceMaxBajas && m.bajas > 0 && (
-                        <span className="text-[10px] font-bold text-slate-100 mt-1 whitespace-nowrap">−{m.bajas}</span>
+                        <span className="text-[10px] font-bold text-[var(--c-text)] mt-1 whitespace-nowrap">−{m.bajas}</span>
                       )}
                     </div>
-                    <span className="text-[10.5px] text-slate-500 mt-2 whitespace-nowrap">{m.label}</span>
+                    <span className="text-[10.5px] text-[var(--c-text-faint)] mt-2 whitespace-nowrap">{m.label}</span>
                   </div>
                   );
                 })}
@@ -269,7 +269,7 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
 
           <div
             ref={brushRef}
-            className="relative h-8 mt-3 ml-[30px] rounded-md bg-slate-950 border border-slate-800 overflow-hidden cursor-pointer"
+            className="relative h-8 mt-3 ml-[30px] rounded-md bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] overflow-hidden cursor-pointer"
             onPointerDown={(e) => {
               if (e.target === brushWindowRef.current) return;
               const rect = brushRef.current!.getBoundingClientRect();
@@ -281,14 +281,14 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
               {meses.map((m) => (
                 <div
                   key={m.key}
-                  className={`flex-1 rounded-[1px] min-w-px ${m.neto >= 0 ? "bg-green-500" : "bg-red-500"}`}
+                  className={`flex-1 rounded-[1px] min-w-px ${m.neto >= 0 ? "bg-[var(--c-green)]" : "bg-[var(--c-coral)]"}`}
                   style={{ height: `${Math.max(3, Math.round(((m.altas + m.bajas) / maxActividad) * 20))}px` }}
                 />
               ))}
             </div>
             <div
               ref={brushWindowRef}
-              className="absolute top-0 bottom-0 left-0 w-10 bg-blue-500/15 border-[1.5px] border-blue-500 rounded-md box-border cursor-grab active:cursor-grabbing"
+              className="absolute top-0 bottom-0 left-0 w-10 bg-[var(--c-blue)]/15 border-[1.5px] border-[var(--c-blue)] rounded-md box-border cursor-grab active:cursor-grabbing"
               onPointerDown={(e) => {
                 brushDragState.current = { dragging: true, startX: e.clientX, startLeft: brushWindowRef.current!.offsetLeft };
                 (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -302,7 +302,7 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
               onPointerCancel={() => { brushDragState.current.dragging = false; }}
             />
           </div>
-          <p className="text-[10.5px] text-slate-500 text-center mt-2">
+          <p className="text-[10.5px] text-[var(--c-text-faint)] text-center mt-2">
             Arrastrá el gráfico o el visor de abajo para recorrer el historial completo
           </p>
           </div>
@@ -311,16 +311,16 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
           <table className="w-full text-[12.5px] border-collapse">
             <thead>
               <tr>
-                <th className="text-left text-[10.5px] tracking-wide uppercase text-slate-500 font-semibold pb-2 border-b border-slate-800 sticky top-0 bg-slate-900">
+                <th className="text-left text-[10.5px] tracking-wide uppercase text-[var(--c-text-faint)] font-semibold pb-2 border-b border-[var(--c-bg-elev-2)] sticky top-0 bg-[var(--c-bg-elev)]">
                   Mes
                 </th>
-                <th className="text-right text-[10.5px] tracking-wide uppercase text-slate-500 font-semibold pb-2 border-b border-slate-800 tabular-nums sticky top-0 bg-slate-900">
+                <th className="text-right text-[10.5px] tracking-wide uppercase text-[var(--c-text-faint)] font-semibold pb-2 border-b border-[var(--c-bg-elev-2)] tabular-nums sticky top-0 bg-[var(--c-bg-elev)]">
                   Ingresos
                 </th>
-                <th className="text-right text-[10.5px] tracking-wide uppercase text-slate-500 font-semibold pb-2 border-b border-slate-800 tabular-nums sticky top-0 bg-slate-900">
+                <th className="text-right text-[10.5px] tracking-wide uppercase text-[var(--c-text-faint)] font-semibold pb-2 border-b border-[var(--c-bg-elev-2)] tabular-nums sticky top-0 bg-[var(--c-bg-elev)]">
                   Bajas
                 </th>
-                <th className="text-right text-[10.5px] tracking-wide uppercase text-slate-500 font-semibold pb-2 border-b border-slate-800 tabular-nums sticky top-0 bg-slate-900">
+                <th className="text-right text-[10.5px] tracking-wide uppercase text-[var(--c-text-faint)] font-semibold pb-2 border-b border-[var(--c-bg-elev-2)] tabular-nums sticky top-0 bg-[var(--c-bg-elev)]">
                   Neto
                 </th>
               </tr>
@@ -335,12 +335,12 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
                     onDoubleClick={() => {
                       if (clickable) router.push(`/personal?${buildQueryString({ ids: idsDelMes.join(",") })}`);
                     }}
-                    className={clickable ? "cursor-pointer hover:bg-slate-800/40" : ""}
+                    className={clickable ? "cursor-pointer hover:bg-[var(--c-bg-elev-2)]/40" : ""}
                   >
-                    <td className="py-2 border-b border-slate-800 text-slate-200">{m.mesLargo}</td>
-                    <td className="py-2 border-b border-slate-800 text-right text-slate-200 tabular-nums">{m.altas}</td>
-                    <td className="py-2 border-b border-slate-800 text-right text-slate-200 tabular-nums">{m.bajas}</td>
-                    <td className={`py-2 border-b border-slate-800 text-right tabular-nums font-medium ${m.neto >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    <td className="py-2 border-b border-[var(--c-bg-elev-2)] text-[var(--c-text)]">{m.mesLargo}</td>
+                    <td className="py-2 border-b border-[var(--c-bg-elev-2)] text-right text-[var(--c-text)] tabular-nums">{m.altas}</td>
+                    <td className="py-2 border-b border-[var(--c-bg-elev-2)] text-right text-[var(--c-text)] tabular-nums">{m.bajas}</td>
+                    <td className={`py-2 border-b border-[var(--c-bg-elev-2)] text-right tabular-nums font-medium ${m.neto >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-coral)]"}`}>
                       {m.neto >= 0 ? "+" : ""}
                       {m.neto}
                     </td>
@@ -355,24 +355,24 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
 
       {tooltip && (
         <div
-          className="fixed z-40 pointer-events-none bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-100 shadow-lg shadow-black/40"
+          className="fixed z-40 pointer-events-none bg-[var(--c-bg)] border border-[var(--c-line)] rounded-lg px-2.5 py-2 text-xs text-[var(--c-text)] shadow-lg shadow-black/40"
           style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}
         >
           <div className="font-bold mb-1">{tooltip.mes.mesLargo}</div>
           <div>
-            <span className="font-bold tabular-nums text-green-400">+{tooltip.mes.altas}</span>
-            <span className="text-slate-500 ml-1.5">Ingresos</span>
+            <span className="font-bold tabular-nums text-[var(--c-green)]">+{tooltip.mes.altas}</span>
+            <span className="text-[var(--c-text-faint)] ml-1.5">Ingresos</span>
           </div>
           <div>
-            <span className="font-bold tabular-nums text-red-400">−{tooltip.mes.bajas}</span>
-            <span className="text-slate-500 ml-1.5">Bajas</span>
+            <span className="font-bold tabular-nums text-[var(--c-coral)]">−{tooltip.mes.bajas}</span>
+            <span className="text-[var(--c-text-faint)] ml-1.5">Bajas</span>
           </div>
-          <div className="mt-1 pt-1 border-t border-slate-800">
-            <span className={`font-bold tabular-nums ${tooltip.mes.neto >= 0 ? "text-green-400" : "text-red-400"}`}>
+          <div className="mt-1 pt-1 border-t border-[var(--c-bg-elev-2)]">
+            <span className={`font-bold tabular-nums ${tooltip.mes.neto >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-coral)]"}`}>
               {tooltip.mes.neto >= 0 ? "+" : ""}
               {tooltip.mes.neto}
             </span>
-            <span className="text-slate-500 ml-1.5">Neto</span>
+            <span className="text-[var(--c-text-faint)] ml-1.5">Neto</span>
           </div>
         </div>
       )}

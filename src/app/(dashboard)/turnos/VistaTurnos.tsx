@@ -23,7 +23,7 @@ interface Props {
 }
 
 const GRUPO_BADGE: Record<GrupoTurno, string> = {
-  1: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  1: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)] border-[var(--c-blue)]/30",
   2: "bg-purple-500/15 text-purple-300 border-purple-500/30",
 };
 
@@ -98,8 +98,8 @@ export function SelectorAgenteModal({
         key={id}
         type="button"
         onClick={() => elegir(id)}
-        className={`block w-full rounded px-2 py-1.5 text-left text-sm transition-colors hover:bg-slate-700 ${
-          id === value ? "text-blue-400 font-medium" : "text-slate-200"
+        className={`block w-full rounded px-2 py-1.5 text-left text-sm transition-colors hover:bg-[var(--c-line)] ${
+          id === value ? "text-[var(--c-blue-text)] font-medium" : "text-[var(--c-text)]"
         }`}
       >
         {label}
@@ -124,15 +124,15 @@ export function SelectorAgenteModal({
           onClick={() => setAbierto(false)}
         >
           <div
-            className="w-80 max-h-[75vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl shadow-black/50 animate-fade-in"
+            className="w-80 max-h-[75vh] overflow-y-auto rounded-xl border border-[var(--c-line)] bg-[var(--c-bg-elev)] p-4 shadow-xl shadow-black/50 animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-slate-200">{placeholder}</h4>
+              <h4 className="text-sm font-semibold text-[var(--c-text)]">{placeholder}</h4>
               <button
                 type="button"
                 onClick={() => setAbierto(false)}
-                className="rounded-lg p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
+                className="rounded-lg p-1 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -142,7 +142,7 @@ export function SelectorAgenteModal({
 
             {/* Para cuando la persona todavía no tiene legajo cargado en la base. */}
             <div className="mb-3 space-y-1.5">
-              <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--c-text-faint)]">
                 Nombre manual (si no está en la lista)
               </p>
               <div className="flex items-center gap-2">
@@ -151,28 +151,28 @@ export function SelectorAgenteModal({
                   value={textoManual}
                   onChange={(e) => setTextoManual(e.target.value)}
                   placeholder="Nombre y apellido…"
-                  className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="min-w-0 flex-1 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] px-2.5 py-1.5 text-sm text-[var(--c-text)] placeholder-[var(--c-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
                 />
                 <button
                   type="button"
                   onClick={guardarManual}
                   disabled={!textoManual.trim()}
-                  className="shrink-0 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs font-medium text-white transition-colors"
+                  className="shrink-0 rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs font-medium text-white transition-colors"
                 >
                   Guardar
                 </button>
               </div>
             </div>
-            <div className="mb-1 border-t border-slate-800" />
+            <div className="mb-1 border-t border-[var(--c-bg-elev-2)]" />
 
             {filaOpcion("", "Sin asignar")}
 
-            <p className="mt-3 mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{labelPrincipal}</p>
+            <p className="mt-3 mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--c-text-faint)]">{labelPrincipal}</p>
             {principal.map((a) => filaOpcion(a.id, a.nombreCompleto))}
 
             {otros.length > 0 && (
               <>
-                <p className="mt-3 mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Otros (por excepción)</p>
+                <p className="mt-3 mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--c-text-faint)]">Otros (por excepción)</p>
                 {otros.map((a) => filaOpcion(a.id, `${a.nombreCompleto} — ${a.rango}`))}
               </>
             )}
@@ -279,14 +279,14 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
     // puesta parece clickeable/editable aunque no lo sea. Superior/jefe son
     // <button>, no <select>: nunca tuvieron esa flechita nativa.
     const grupoClass = compact
-      ? `w-full rounded px-1 py-0.5 text-[10px] font-semibold border disabled:opacity-80 disabled:appearance-none ${info.grupoTurno ? GRUPO_BADGE[info.grupoTurno] : "bg-slate-800 text-slate-500 border-slate-700"}`
-      : `w-full rounded-lg px-2 py-1.5 text-xs font-semibold border disabled:opacity-80 disabled:appearance-none ${info.grupoTurno ? GRUPO_BADGE[info.grupoTurno] : "bg-slate-800 text-slate-500 border-slate-700"}`;
+      ? `w-full rounded px-1 py-0.5 text-[10px] font-semibold border disabled:opacity-80 disabled:appearance-none ${info.grupoTurno ? GRUPO_BADGE[info.grupoTurno] : "bg-[var(--c-bg-elev-2)] text-[var(--c-text-faint)] border-[var(--c-line)]"}`
+      : `w-full rounded-lg px-2 py-1.5 text-xs font-semibold border disabled:opacity-80 disabled:appearance-none ${info.grupoTurno ? GRUPO_BADGE[info.grupoTurno] : "bg-[var(--c-bg-elev-2)] text-[var(--c-text-faint)] border-[var(--c-line)]"}`;
     const superiorClass = compact
-      ? "w-full rounded px-1 py-0.5 text-[9px] bg-slate-800 text-slate-300 border border-slate-700 disabled:opacity-80"
-      : "w-full rounded-lg px-2 py-1.5 text-xs bg-slate-800 text-slate-300 border border-slate-700 disabled:opacity-80";
+      ? "w-full rounded px-1 py-0.5 text-[9px] bg-[var(--c-bg-elev-2)] text-[var(--c-text-secondary)] border border-[var(--c-line)] disabled:opacity-80"
+      : "w-full rounded-lg px-2 py-1.5 text-xs bg-[var(--c-bg-elev-2)] text-[var(--c-text-secondary)] border border-[var(--c-line)] disabled:opacity-80";
     const jefeClass = compact
-      ? "w-full rounded px-1 py-0.5 text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/30 disabled:opacity-80"
-      : "w-full rounded-lg px-2 py-1.5 text-xs bg-amber-500/10 text-amber-300 border border-amber-500/30 disabled:opacity-80";
+      ? "w-full rounded px-1 py-0.5 text-[9px] bg-[var(--c-amber)]/10 text-[var(--c-amber)] border border-[var(--c-amber)]/30 disabled:opacity-80"
+      : "w-full rounded-lg px-2 py-1.5 text-xs bg-[var(--c-amber)]/10 text-[var(--c-amber)] border border-[var(--c-amber)]/30 disabled:opacity-80";
 
     return (
       <>
@@ -333,10 +333,10 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
   }
 
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 p-3 lg:p-5">
+    <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-3 lg:p-5">
       {/* Leyenda de horarios */}
-      <div className="flex flex-wrap gap-x-5 gap-y-1 mb-4 text-xs text-slate-400">
-        <span><span className="text-blue-300 font-semibold">Turno 1 (A·C·E)</span>: A/B 7-15 hs, C/D 15-23 hs, E/F 23-7 hs</span>
+      <div className="flex flex-wrap gap-x-5 gap-y-1 mb-4 text-xs text-[var(--c-text-muted)]">
+        <span><span className="text-[var(--c-blue-soft)] font-semibold">Turno 1 (A·C·E)</span>: A/B 7-15 hs, C/D 15-23 hs, E/F 23-7 hs</span>
         <span><span className="text-purple-300 font-semibold">Turno 2 (B·D·F)</span>: mismos horarios, grupo alterno</span>
         <span>Superior de Turno: 20-8 hs</span>
       </div>
@@ -348,18 +348,18 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
             type="button"
             onClick={() => cambiarMes(-1)}
             disabled={cargando}
-            className="rounded-lg p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+            className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h3 className="text-sm font-semibold text-slate-200 capitalize w-40 text-center">{fmtMes(anio, mes)}</h3>
+          <h3 className="text-sm font-semibold text-[var(--c-text)] capitalize w-40 text-center">{fmtMes(anio, mes)}</h3>
           <button
             type="button"
             onClick={() => cambiarMes(1)}
             disabled={cargando}
-            className="rounded-lg p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+            className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -370,7 +370,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
           <button
             type="button"
             onClick={() => setModalGenerar(true)}
-            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 transition-colors w-full sm:w-auto whitespace-nowrap"
+            className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] text-white text-xs font-semibold px-3 py-1.5 transition-colors w-full sm:w-auto whitespace-nowrap"
           >
             Generar automáticamente
           </button>
@@ -382,7 +382,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
       <div className="relative hidden lg:block">
         <div className="grid grid-cols-7 mb-1">
           {["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"].map((d) => (
-            <div key={d} className="text-center text-xs font-semibold text-slate-500 py-1">{d}</div>
+            <div key={d} className="text-center text-xs font-semibold text-[var(--c-text-faint)] py-1">{d}</div>
           ))}
         </div>
         <div className="space-y-1">
@@ -398,15 +398,15 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
                   <div
                     key={di}
                     className={`relative min-h-[112px] rounded-lg p-1 border text-xs flex flex-col gap-1 ${
-                      esHoy ? "border-blue-400 bg-blue-500/10" : "border-slate-800 bg-slate-900"
+                      esHoy ? "border-[var(--c-blue-text)] bg-[var(--c-blue)]/10" : "border-[var(--c-bg-elev-2)] bg-[var(--c-bg-elev)]"
                     }`}
                   >
                     {estaGuardando && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-slate-900/70">
-                        <span className="h-4 w-4 rounded-full border-2 border-slate-600 border-t-blue-500 animate-spin" />
+                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
+                        <span className="h-4 w-4 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
                       </div>
                     )}
-                    <span className={`text-[11px] font-medium ${esHoy ? "text-blue-400" : "text-slate-400"}`}>{dia}</span>
+                    <span className={`text-[11px] font-medium ${esHoy ? "text-[var(--c-blue-text)]" : "text-[var(--c-text-muted)]"}`}>{dia}</span>
                     {renderControlesDia(dia, "grid")}
                   </div>
                 );
@@ -415,8 +415,8 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
           ))}
         </div>
         {cargando && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-slate-900/70">
-            <span className="h-6 w-6 rounded-full border-2 border-slate-600 border-t-blue-500 animate-spin" />
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
+            <span className="h-6 w-6 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
           </div>
         )}
       </div>
@@ -435,26 +435,26 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
             <div
               key={info.fecha}
               className={`relative rounded-lg border p-3 space-y-2 ${
-                esHoy ? "border-blue-400 bg-blue-500/10" : finde ? "border-amber-500/20 bg-slate-900" : "border-slate-800 bg-slate-900"
+                esHoy ? "border-[var(--c-blue-text)] bg-[var(--c-blue)]/10" : finde ? "border-[var(--c-amber)]/20 bg-[var(--c-bg-elev)]" : "border-[var(--c-bg-elev-2)] bg-[var(--c-bg-elev)]"
               }`}
             >
               {estaGuardando && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-slate-900/70">
-                  <span className="h-5 w-5 rounded-full border-2 border-slate-600 border-t-blue-500 animate-spin" />
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
+                  <span className="h-5 w-5 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
                 </div>
               )}
               <div className="flex items-baseline gap-2">
-                <span className={`text-sm font-semibold ${esHoy ? "text-blue-400" : "text-slate-200"}`}>{dia}</span>
-                <span className="text-xs text-slate-500 uppercase">{nombreDia}</span>
-                {esHoy && <span className="text-[10px] font-medium text-blue-400 ml-auto">Hoy</span>}
+                <span className={`text-sm font-semibold ${esHoy ? "text-[var(--c-blue-text)]" : "text-[var(--c-text)]"}`}>{dia}</span>
+                <span className="text-xs text-[var(--c-text-faint)] uppercase">{nombreDia}</span>
+                {esHoy && <span className="text-[10px] font-medium text-[var(--c-blue-text)] ml-auto">Hoy</span>}
               </div>
               {renderControlesDia(dia, "agenda")}
             </div>
           );
         })}
         {cargando && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-slate-900/70">
-            <span className="h-6 w-6 rounded-full border-2 border-slate-600 border-t-blue-500 animate-spin" />
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
+            <span className="h-6 w-6 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
           </div>
         )}
       </div>
@@ -463,27 +463,27 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
       {modalGenerar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !generando && setModalGenerar(false)}>
           <div
-            className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5"
+            className="w-full max-w-sm rounded-xl border border-[var(--c-line)] bg-[var(--c-bg-elev)] p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h4 className="text-sm font-semibold text-slate-100 mb-1">Generar {fmtMes(anio, mes)} automáticamente</h4>
-            <p className="text-xs text-slate-400 mb-4">
+            <h4 className="text-sm font-semibold text-[var(--c-text)] mb-1">Generar {fmtMes(anio, mes)} automáticamente</h4>
+            <p className="text-xs text-[var(--c-text-muted)] mb-4">
               Se completan los días sin definir con el patrón 2x2 alternado. Los días ya editados a mano no se pisan.
             </p>
 
-            <label className="block text-xs text-slate-400 mb-1">Fecha ancla</label>
+            <label className="block text-xs text-[var(--c-text-muted)] mb-1">Fecha ancla</label>
             <input
               type="date"
               value={fechaAncla}
               onChange={(e) => setFechaAncla(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-200 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] px-2 py-1.5 text-sm text-[var(--c-text)] mb-3 focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
             />
 
-            <label className="block text-xs text-slate-400 mb-1">Turno que trabaja ese día</label>
+            <label className="block text-xs text-[var(--c-text-muted)] mb-1">Turno que trabaja ese día</label>
             <select
               value={grupoEnAncla}
               onChange={(e) => setGrupoEnAncla(Number(e.target.value) as GrupoTurno)}
-              className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-200 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] px-2 py-1.5 text-sm text-[var(--c-text)] mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
             >
               <option value={1}>Turno 1 ({GRUPO_TURNO_LETRAS[1]})</option>
               <option value={2}>Turno 2 ({GRUPO_TURNO_LETRAS[2]})</option>
@@ -494,7 +494,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
                 type="button"
                 onClick={() => setModalGenerar(false)}
                 disabled={generando}
-                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-slate-800 transition-colors disabled:opacity-50"
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-[var(--c-text-muted)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -502,7 +502,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
                 type="button"
                 onClick={confirmarGenerar}
                 disabled={generando || !fechaAncla}
-                className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 transition-colors disabled:opacity-50"
+                className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] text-white text-xs font-semibold px-3 py-1.5 transition-colors disabled:opacity-50"
               >
                 {generando ? "Generando…" : "Generar"}
               </button>

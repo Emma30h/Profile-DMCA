@@ -11,9 +11,9 @@ import CargarMisDatosBtn from "./CargarMisDatosBtn";
 const MAX_INTENTOS_CUIL = 3;
 
 const TIPO_BADGE: Record<TipoPersonal, string> = {
-  SEGURIDAD: "bg-blue-500/15 text-blue-300",
+  SEGURIDAD: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
   TECNICO: "bg-purple-500/15 text-purple-400",
-  CIVIL_BECARIO: "bg-green-500/15 text-green-400",
+  CIVIL_BECARIO: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
   CIVIL_POLICIAL: "bg-orange-500/15 text-orange-400",
 };
 
@@ -26,9 +26,9 @@ const TIPO_LABELS: Record<TipoPersonal, string> = {
 
 const ESTADO_BADGE: Record<EstadoAgente, string> = {
   PENDIENTE: "bg-yellow-500/15 text-yellow-400",
-  ACTIVO: "bg-green-500/15 text-green-400",
-  BAJA: "bg-slate-800 text-slate-400",
-  PASE: "bg-blue-500/15 text-blue-300",
+  ACTIVO: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
+  BAJA: "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]",
+  PASE: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
 };
 
 const ESTADO_LABELS: Record<EstadoAgente, string> = {
@@ -102,11 +102,11 @@ export default async function MiLegajoPage() {
     if (solicitudPendiente) {
       return (
         <div className="space-y-5">
-          <h2 className="text-xl font-semibold text-slate-100">Mi Legajo</h2>
-          <div className="bg-slate-900 rounded-xl border border-slate-700 px-8 py-16 text-center space-y-4">
+          <h2 className="text-xl font-semibold text-[var(--c-text)]">Mi Legajo</h2>
+          <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] px-8 py-16 text-center space-y-4">
             <p className="text-5xl"><span className="hourglass-flip">⏳</span></p>
-            <p className="text-slate-200 font-semibold text-lg">Tu solicitud de vinculación está pendiente</p>
-            <p className="text-sm text-slate-400 max-w-sm mx-auto">
+            <p className="text-[var(--c-text)] font-semibold text-lg">Tu solicitud de vinculación está pendiente</p>
+            <p className="text-sm text-[var(--c-text-muted)] max-w-sm mx-auto">
               Un administrador va a revisar y confirmar tu vinculación al legajo antes de darte acceso.
               Te avisamos apenas se resuelva.
             </p>
@@ -118,17 +118,17 @@ export default async function MiLegajoPage() {
     const intentosRestantes = Math.max(0, MAX_INTENTOS_CUIL - (usuario?.intentosCuil ?? 0));
     return (
       <div className="space-y-5">
-        <h2 className="text-xl font-semibold text-slate-100">Mi Legajo</h2>
-        <div className="bg-slate-900 rounded-xl border border-slate-700 px-8 py-16 text-center space-y-4">
+        <h2 className="text-xl font-semibold text-[var(--c-text)]">Mi Legajo</h2>
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] px-8 py-16 text-center space-y-4">
           <p className="text-5xl">📋</p>
-          <p className="text-slate-200 font-semibold text-lg">Tu cuenta no tiene un legajo asociado</p>
-          <p className="text-sm text-slate-400 max-w-sm mx-auto">
+          <p className="text-[var(--c-text)] font-semibold text-lg">Tu cuenta no tiene un legajo asociado</p>
+          <p className="text-sm text-[var(--c-text-muted)] max-w-sm mx-auto">
             Si tu legajo ya fue cargado antes (por ejemplo, en el formulario de Google),
             ingresá tu CUIL para vincularlo a tu cuenta.
           </p>
           <VincularPorCuilForm intentosRestantesInicial={intentosRestantes} />
-          <div className="pt-4 border-t border-slate-800 max-w-sm mx-auto space-y-3">
-            <p className="text-sm text-slate-400">
+          <div className="pt-4 border-t border-[var(--c-bg-elev-2)] max-w-sm mx-auto space-y-3">
+            <p className="text-sm text-[var(--c-text-muted)]">
               ¿No tenés un legajo cargado todavía? Podés crearlo desde cero.
             </p>
             <CargarMisDatosBtn />
@@ -213,10 +213,10 @@ export default async function MiLegajoPage() {
 
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-semibold text-slate-100">Mi Legajo</h2>
+      <h2 className="text-xl font-semibold text-[var(--c-text)]">Mi Legajo</h2>
 
       {/* Header */}
-      <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
+      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-6">
         <div className="flex items-start gap-5">
           <div className="shrink-0">
             <AgenteAvatar
@@ -229,18 +229,18 @@ export default async function MiLegajoPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <h1 className="text-xl font-bold text-slate-100 leading-tight">
+                <h1 className="text-xl font-bold text-[var(--c-text)] leading-tight">
                   {agente.apellidos}, {agente.nombres}
                 </h1>
                 {agente.rango && (
-                  <p className="text-sm text-slate-400 mt-0.5">{agente.rango.nombre}</p>
+                  <p className="text-sm text-[var(--c-text-muted)] mt-0.5">{agente.rango.nombre}</p>
                 )}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${TIPO_BADGE[tipo] ?? "bg-slate-800 text-slate-400"}`}>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${TIPO_BADGE[tipo] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                   {TIPO_LABELS[tipo] ?? tipo}
                 </span>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ESTADO_BADGE[estado] ?? "bg-slate-800 text-slate-400"}`}>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ESTADO_BADGE[estado] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                   {ESTADO_LABELS[estado] ?? estado}
                 </span>
                 {!esAdmin && estado === "ACTIVO" && (
@@ -252,16 +252,16 @@ export default async function MiLegajoPage() {
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-sm text-slate-400">
+            <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-sm text-[var(--c-text-muted)]">
               <span>
-                <span className="text-slate-500">CUIL:</span>{" "}
+                <span className="text-[var(--c-text-faint)]">CUIL:</span>{" "}
                 <span className="font-mono">{agente.cuil}</span>
               </span>
               {agente.turno && (
-                <span><span className="text-slate-500">Turno:</span> {agente.turno}</span>
+                <span><span className="text-[var(--c-text-faint)]">Turno:</span> {agente.turno}</span>
               )}
               {agente.sector && (
-                <span><span className="text-slate-500">Sector:</span> {agente.sector.nombre}</span>
+                <span><span className="text-[var(--c-text-faint)]">Sector:</span> {agente.sector.nombre}</span>
               )}
             </div>
           </div>
@@ -272,10 +272,10 @@ export default async function MiLegajoPage() {
       {legajoPendiente && !esAdmin && (
         <div className="space-y-3">
           {agente.motivoRechazo ? (
-            <div className="bg-red-500/10 border border-red-500/25 rounded-xl px-5 py-4 space-y-1">
-              <p className="text-sm font-semibold text-red-300">❌ Tu legajo fue observado</p>
-              <p className="text-sm text-red-400">{agente.motivoRechazo}</p>
-              <p className="text-xs text-red-500 mt-1">Corregí los datos indicados y guardá los cambios. El administrador recibirá una notificación para revisarlo nuevamente.</p>
+            <div className="bg-[var(--c-coral)]/10 border border-[var(--c-coral)]/25 rounded-xl px-5 py-4 space-y-1">
+              <p className="text-sm font-semibold text-[var(--c-coral)]">❌ Tu legajo fue observado</p>
+              <p className="text-sm text-[var(--c-coral)]">{agente.motivoRechazo}</p>
+              <p className="text-xs text-[var(--c-coral)] mt-1">Corregí los datos indicados y guardá los cambios. El administrador recibirá una notificación para revisarlo nuevamente.</p>
             </div>
           ) : (
             <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl px-5 py-4">

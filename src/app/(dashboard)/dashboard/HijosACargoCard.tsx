@@ -39,10 +39,10 @@ export default function HijosACargoCard({ hijos }: Props) {
   const max = Math.max(1, ...hijos.histograma.map((h) => h.count));
 
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5">
+    <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
       <div className="flex items-baseline justify-between mb-3.5">
-        <h3 className="text-sm font-semibold text-slate-100">Personal con hijos a cargo</h3>
-        <span className="text-[11px] text-slate-500 tabular-nums">{hijos.totalActivos} agentes activos</span>
+        <h3 className="text-sm font-semibold text-[var(--c-text)]">Personal con hijos a cargo</h3>
+        <span className="text-[11px] text-[var(--c-text-faint)] tabular-nums">{hijos.totalActivos} agentes activos</span>
       </div>
 
       <div className="overflow-hidden">
@@ -77,22 +77,22 @@ export default function HijosACargoCard({ hijos }: Props) {
                   <div
                     key={h.label}
                     className={`grid grid-cols-[96px_1fr_34px] items-center gap-2.5 -mx-1.5 px-1.5 py-0.5 rounded-lg transition-colors group ${
-                      clickable ? "cursor-pointer hover:bg-slate-800/60" : ""
+                      clickable ? "cursor-pointer hover:bg-[var(--c-bg-elev-2)]/60" : ""
                     }`}
                     onClick={() => {
                       if (clickable) router.push(`/personal?${buildQueryString({ ids: h.ids.join(",") })}`);
                     }}
                   >
-                    <span className="text-xs font-medium text-slate-400 truncate">{h.label}</span>
-                    <div className="h-2.5 rounded-none bg-slate-950 border border-slate-800 overflow-hidden">
+                    <span className="text-xs font-medium text-[var(--c-text-muted)] truncate">{h.label}</span>
+                    <div className="h-2.5 rounded-none bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] overflow-hidden">
                       <div
-                        className={`h-full rounded-none transition-[filter] duration-150 ${dim ? "bg-slate-600" : "bg-blue-500"} ${
+                        className={`h-full rounded-none transition-[filter] duration-150 ${dim ? "bg-[var(--c-line-strong)]" : "bg-[var(--c-blue)]"} ${
                           clickable ? "group-hover:brightness-125" : ""
                         }`}
                         style={{ width: `${(h.count / max) * 100}%` }}
                       />
                     </div>
-                    <span className="text-xs font-semibold text-slate-100 text-right tabular-nums">{h.count}</span>
+                    <span className="text-xs font-semibold text-[var(--c-text)] text-right tabular-nums">{h.count}</span>
                   </div>
                 );
               })}
@@ -104,7 +104,7 @@ export default function HijosACargoCard({ hijos }: Props) {
       <button
         type="button"
         onClick={() => setVerDetalle((v) => !v)}
-        className="block mx-auto mt-4 text-[11px] font-semibold text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-600 rounded-md px-2.5 py-1 transition-colors"
+        className="block mx-auto mt-4 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
       >
         {verDetalle ? "Ocultar cantidad de hijos" : "Ver por cantidad de hijos"}
       </button>

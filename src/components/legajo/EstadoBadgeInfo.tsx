@@ -5,9 +5,9 @@ import { formatFechaHora } from "@/lib/fecha";
 
 const ESTADO_BADGE: Record<string, string> = {
   PENDIENTE: "bg-yellow-500/15 text-yellow-400",
-  ACTIVO: "bg-green-500/15 text-green-400",
-  BAJA: "bg-slate-800 text-slate-400",
-  PASE: "bg-blue-500/15 text-blue-300",
+  ACTIVO: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
+  BAJA: "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]",
+  PASE: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
 };
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -48,24 +48,24 @@ export default function EstadoBadgeInfo({ estado, desde, motivo }: Props) {
         onClick={() => setAbierto((v) => !v)}
         title="Ver desde cuándo rige"
         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 ${
-          ESTADO_BADGE[estado] ?? "bg-slate-800 text-slate-400"
+          ESTADO_BADGE[estado] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"
         }`}
       >
         {ESTADO_LABELS[estado] ?? estado}
       </button>
 
       {abierto && (
-        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 w-56 rounded-lg border border-slate-700 bg-slate-800 p-3 shadow-lg shadow-black/40 text-left">
+        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 w-56 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-3 shadow-lg shadow-black/40 text-left">
           {desde ? (
             <>
-              <p className="text-[11px] text-slate-400">Vigente desde</p>
-              <p className="text-sm text-slate-100 font-medium">{formatFechaHora(desde, { utc: true, separador: " " })}</p>
+              <p className="text-[11px] text-[var(--c-text-muted)]">Vigente desde</p>
+              <p className="text-sm text-[var(--c-text)] font-medium">{formatFechaHora(desde, { utc: true, separador: " " })}</p>
               {motivo && (
-                <p className="text-xs text-slate-400 mt-2 border-t border-slate-700 pt-2">{motivo}</p>
+                <p className="text-xs text-[var(--c-text-muted)] mt-2 border-t border-[var(--c-line)] pt-2">{motivo}</p>
               )}
             </>
           ) : (
-            <p className="text-xs text-slate-500">Sin registro de cambios de estado.</p>
+            <p className="text-xs text-[var(--c-text-faint)]">Sin registro de cambios de estado.</p>
           )}
         </div>
       )}

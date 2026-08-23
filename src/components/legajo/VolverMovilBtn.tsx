@@ -28,7 +28,7 @@ export default function VolverMovilBtn({ href, agenteId }: Props) {
     <button
       type="button"
       onClick={handleClick}
-      className="inline-flex items-center gap-1 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+      className="inline-flex items-center gap-1 text-sm font-medium text-[var(--c-text-muted)] hover:text-white transition-colors"
     >
       <ArrowLeft className="w-4 h-4" strokeWidth={2} />
       Volver

@@ -28,7 +28,7 @@ export default function CargarMisDatosBtn() {
       type="button"
       onClick={handleClick}
       disabled={pending}
-      className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
+      className="inline-flex items-center gap-2 bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
     >
       {pending ? (
         <>

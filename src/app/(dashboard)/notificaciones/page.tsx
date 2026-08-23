@@ -32,7 +32,7 @@ export default async function NotificacionesPage() {
 
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-semibold text-slate-100">Notificaciones</h2>
+      <h2 className="text-xl font-semibold text-[var(--c-text)]">Notificaciones</h2>
       <NotificacionesLista notificaciones={serialized} />
     </div>
   );

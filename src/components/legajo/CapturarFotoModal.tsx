@@ -106,23 +106,23 @@ export default function CapturarFotoModal({ onCapturar, onCerrar }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={cerrar} />
 
-      <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+      <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-100">Tomar foto</h2>
+          <h2 className="text-base font-semibold text-[var(--c-text)]">Tomar foto</h2>
           <button
             type="button"
             onClick={cerrar}
             aria-label="Cancelar"
             title="Cancelar"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[var(--c-text-faint)] hover:bg-[var(--c-bg-elev-2)] hover:text-[var(--c-text)] transition-colors"
           >
             <X className="w-4 h-4" strokeWidth={2} />
           </button>
         </div>
 
-        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-slate-950 border border-slate-700">
+        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-[var(--c-bg)] border border-[var(--c-line)]">
           {error ? (
-            <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-red-400">
+            <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-[var(--c-coral)]">
               {error}
             </div>
           ) : (
@@ -135,7 +135,7 @@ export default function CapturarFotoModal({ onCapturar, onCerrar }: Props) {
                 className="w-full h-full object-cover [transform:scaleX(-1)]"
               />
               {!listo && (
-                <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">
+                <div className="absolute inset-0 flex items-center justify-center text-sm text-[var(--c-text-faint)]">
                   Iniciando cámara…
                 </div>
               )}
@@ -150,9 +150,9 @@ export default function CapturarFotoModal({ onCapturar, onCerrar }: Props) {
             disabled={!listo}
             aria-label="Capturar foto"
             title="Capturar foto"
-            className="group flex h-16 w-16 items-center justify-center rounded-full border-2 border-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors hover:border-blue-500"
+            className="group flex h-16 w-16 items-center justify-center rounded-full border-2 border-[var(--c-line-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors hover:border-[var(--c-blue)]"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 group-hover:bg-blue-500 group-disabled:bg-slate-700 transition-colors">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--c-blue)] group-hover:bg-[var(--c-blue)] group-disabled:bg-[var(--c-line)] transition-colors">
               <Camera className="w-5 h-5 text-white" strokeWidth={2} />
             </span>
           </button>

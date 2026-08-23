@@ -25,7 +25,7 @@ function Avatar({ agente }: { agente: AgenteResumen }) {
     <div className="relative shrink-0">
       <AgenteAvatar fotoUrl={agente.fotoUrl} sexo={agente.sexo} sizeClassName="h-11 w-11 rounded-full" />
       {agente.estado === "ACTIVO" && (
-        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-slate-900" />
+        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-[var(--c-green)] border-2 border-[var(--c-bg-elev)]" />
       )}
     </div>
   );
@@ -136,12 +136,12 @@ export default function ListaAgentes({
   }
 
   const barraSeleccion = (
-    <div className="shrink-0 flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-800/40 px-4 py-2">
+    <div className="shrink-0 flex items-center justify-between gap-2 border-b border-[var(--c-bg-elev-2)] bg-[var(--c-bg-elev-2)]/40 px-4 py-2">
       <button
         type="button"
         onClick={handleToggleModo}
         className={`text-center text-xs font-medium transition-colors ${
-          modoSeleccion ? "text-blue-400 hover:text-blue-300" : "text-slate-400 hover:text-slate-200"
+          modoSeleccion ? "text-[var(--c-blue-text)] hover:text-[var(--c-blue-soft)]" : "text-[var(--c-text-muted)] hover:text-[var(--c-text)]"
         }`}
       >
         {modoSeleccion ? "Cancelar selección" : "☑️ Selección personalizada"}
@@ -149,7 +149,7 @@ export default function ListaAgentes({
       {(seleccion.length > 0 || idsFiltroActivo) && (
         <div className="flex items-center gap-3">
           {seleccion.length > 0 && (
-            <span className="text-xs font-medium text-slate-300 text-center">
+            <span className="text-xs font-medium text-[var(--c-text-secondary)] text-center">
               {seleccion.length} {seleccion.length === 1 ? "seleccionado" : "seleccionados"}
             </span>
           )}
@@ -157,7 +157,7 @@ export default function ListaAgentes({
             <button
               type="button"
               onClick={verTodo}
-              className="text-center text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              className="text-center text-xs font-medium text-[var(--c-blue-text)] hover:text-[var(--c-blue-soft)] transition-colors"
             >
               Ver todo
             </button>
@@ -165,7 +165,7 @@ export default function ListaAgentes({
             <button
               type="button"
               onClick={verSeleccionados}
-              className="text-center text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              className="text-center text-xs font-medium text-[var(--c-blue-text)] hover:text-[var(--c-blue-soft)] transition-colors"
             >
               Ver seleccionados
             </button>
@@ -174,7 +174,7 @@ export default function ListaAgentes({
             <button
               type="button"
               onClick={handleLimpiar}
-              className="text-center text-xs font-medium text-slate-500 hover:text-slate-300 transition-colors"
+              className="text-center text-xs font-medium text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] transition-colors"
             >
               Limpiar
             </button>
@@ -188,7 +188,7 @@ export default function ListaAgentes({
     return (
       <>
         {barraSeleccion}
-        <div className="px-4 py-12 text-center text-sm text-slate-500">
+        <div className="px-4 py-12 text-center text-sm text-[var(--c-text-faint)]">
           No se encontraron agentes con los filtros aplicados.
         </div>
       </>
@@ -200,7 +200,7 @@ export default function ListaAgentes({
   return (
     <>
     {barraSeleccion}
-    <ul className="flex-1 overflow-y-auto divide-y divide-slate-800">
+    <ul className="flex-1 overflow-y-auto divide-y divide-[var(--c-bg-elev-2)]">
       {agentesVisibles.map((a) => {
         const activo = a.id === selectedId;
         const subLabel = a.turno ?? TIPO_LABELS[a.tipoPersonal as TipoPersonal] ?? a.tipoPersonal;
@@ -218,7 +218,7 @@ export default function ListaAgentes({
                   type="checkbox"
                   checked={estaSeleccionado}
                   onChange={() => toggleSeleccion({ id: a.id, nombres: a.nombres, apellidos: a.apellidos })}
-                  className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-500 cursor-pointer focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                  className="h-4 w-4 rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev-2)] text-[var(--c-blue)] cursor-pointer focus:ring-2 focus:ring-[var(--c-blue)] focus:ring-offset-0"
                 />
               </label>
             )}
@@ -226,15 +226,15 @@ export default function ListaAgentes({
               href={href}
               onClick={(e) => handleClick(e, href)}
               className={`flex items-center gap-3 py-3 transition-colors ${modoSeleccion ? "pl-10" : "pl-4"} ${activo ? "pr-10" : "pr-4"} ${
-                activo ? "bg-blue-500/10 border-l-2 border-blue-600" : "hover:bg-slate-800 border-l-2 border-transparent"
+                activo ? "bg-[var(--c-blue)]/10 border-l-2 border-[var(--c-blue)]" : "hover:bg-[var(--c-bg-elev-2)] border-l-2 border-transparent"
               }`}
             >
               <Avatar agente={a} />
               <div className="min-w-0 flex-1">
-                <p className={`text-sm font-semibold truncate ${activo ? "text-blue-300" : "text-slate-100"}`}>
+                <p className={`text-sm font-semibold truncate ${activo ? "text-[var(--c-blue-soft)]" : "text-[var(--c-text)]"}`}>
                   {a.apellidos}, {a.nombres}
                 </p>
-                <p className="text-xs text-slate-400 truncate">
+                <p className="text-xs text-[var(--c-text-muted)] truncate">
                   DNI: {cuilToDni(a.cuil)} · {subLabel}
                 </p>
               </div>
@@ -249,7 +249,7 @@ export default function ListaAgentes({
                 }}
                 title={estaAnclado ? "Desanclar" : "Anclar para acceso rápido"}
                 className={`absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 transition-colors ${
-                  estaAnclado ? "text-blue-400 hover:text-blue-300" : "text-slate-600 hover:text-slate-300"
+                  estaAnclado ? "text-[var(--c-blue-text)] hover:text-[var(--c-blue-soft)]" : "text-[var(--c-line-strong)] hover:text-[var(--c-text-secondary)]"
                 }`}
               >
                 {estaAnclado ? (
@@ -273,18 +273,18 @@ export default function ListaAgentes({
       })}
     </ul>
     {cantidadVisible < agentes.length && (
-      <div className="shrink-0 flex items-center justify-between border-t border-slate-800 px-4 py-2.5">
-        <span className="text-xs text-slate-500">
+      <div className="shrink-0 flex items-center justify-between border-t border-[var(--c-bg-elev-2)] px-4 py-2.5">
+        <span className="text-xs text-[var(--c-text-faint)]">
           Mostrando {agentesVisibles.length} de {agentes.length}
         </span>
         <button
           type="button"
           onClick={cargarMas}
           disabled={cargandoMas}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 transition-colors disabled:opacity-70"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] px-3 py-1.5 text-xs font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] transition-colors disabled:opacity-70"
         >
           {cargandoMas && (
-            <span className="h-3 w-3 rounded-full border-2 border-slate-600 border-t-blue-500 animate-spin" />
+            <span className="h-3 w-3 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
           )}
           Cargar más
         </button>

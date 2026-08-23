@@ -239,8 +239,8 @@ export default function FiltrosPersonal({
       <button
         type="button"
         onClick={() => setFiltroAbierto(campo)}
-        className={`w-full flex items-center justify-between gap-1 rounded-lg border px-2.5 py-1.5 text-sm bg-slate-900 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-          activo ? "border-blue-500 text-blue-300" : "border-slate-700 text-slate-300"
+        className={`w-full flex items-center justify-between gap-1 rounded-lg border px-2.5 py-1.5 text-sm bg-[var(--c-bg-elev)] text-left focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent transition-colors ${
+          activo ? "border-[var(--c-blue)] text-[var(--c-blue-soft)]" : "border-[var(--c-line)] text-[var(--c-text-secondary)]"
         }`}
       >
         <span className="truncate">{texto}</span>
@@ -254,12 +254,12 @@ export default function FiltrosPersonal({
   const contenidoEstado = (
     <div className="space-y-0.5">
       {ESTADOS.map((e) => (
-        <label key={e.value} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-slate-700 cursor-pointer">
+        <label key={e.value} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
           <input
             type="checkbox"
             checked={estado.includes(e.value)}
             onChange={() => toggleEstado(e.value)}
-            className="rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+            className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
           />
           {e.label}
         </label>
@@ -268,7 +268,7 @@ export default function FiltrosPersonal({
         <button
           type="button"
           onClick={() => limpiarCampo("estado")}
-          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-blue-400 hover:bg-slate-700 hover:text-blue-300"
+          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
         </button>
@@ -279,12 +279,12 @@ export default function FiltrosPersonal({
   const contenidoTurno = (
     <div className="space-y-0.5">
       {turnos.map((t) => (
-        <label key={t} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-slate-700 cursor-pointer">
+        <label key={t} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
           <input
             type="checkbox"
             checked={turno.includes(t)}
             onChange={() => toggleTurno(t)}
-            className="rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+            className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
           />
           {t}
         </label>
@@ -293,7 +293,7 @@ export default function FiltrosPersonal({
         <button
           type="button"
           onClick={() => limpiarCampo("turno")}
-          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-blue-400 hover:bg-slate-700 hover:text-blue-300"
+          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
         </button>
@@ -304,12 +304,12 @@ export default function FiltrosPersonal({
   const contenidoSector = (
     <div className="space-y-0.5">
       {sectores.map((s) => (
-        <label key={s.id} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-slate-700 cursor-pointer">
+        <label key={s.id} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
           <input
             type="checkbox"
             checked={sector.includes(s.id)}
             onChange={() => toggleSector(s.id)}
-            className="rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+            className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
           />
           {s.nombre}
         </label>
@@ -318,7 +318,7 @@ export default function FiltrosPersonal({
         <button
           type="button"
           onClick={() => limpiarCampo("sector")}
-          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-blue-400 hover:bg-slate-700 hover:text-blue-300"
+          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
         </button>
@@ -329,12 +329,12 @@ export default function FiltrosPersonal({
   const contenidoTipo = (
     <div className="space-y-0.5">
       {TIPOS.map((t) => (
-        <label key={t.value} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-slate-700 cursor-pointer">
+        <label key={t.value} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
           <input
             type="checkbox"
             checked={tipo.includes(t.value)}
             onChange={() => toggleTipo(t.value)}
-            className="rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+            className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
           />
           {t.label}
         </label>
@@ -343,7 +343,7 @@ export default function FiltrosPersonal({
         <button
           type="button"
           onClick={() => limpiarCampo("tipo")}
-          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-blue-400 hover:bg-slate-700 hover:text-blue-300"
+          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
         </button>
@@ -354,12 +354,12 @@ export default function FiltrosPersonal({
   const contenidoEtac = (
     <div className="space-y-0.5">
       {ETACS.map((e) => (
-        <label key={e.value} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-slate-700 cursor-pointer">
+        <label key={e.value} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
           <input
             type="checkbox"
             checked={etac.includes(e.value)}
             onChange={() => toggleEtac(e.value)}
-            className="rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+            className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
           />
           {e.label}
         </label>
@@ -368,7 +368,7 @@ export default function FiltrosPersonal({
         <button
           type="button"
           onClick={() => limpiarCampo("etac")}
-          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-blue-400 hover:bg-slate-700 hover:text-blue-300"
+          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
         </button>
@@ -386,9 +386,9 @@ export default function FiltrosPersonal({
 
   return (
     <>
-    <div className="p-4 border-b border-slate-800 space-y-4">
+    <div className="p-4 border-b border-[var(--c-bg-elev-2)] space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+        <span className="text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">
           Buscador principal
         </span>
         <div className="flex items-center gap-3">
@@ -396,7 +396,7 @@ export default function FiltrosPersonal({
             type="button"
             onClick={toggleBloqueado}
             title={bloqueado ? "Los filtros se mantienen al volver a entrar" : "Mantener estos filtros al volver a entrar"}
-            className={`transition-colors ${bloqueado ? "text-blue-400 hover:text-blue-300" : "text-slate-500 hover:text-slate-300"}`}
+            className={`transition-colors ${bloqueado ? "text-[var(--c-blue-text)] hover:text-[var(--c-blue-soft)]" : "text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)]"}`}
           >
             {bloqueado ? (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -412,7 +412,7 @@ export default function FiltrosPersonal({
             <button
               type="button"
               onClick={handleClearFilters}
-              className="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              className="text-xs font-medium text-[var(--c-blue-text)] hover:text-[var(--c-blue-soft)] transition-colors"
             >
               Limpiar filtros
             </button>
@@ -424,7 +424,7 @@ export default function FiltrosPersonal({
       <div className="relative">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500"
+          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--c-text-faint)]"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -436,14 +436,14 @@ export default function FiltrosPersonal({
           value={q}
           onChange={handleQChange}
           placeholder="Buscar por apellido o DNI..."
-          className="w-full rounded-lg border border-slate-700 pl-9 pr-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          className="w-full rounded-lg border border-[var(--c-line)] pl-9 pr-3 py-2 text-sm text-[var(--c-text)] placeholder-[var(--c-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent transition"
         />
       </div>
 
       {/* Filtros en grilla */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+          <label className="block text-[11px] font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1">
             Estado
           </label>
           {renderDisparador(
@@ -454,14 +454,14 @@ export default function FiltrosPersonal({
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+          <label className="block text-[11px] font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1">
             Turno / Guardia
           </label>
           {renderDisparador("turno", textoDisparador(turno, "Todos", (v) => v), turno.length > 0)}
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+          <label className="block text-[11px] font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1">
             Dependencia
           </label>
           {renderDisparador(
@@ -472,7 +472,7 @@ export default function FiltrosPersonal({
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+          <label className="block text-[11px] font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1">
             Tipo de personal
           </label>
           {renderDisparador(
@@ -484,7 +484,7 @@ export default function FiltrosPersonal({
 
         {mostrarEtac && (
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+            <label className="block text-[11px] font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1">
               E.T.A.C.
             </label>
             {renderDisparador(
@@ -503,15 +503,15 @@ export default function FiltrosPersonal({
         onClick={() => setFiltroAbierto(null)}
       >
         <div
-          className="w-80 max-h-[80vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl shadow-black/50 animate-fade-in"
+          className="w-80 max-h-[80vh] overflow-y-auto rounded-xl border border-[var(--c-line)] bg-[var(--c-bg-elev)] p-4 shadow-xl shadow-black/50 animate-fade-in"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-slate-200">Filtrar por {FILTRO_TITULOS[filtroAbierto]}</h4>
+            <h4 className="text-sm font-semibold text-[var(--c-text)]">Filtrar por {FILTRO_TITULOS[filtroAbierto]}</h4>
             <button
               type="button"
               onClick={() => setFiltroAbierto(null)}
-              className="rounded-lg p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
+              className="rounded-lg p-1 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -38,7 +38,7 @@ export default function TurnosTabs({ anio, mes, dias, elegibles, jefaturas, line
             type="button"
             onClick={() => setTab(t.id)}
             className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              tab === t.id ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+              tab === t.id ? "bg-[var(--c-blue)] text-white" : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
             }`}
           >
             {t.label}

@@ -37,8 +37,8 @@ export default async function TurnosPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold text-slate-100">Turnos</h2>
-        <p className="text-sm text-slate-400 mt-0.5">Calendario de guardias, cobertura de jefaturas y lineales</p>
+        <h2 className="text-xl font-semibold text-[var(--c-text)]">Turnos</h2>
+        <p className="text-sm text-[var(--c-text-muted)] mt-0.5">Calendario de guardias, cobertura de jefaturas y lineales</p>
       </div>
 
       <TurnosTabs

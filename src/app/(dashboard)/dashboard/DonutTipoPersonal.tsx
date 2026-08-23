@@ -63,13 +63,13 @@ export default function DonutTipoPersonal({ data, total }: Props) {
   }, []);
 
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 flex flex-col h-full">
+    <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 flex flex-col h-full">
       <div className="flex items-baseline justify-between mb-3.5">
-        <h3 className="text-sm font-semibold text-slate-100">Activos por tipo de personal</h3>
+        <h3 className="text-sm font-semibold text-[var(--c-text)]">Activos por tipo de personal</h3>
         <button
           type="button"
           onClick={() => setComoTabla((v) => !v)}
-          className="text-[11px] font-semibold text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-600 rounded-md px-2.5 py-1 transition-colors"
+          className="text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
         >
           {comoTabla ? "Ver como gráfico" : "Ver como tabla"}
         </button>
@@ -107,8 +107,8 @@ export default function DonutTipoPersonal({ data, total }: Props) {
                 ))}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                <span className="text-3xl font-semibold tracking-tight text-slate-100 tabular-nums">{total}</span>
-                <span className="text-[10.5px] text-slate-500 mt-1 max-w-[88px] leading-tight">personal activo</span>
+                <span className="text-3xl font-semibold tracking-tight text-[var(--c-text)] tabular-nums">{total}</span>
+                <span className="text-[10.5px] text-[var(--c-text-faint)] mt-1 max-w-[88px] leading-tight">personal activo</span>
               </div>
             </div>
 
@@ -120,13 +120,13 @@ export default function DonutTipoPersonal({ data, total }: Props) {
                   onPointerLeave={() => setHover(null)}
                   onDoubleClick={() => irAPersonalFiltrado(d.tipo)}
                   className={`grid grid-cols-[12px_1fr_auto_auto] items-center gap-2.5 px-2.5 py-2 rounded-lg border transition-colors cursor-pointer ${
-                    hover === d.tipo ? "bg-slate-800/70 border-slate-700" : "border-transparent"
+                    hover === d.tipo ? "bg-[var(--c-bg-elev-2)]/70 border-[var(--c-line)]" : "border-transparent"
                   }`}
                 >
                   <span className="w-2.5 h-2.5 rounded-[3.5px]" style={{ background: COLORES[d.tipo] }} />
-                  <span className="text-[12.5px] font-medium text-slate-200">{LABELS[d.tipo]}</span>
-                  <span className="text-[13px] font-semibold text-slate-100 tabular-nums">{d.count}</span>
-                  <span className="text-[11.5px] text-slate-500 w-8 text-right tabular-nums">{d.pct}%</span>
+                  <span className="text-[12.5px] font-medium text-[var(--c-text)]">{LABELS[d.tipo]}</span>
+                  <span className="text-[13px] font-semibold text-[var(--c-text)] tabular-nums">{d.count}</span>
+                  <span className="text-[11.5px] text-[var(--c-text-faint)] w-8 text-right tabular-nums">{d.pct}%</span>
                 </div>
               ))}
             </div>
@@ -136,13 +136,13 @@ export default function DonutTipoPersonal({ data, total }: Props) {
             <table className="w-full text-[12.5px] border-collapse">
               <thead>
                 <tr>
-                  <th className="text-left text-[10.5px] tracking-wide uppercase text-slate-500 font-semibold pb-2 border-b border-slate-800">
+                  <th className="text-left text-[10.5px] tracking-wide uppercase text-[var(--c-text-faint)] font-semibold pb-2 border-b border-[var(--c-bg-elev-2)]">
                     Tipo de personal
                   </th>
-                  <th className="text-right text-[10.5px] tracking-wide uppercase text-slate-500 font-semibold pb-2 border-b border-slate-800 tabular-nums">
+                  <th className="text-right text-[10.5px] tracking-wide uppercase text-[var(--c-text-faint)] font-semibold pb-2 border-b border-[var(--c-bg-elev-2)] tabular-nums">
                     Activos
                   </th>
-                  <th className="text-right text-[10.5px] tracking-wide uppercase text-slate-500 font-semibold pb-2 border-b border-slate-800 tabular-nums">
+                  <th className="text-right text-[10.5px] tracking-wide uppercase text-[var(--c-text-faint)] font-semibold pb-2 border-b border-[var(--c-bg-elev-2)] tabular-nums">
                     % del total
                   </th>
                 </tr>
@@ -152,16 +152,16 @@ export default function DonutTipoPersonal({ data, total }: Props) {
                   <tr
                     key={d.tipo}
                     onDoubleClick={() => irAPersonalFiltrado(d.tipo)}
-                    className="cursor-pointer hover:bg-slate-800/40"
+                    className="cursor-pointer hover:bg-[var(--c-bg-elev-2)]/40"
                   >
-                    <td className="py-2.5 border-b border-slate-800 text-slate-200">
+                    <td className="py-2.5 border-b border-[var(--c-bg-elev-2)] text-[var(--c-text)]">
                       <span className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: COLORES[d.tipo] }} />
                         {LABELS[d.tipo]}
                       </span>
                     </td>
-                    <td className="py-2.5 border-b border-slate-800 text-right text-slate-200 tabular-nums">{d.count}</td>
-                    <td className="py-2.5 border-b border-slate-800 text-right text-slate-200 tabular-nums">{d.pct}%</td>
+                    <td className="py-2.5 border-b border-[var(--c-bg-elev-2)] text-right text-[var(--c-text)] tabular-nums">{d.count}</td>
+                    <td className="py-2.5 border-b border-[var(--c-bg-elev-2)] text-right text-[var(--c-text)] tabular-nums">{d.pct}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -172,13 +172,13 @@ export default function DonutTipoPersonal({ data, total }: Props) {
 
       {tooltip && (
         <div
-          className="fixed z-40 pointer-events-none bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 shadow-lg shadow-black/40"
+          className="fixed z-40 pointer-events-none bg-[var(--c-bg)] border border-[var(--c-line)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--c-text)] shadow-lg shadow-black/40"
           style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}
         >
           <span className="font-bold tabular-nums">
             {data.find((d) => d.tipo === tooltip.tipo)?.count} ({data.find((d) => d.tipo === tooltip.tipo)?.pct}%)
           </span>
-          <span className="text-slate-500 ml-1.5">{LABELS[tooltip.tipo]}</span>
+          <span className="text-[var(--c-text-faint)] ml-1.5">{LABELS[tooltip.tipo]}</span>
         </div>
       )}
     </div>

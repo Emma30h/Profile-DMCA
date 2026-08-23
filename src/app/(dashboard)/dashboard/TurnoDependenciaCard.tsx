@@ -41,12 +41,12 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
   const indiceVista = VISTAS.indexOf(vista);
 
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 flex flex-col h-full">
+    <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 flex flex-col h-full">
       <div className="flex items-center justify-between mb-3.5 gap-2.5 flex-wrap">
-        <h3 className="text-sm font-semibold text-slate-100">
+        <h3 className="text-sm font-semibold text-[var(--c-text)]">
           Activos por {VISTA_LABEL[vista]}
         </h3>
-        <span className="text-[11px] text-slate-500 tabular-nums">{totalActivos} agentes activos</span>
+        <span className="text-[11px] text-[var(--c-text-faint)] tabular-nums">{totalActivos} agentes activos</span>
         <div className="flex items-center gap-1 shrink-0 ml-auto">
           {VISTAS.map((v) => (
             <button
@@ -55,8 +55,8 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
               onClick={() => setVista(v)}
               className={`text-[11px] font-semibold rounded-md px-2.5 py-1 border transition-colors ${
                 vista === v
-                  ? "bg-blue-500 text-white border-blue-500"
-                  : "text-slate-400 border-slate-700 hover:text-slate-200 hover:border-slate-600"
+                  ? "bg-[var(--c-blue)] text-white border-[var(--c-blue)]"
+                  : "text-[var(--c-text-muted)] border-[var(--c-line)] hover:text-[var(--c-text)] hover:border-[var(--c-line-strong)]"
               }`}
             >
               {VISTA_LABEL_CORTO[v]}
@@ -78,22 +78,22 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
                   <div
                     key={t.label}
                     className={`grid grid-cols-[132px_1fr_34px] items-center gap-2.5 -mx-1.5 px-1.5 py-0.5 rounded-none transition-colors group ${
-                      clickable ? "cursor-pointer hover:bg-slate-800/60" : ""
+                      clickable ? "cursor-pointer hover:bg-[var(--c-bg-elev-2)]/60" : ""
                     }`}
                     onClick={() => {
                       if (clickable) router.push(`/personal?${buildQueryString({ turno: t.label, estado: "ACTIVO" })}`);
                     }}
                   >
-                    <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap">{t.label}</span>
-                    <div className="h-2.5 rounded-none bg-slate-950 border border-slate-800 overflow-hidden">
+                    <span className="text-[10px] font-medium text-[var(--c-text-muted)] whitespace-nowrap">{t.label}</span>
+                    <div className="h-2.5 rounded-none bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] overflow-hidden">
                       <div
                         className={`h-full rounded-none transition-[filter] duration-150 ${
-                          LETRA_TURNO.test(t.label) ? "bg-blue-500" : "bg-slate-600"
+                          LETRA_TURNO.test(t.label) ? "bg-[var(--c-blue)]" : "bg-[var(--c-line-strong)]"
                         } ${clickable ? "group-hover:brightness-125" : ""}`}
                         style={{ width: `${(t.count / maxTurno) * 100}%` }}
                       />
                     </div>
-                    <span className="text-xs font-semibold text-slate-100 text-right tabular-nums">{t.count}</span>
+                    <span className="text-xs font-semibold text-[var(--c-text)] text-right tabular-nums">{t.count}</span>
                   </div>
                 );
               })}
@@ -105,17 +105,17 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
               {dependencia.map((d, i) => (
                 <div
                   key={d.label}
-                  className="flex items-center gap-2.5 py-2.5 border-b border-slate-800 last:border-b-0 -mx-1.5 px-1.5 rounded-lg transition-colors group cursor-pointer hover:bg-slate-800/60"
+                  className="flex items-center gap-2.5 py-2.5 border-b border-[var(--c-bg-elev-2)] last:border-b-0 -mx-1.5 px-1.5 rounded-lg transition-colors group cursor-pointer hover:bg-[var(--c-bg-elev-2)]/60"
                   onClick={() => router.push(`/personal?${buildQueryString({ ids: d.ids.join(",") })}`)}
                 >
                   <span
                     className={`w-1.5 h-1.5 rounded-full shrink-0 transition-[filter] duration-150 group-hover:brightness-125 ${
-                      i === 0 ? "bg-blue-500" : "bg-slate-600"
+                      i === 0 ? "bg-[var(--c-blue)]" : "bg-[var(--c-line-strong)]"
                     }`}
                   />
-                  <span className="text-[12.5px] text-slate-400 flex-1 min-w-0 truncate">{d.label}</span>
-                  <span className="text-[12.5px] font-semibold text-slate-100 tabular-nums">{d.count}</span>
-                  <span className="text-[11px] text-slate-500 w-9 text-right tabular-nums">
+                  <span className="text-[12.5px] text-[var(--c-text-muted)] flex-1 min-w-0 truncate">{d.label}</span>
+                  <span className="text-[12.5px] font-semibold text-[var(--c-text)] tabular-nums">{d.count}</span>
+                  <span className="text-[11px] text-[var(--c-text-faint)] w-9 text-right tabular-nums">
                     {totalActivos > 0 ? Math.round((d.count / totalActivos) * 100) : 0}%
                   </span>
                 </div>
@@ -128,17 +128,17 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
               {origenInstitucional.map((o, i) => (
                 <div
                   key={o.label}
-                  className="flex items-center gap-2.5 py-2.5 border-b border-slate-800 last:border-b-0 -mx-1.5 px-1.5 rounded-lg transition-colors group cursor-pointer hover:bg-slate-800/60"
+                  className="flex items-center gap-2.5 py-2.5 border-b border-[var(--c-bg-elev-2)] last:border-b-0 -mx-1.5 px-1.5 rounded-lg transition-colors group cursor-pointer hover:bg-[var(--c-bg-elev-2)]/60"
                   onClick={() => router.push(`/personal?${buildQueryString({ ids: o.ids.join(",") })}`)}
                 >
                   <span
                     className={`w-1.5 h-1.5 rounded-full shrink-0 transition-[filter] duration-150 group-hover:brightness-125 ${
-                      i === 0 ? "bg-blue-500" : "bg-slate-600"
+                      i === 0 ? "bg-[var(--c-blue)]" : "bg-[var(--c-line-strong)]"
                     }`}
                   />
-                  <span className="text-[12.5px] text-slate-400 flex-1 min-w-0 truncate">{o.label}</span>
-                  <span className="text-[12.5px] font-semibold text-slate-100 tabular-nums">{o.count}</span>
-                  <span className="text-[11px] text-slate-500 w-9 text-right tabular-nums">
+                  <span className="text-[12.5px] text-[var(--c-text-muted)] flex-1 min-w-0 truncate">{o.label}</span>
+                  <span className="text-[12.5px] font-semibold text-[var(--c-text)] tabular-nums">{o.count}</span>
+                  <span className="text-[11px] text-[var(--c-text-faint)] w-9 text-right tabular-nums">
                     {totalActivos > 0 ? Math.round((o.count / totalActivos) * 100) : 0}%
                   </span>
                 </div>

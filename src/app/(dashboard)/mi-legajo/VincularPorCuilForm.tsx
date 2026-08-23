@@ -51,7 +51,7 @@ export default function VincularPorCuilForm({
 
   if (intentosRestantes <= 0) {
     return (
-      <p className="text-sm text-slate-400 max-w-sm mx-auto">
+      <p className="text-sm text-[var(--c-text-muted)] max-w-sm mx-auto">
         Se agotaron los intentos para vincular por CUIL. Cargá tus datos manualmente más abajo.
       </p>
     );
@@ -71,14 +71,14 @@ export default function VincularPorCuilForm({
           value={cuil}
           onChange={(e) => setCuil(e.target.value.replace(/\D/g, "").slice(0, 11))}
           placeholder="CUIL sin puntos ni guiones"
-          className="w-full rounded-lg border border-slate-700 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2.5 text-sm text-[var(--c-text)] placeholder-[var(--c-text-faint)] text-center focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent transition"
         />
       </div>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-[var(--c-coral)]">{error}</p>}
       <button
         type="submit"
         disabled={pending || cuil.length !== 11}
-        className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 transition-colors flex items-center justify-center gap-2"
+        className="w-full rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 transition-colors flex items-center justify-center gap-2"
       >
         {pending ? (
           <>
@@ -98,7 +98,7 @@ export default function VincularPorCuilForm({
           "Buscar mi legajo"
         )}
       </button>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-[var(--c-text-faint)]">
         Intentos restantes: {intentosRestantes}
       </p>
     </form>

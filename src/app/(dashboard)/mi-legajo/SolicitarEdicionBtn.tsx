@@ -56,8 +56,8 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
   if (tienePermisoActivo && permisoHasta) {
     const fecha = formatFechaHora(permisoHasta);
     return (
-      <div className="inline-flex items-center gap-2 rounded-lg bg-green-500/10 border border-green-500/25 px-3 py-1.5 text-sm text-green-400">
-        <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+      <div className="inline-flex items-center gap-2 rounded-lg bg-[var(--c-green)]/10 border border-[var(--c-green)]/25 px-3 py-1.5 text-sm text-[var(--c-green)]">
+        <span className="h-2 w-2 rounded-full bg-[var(--c-green)] shrink-0" />
         Edición habilitada hasta {fecha}
       </div>
     );
@@ -77,7 +77,7 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
       <button
         type="button"
         onClick={handleAbrir}
-        className="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-300 hover:bg-blue-500/15 transition-colors"
+        className="inline-flex items-center gap-2 rounded-lg border border-[var(--c-blue-soft)] bg-[var(--c-blue)]/10 px-3 py-1.5 text-sm font-medium text-[var(--c-blue-soft)] hover:bg-[var(--c-blue)]/15 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-1.414A2 2 0 019.586 13z" />
@@ -95,29 +95,29 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
           />
 
           {/* Panel */}
-          <div className="relative bg-slate-900 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="relative bg-[var(--c-bg-elev)] rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-start gap-4">
-              <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/15">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--c-blue)]/15">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[var(--c-blue-text)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-base font-semibold text-slate-100">Solicitar actualización de datos</h3>
-                  <span className="text-xs text-slate-500 shrink-0">Paso {paso === "confirmar" ? 1 : 2} de 2</span>
+                  <h3 className="text-base font-semibold text-[var(--c-text)]">Solicitar actualización de datos</h3>
+                  <span className="text-xs text-[var(--c-text-faint)] shrink-0">Paso {paso === "confirmar" ? 1 : 2} de 2</span>
                 </div>
                 {paso === "confirmar" ? (
                   <>
-                    <p className="mt-1 text-sm text-slate-400">
+                    <p className="mt-1 text-sm text-[var(--c-text-muted)]">
                       Vas a enviar una solicitud a los administradores para que te habiliten la edición de tu legajo por <strong>48 horas</strong>.
                     </p>
-                    <p className="mt-2 text-sm text-slate-400">
+                    <p className="mt-2 text-sm text-[var(--c-text-muted)]">
                       Una vez aprobada, recibirás una notificación y un email con la confirmación.
                     </p>
                   </>
                 ) : (
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-[var(--c-text-muted)]">
                     Confirmá tu contraseña para enviar la solicitud.
                   </p>
                 )}
@@ -127,8 +127,8 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
             {paso === "confirmar" && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <label htmlFor="toggle-motivo-edicion" className="text-sm text-slate-300">
-                    Escribir motivo de edición <span className="text-slate-500 font-normal">(opcional)</span>
+                  <label htmlFor="toggle-motivo-edicion" className="text-sm text-[var(--c-text-secondary)]">
+                    Escribir motivo de edición <span className="text-[var(--c-text-faint)] font-normal">(opcional)</span>
                   </label>
                   <button
                     id="toggle-motivo-edicion"
@@ -136,8 +136,8 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
                     role="switch"
                     aria-checked={escribirMotivo}
                     onClick={() => setEscribirMotivo((v) => !v)}
-                    className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 cursor-pointer ${
-                      escribirMotivo ? "bg-blue-600" : "bg-slate-600"
+                    className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:ring-offset-1 cursor-pointer ${
+                      escribirMotivo ? "bg-[var(--c-blue)]" : "bg-[var(--c-line-strong)]"
                     }`}
                   >
                     <span
@@ -154,7 +154,7 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
                     rows={3}
                     autoFocus
                     placeholder="Ej: Me mudé y necesito actualizar mi domicilio."
-                    className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2 text-sm text-[var(--c-text)] placeholder-[var(--c-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] resize-none"
                   />
                 )}
               </div>
@@ -162,7 +162,7 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
 
             {paso === "password" && (
               <div>
-                <label htmlFor="password-solicitud-edicion" className="block text-xs font-medium text-slate-300 mb-1">
+                <label htmlFor="password-solicitud-edicion" className="block text-xs font-medium text-[var(--c-text-secondary)] mb-1">
                   Contraseña
                 </label>
                 <div className="relative">
@@ -174,12 +174,12 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Tu contraseña"
-                    className="w-full rounded-lg border border-slate-700 px-3 py-2.5 pr-10 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2.5 pr-10 text-sm text-[var(--c-text)] placeholder-[var(--c-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent transition"
                   />
                   <button
                     type="button"
                     onClick={() => setMostrarPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--c-text-faint)] hover:text-[var(--c-text-muted)]"
                     tabIndex={-1}
                   >
                     {mostrarPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -189,7 +189,7 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
             )}
 
             {error && (
-              <p className="rounded-lg bg-red-500/10 border border-red-500/25 px-3 py-2 text-sm text-red-400">
+              <p className="rounded-lg bg-[var(--c-coral)]/10 border border-[var(--c-coral)]/25 px-3 py-2 text-sm text-[var(--c-coral)]">
                 {error}
               </p>
             )}
@@ -199,7 +199,7 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
                 type="button"
                 onClick={() => setModalAbierto(false)}
                 disabled={pending}
-                className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+                className="rounded-lg border border-[var(--c-line)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -207,7 +207,7 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
                 <button
                   type="button"
                   onClick={handleAvanzar}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                  className="rounded-lg bg-[var(--c-blue)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--c-blue-strong)] transition-colors"
                 >
                   Continuar
                 </button>
@@ -216,7 +216,7 @@ export default function SolicitarEdicionBtn({ tienePendiente, tienePermisoActivo
                   type="button"
                   onClick={handleConfirmar}
                   disabled={pending || password.length === 0}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                  className="rounded-lg bg-[var(--c-blue)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--c-blue-strong)] transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
                   {pending && <Spinner />}
                   {pending ? "Enviando..." : "Confirmar solicitud"}

@@ -10,7 +10,7 @@ export default function MobileMenuButton() {
     <button
       type="button"
       onClick={toggle}
-      className="lg:hidden -ml-1.5 rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+      className="lg:hidden -ml-1.5 rounded-lg p-2 text-[var(--c-text-muted)] hover:bg-[var(--c-bg-elev-2)] hover:text-[var(--c-text)] transition-colors"
       aria-label="Abrir menú"
     >
       <Menu className="w-5 h-5" strokeWidth={1.75} />

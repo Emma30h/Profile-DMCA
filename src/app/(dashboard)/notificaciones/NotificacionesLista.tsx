@@ -48,14 +48,14 @@ export default function NotificacionesLista({ notificaciones }: Props) {
     <div className="space-y-3">
       {tiposDisponibles.length > 1 && (
         <div className="flex items-center gap-2">
-          <label htmlFor="filtro-tipo-notif" className="text-xs text-slate-500 shrink-0">
+          <label htmlFor="filtro-tipo-notif" className="text-xs text-[var(--c-text-faint)] shrink-0">
             Filtrar por tipo
           </label>
           <select
             id="filtro-tipo-notif"
             value={filtroTipo}
             onChange={(e) => handleFiltroChange(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-1.5 text-sm text-[var(--c-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
           >
             <option value="">Todos los tipos</option>
             {tiposDisponibles.map((t) => (
@@ -65,13 +65,13 @@ export default function NotificacionesLista({ notificaciones }: Props) {
         </div>
       )}
 
-      <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden">
         {paginadas.length === 0 ? (
-          <div className="px-4 py-16 text-center text-sm text-slate-500">
+          <div className="px-4 py-16 text-center text-sm text-[var(--c-text-faint)]">
             {filtroTipo ? "No hay notificaciones de este tipo" : "No tenés notificaciones"}
           </div>
         ) : (
-          <ul className="divide-y divide-slate-800">
+          <ul className="divide-y divide-[var(--c-bg-elev-2)]">
             {paginadas.map((n) => {
               const href = hrefNotificacion(n.tipo, n.referenciaId);
 
@@ -79,19 +79,19 @@ export default function NotificacionesLista({ notificaciones }: Props) {
                 <div className="flex gap-3 items-start">
                   <span className="shrink-0 text-lg leading-5 mt-0.5">{iconoNotificacion(n.tipo)}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-300 leading-snug">{n.mensaje}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-sm text-[var(--c-text-secondary)] leading-snug">{n.mensaje}</p>
+                    <p className="text-xs text-[var(--c-text-faint)] mt-0.5">
                       {formatFechaHora(n.createdAt)}
                     </p>
                   </div>
                   {!n.leida && (
-                    <span className="shrink-0 mt-1.5 h-2 w-2 rounded-full bg-blue-500" />
+                    <span className="shrink-0 mt-1.5 h-2 w-2 rounded-full bg-[var(--c-blue)]" />
                   )}
                 </div>
               );
 
               return (
-                <li key={n.id} className={n.leida ? "bg-slate-900" : "bg-blue-500/10"}>
+                <li key={n.id} className={n.leida ? "bg-[var(--c-bg-elev)]" : "bg-[var(--c-blue)]/10"}>
                   {href ? (
                     <a href={href} className="block px-5 py-4 hover:brightness-95 transition-all">
                       {inner}
@@ -106,23 +106,23 @@ export default function NotificacionesLista({ notificaciones }: Props) {
         )}
 
         {totalPaginas > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-800 px-4 py-3">
+          <div className="flex items-center justify-between border-t border-[var(--c-bg-elev-2)] px-4 py-3">
             <button
               type="button"
               onClick={() => setPagina((p) => Math.max(1, p - 1))}
               disabled={paginaSegura <= 1}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="rounded-lg border border-[var(--c-line)] px-3 py-1.5 text-xs font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               ← Anterior
             </button>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-[var(--c-text-faint)]">
               Página {paginaSegura} de {totalPaginas}
             </span>
             <button
               type="button"
               onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
               disabled={paginaSegura >= totalPaginas}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="rounded-lg border border-[var(--c-line)] px-3 py-1.5 text-xs font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Siguiente →
             </button>

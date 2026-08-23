@@ -8,10 +8,10 @@ import { useState } from "react";
 // bastantes fotoUrl que ya no resuelven a nada). Varía de color según el
 // sexo para diferenciar de un vistazo, sin depender de imágenes externas.
 const ESTILO_POR_SEXO: Record<string, { bg: string; icon: string }> = {
-  MASCULINO: { bg: "bg-blue-500/15", icon: "text-blue-400" },
+  MASCULINO: { bg: "bg-[var(--c-blue)]/15", icon: "text-[var(--c-blue-text)]" },
   FEMENINO: { bg: "bg-purple-500/15", icon: "text-purple-400" },
 };
-const ESTILO_DEFAULT = { bg: "bg-slate-800", icon: "text-slate-500" };
+const ESTILO_DEFAULT = { bg: "bg-[var(--c-bg-elev-2)]", icon: "text-[var(--c-text-faint)]" };
 
 export default function AgenteAvatar({
   fotoUrl,
@@ -43,7 +43,7 @@ export default function AgenteAvatar({
         src={fotoUrl}
         alt=""
         onError={() => setError(true)}
-        className={`${sizeClassName} object-cover border border-slate-700`}
+        className={`${sizeClassName} object-cover border border-[var(--c-line)]`}
       />
     );
   }
@@ -51,7 +51,7 @@ export default function AgenteAvatar({
   const estilo = (sexo && ESTILO_POR_SEXO[sexo]) || ESTILO_DEFAULT;
 
   return (
-    <div className={`${sizeClassName} border border-slate-700 flex items-center justify-center ${estilo.bg}`}>
+    <div className={`${sizeClassName} border border-[var(--c-line)] flex items-center justify-center ${estilo.bg}`}>
       <svg viewBox="0 0 24 24" fill="currentColor" className={`${iconSizeClassName} ${estilo.icon}`}>
         <path
           fillRule="evenodd"

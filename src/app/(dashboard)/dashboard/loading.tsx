@@ -11,7 +11,7 @@ function Bar({ className = "" }: { className?: string }) {
 
 function KpiTileSkeleton() {
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 p-4 flex flex-col gap-2.5">
+    <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4 flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
         <Bar className="h-3 w-20" />
         <div className="w-7 h-7 rounded-lg skeleton-shimmer" />
@@ -33,7 +33,7 @@ export default function DashboardLoading() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
-        <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 flex flex-col items-center gap-4">
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 flex flex-col items-center gap-4">
           <Bar className="h-4 w-40 self-start" />
           <div className="w-36 h-36 rounded-full skeleton-shimmer" />
           <div className="w-full space-y-2">
@@ -41,7 +41,7 @@ export default function DashboardLoading() {
             <Bar className="h-3 w-5/6" />
           </div>
         </div>
-        <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 space-y-3">
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 space-y-3">
           <Bar className="h-4 w-44" />
           <Bar className="h-3 w-24" />
           {Array.from({ length: 6 }).map((_, i) => (
@@ -54,7 +54,7 @@ export default function DashboardLoading() {
         </div>
       </div>
 
-      <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 mb-4 flex flex-col items-center gap-3">
+      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 mb-4 flex flex-col items-center gap-3">
         <Bar className="h-4 w-32 self-start" />
         <div className="flex items-center justify-center gap-10 py-2">
           <div className="w-20 h-20 rounded-full skeleton-shimmer" />
@@ -63,13 +63,13 @@ export default function DashboardLoading() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
-        <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 space-y-3">
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 space-y-3">
           <Bar className="h-4 w-36" />
           <div className="flex items-center justify-center py-2">
             <div className="w-24 h-24 rounded-full skeleton-shimmer" />
           </div>
         </div>
-        <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 space-y-3">
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 space-y-3">
           <div className="flex items-baseline justify-between">
             <Bar className="h-4 w-28" />
             <Bar className="h-3 w-20" />
@@ -81,7 +81,7 @@ export default function DashboardLoading() {
         </div>
       </div>
 
-      <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 space-y-3">
+      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 space-y-3">
         <Bar className="h-4 w-48" />
         <Bar className="h-40 w-full" />
       </div>

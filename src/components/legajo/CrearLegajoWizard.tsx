@@ -81,14 +81,14 @@ const inicial: FormData = {
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="block text-sm font-medium text-slate-300 mb-1">{children}</label>;
+  return <label className="block text-sm font-medium text-[var(--c-text-secondary)] mb-1">{children}</label>;
 }
 
 function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`w-full border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-950 ${props.className ?? ""}`}
+      className={`w-full border border-[var(--c-line)] rounded-lg px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent disabled:bg-[var(--c-bg)] ${props.className ?? ""}`}
     />
   );
 }
@@ -98,7 +98,7 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement> & { childre
   return (
     <select
       {...rest}
-      className={`w-full border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-900 ${rest.className ?? ""}`}
+      className={`w-full border border-[var(--c-line)] rounded-lg px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent bg-[var(--c-bg-elev)] ${rest.className ?? ""}`}
     >
       {children}
     </select>
@@ -110,7 +110,7 @@ function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
     <textarea
       {...props}
       rows={props.rows ?? 2}
-      className={`w-full border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${props.className ?? ""}`}
+      className={`w-full border border-[var(--c-line)] rounded-lg px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent resize-none ${props.className ?? ""}`}
     />
   );
 }
@@ -332,16 +332,16 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
 
   if (listo) {
     return (
-      <div className="bg-slate-900 rounded-xl border border-slate-700 px-8 py-16 text-center space-y-4">
+      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] px-8 py-16 text-center space-y-4">
         <div className="text-5xl">✅</div>
-        <h2 className="text-xl font-bold text-slate-100">¡Legajo enviado para revisión!</h2>
-        <p className="text-slate-400 text-sm max-w-md mx-auto">
+        <h2 className="text-xl font-bold text-[var(--c-text)]">¡Legajo enviado para revisión!</h2>
+        <p className="text-[var(--c-text-muted)] text-sm max-w-md mx-auto">
           Tu legajo fue creado correctamente. Un administrador lo revisará y completará los datos
           restantes (sector y jerarquía). Te notificaremos cuando esté listo.
         </p>
         <button
           onClick={() => router.push("/mi-legajo")}
-          className="mt-4 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+          className="mt-4 inline-flex items-center gap-2 bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
         >
           Ir a mi legajo
         </button>
@@ -368,15 +368,15 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
                   alcanzado ? "cursor-pointer" : "cursor-not-allowed"
                 } ${
                   i < paso
-                    ? "bg-blue-600 text-white hover:ring-4 hover:ring-blue-500/20"
+                    ? "bg-[var(--c-blue)] text-white hover:ring-4 hover:ring-[var(--c-blue)]/20"
                     : i === paso
-                    ? "bg-blue-600 text-white ring-4 ring-blue-500/20"
-                    : "bg-slate-800 text-slate-500"
+                    ? "bg-[var(--c-blue)] text-white ring-4 ring-[var(--c-blue)]/20"
+                    : "bg-[var(--c-bg-elev-2)] text-[var(--c-text-faint)]"
                 }`}
               >
                 {i < paso ? "✓" : i + 1}
               </button>
-              <span className={`text-[10px] font-medium hidden sm:block transition-colors duration-300 ${i === paso ? "text-blue-400" : "text-slate-500"}`}>
+              <span className={`text-[10px] font-medium hidden sm:block transition-colors duration-300 ${i === paso ? "text-[var(--c-blue-text)]" : "text-[var(--c-text-faint)]"}`}>
                 {nombre}
               </span>
             </div>
@@ -384,9 +384,9 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
               // Track fijo + relleno que anima su ancho: al avanzar/retroceder
               // un paso, la línea entre esos dos círculos se llena (o vacía) de
               // forma orgánica en vez de cambiar de color de golpe.
-              <div className="h-0.5 w-5 sm:w-10 mx-1 mt-[-12px] rounded-full bg-slate-700 overflow-hidden shrink-0">
+              <div className="h-0.5 w-5 sm:w-10 mx-1 mt-[-12px] rounded-full bg-[var(--c-line)] overflow-hidden shrink-0">
                 <div
-                  className="h-full rounded-full bg-blue-600 transition-[width] duration-500 ease-out"
+                  className="h-full rounded-full bg-[var(--c-blue)] transition-[width] duration-500 ease-out"
                   style={{ width: i < paso ? "100%" : "0%" }}
                 />
               </div>
@@ -403,7 +403,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
   function PasoDatosPersonales() {
     return (
       <div className="space-y-4">
-        <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2">Datos Personales</h3>
+        <h3 className="text-base font-semibold text-[var(--c-text)] border-b border-[var(--c-bg-elev-2)] pb-2">Datos Personales</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Apellido/s *">
             <Input value={form.apellidos} onChange={(e) => set("apellidos", e.target.value)} placeholder="Ej: García López" />
@@ -491,11 +491,11 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
   function PasoContacto() {
     return (
       <div className="space-y-4">
-        <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2">Contacto y Domicilio</h3>
+        <h3 className="text-base font-semibold text-[var(--c-text)] border-b border-[var(--c-bg-elev-2)] pb-2">Contacto y Domicilio</h3>
 
-        <div className="bg-blue-500/10 border border-blue-500/25 rounded-lg px-4 py-3 text-sm text-blue-300">
+        <div className="bg-[var(--c-blue)]/10 border border-[var(--c-blue)]/25 rounded-lg px-4 py-3 text-sm text-[var(--c-blue-soft)]">
           <span className="font-medium">Correo electrónico:</span> {emailUsuario}
-          <span className="text-blue-500 ml-2">(tomado de tu cuenta registrada)</span>
+          <span className="text-[var(--c-blue)] ml-2">(tomado de tu cuenta registrada)</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -511,7 +511,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
           <Input value={form.contactoEmergencia} onChange={(e) => set("contactoEmergencia", e.target.value)} placeholder="Ej: Madre — María García" />
         </Field>
 
-        <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2 pt-2">Domicilio actual</h3>
+        <h3 className="text-base font-semibold text-[var(--c-text)] border-b border-[var(--c-bg-elev-2)] pb-2 pt-2">Domicilio actual</h3>
         <Field label="Domicilio real (calle) *">
           <Input value={form.domicilioReal} onChange={(e) => set("domicilioReal", e.target.value)} placeholder="Ej: Av. Colón" />
         </Field>
@@ -536,7 +536,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
   function PasoLaboral() {
     return (
       <div className="space-y-4">
-        <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2">Datos Laborales</h3>
+        <h3 className="text-base font-semibold text-[var(--c-text)] border-b border-[var(--c-bg-elev-2)] pb-2">Datos Laborales</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Tipo de personal *">
             <Select value={form.tipoPersonal} onChange={(e) => setTipoPersonal(e.target.value)}>
@@ -559,7 +559,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
 
         {tieneJerarquia && (
           <>
-            <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2 pt-2">Personal {form.tipoPersonal === "SEGURIDAD" ? "de Seguridad" : "Técnico"}</h3>
+            <h3 className="text-base font-semibold text-[var(--c-text)] border-b border-[var(--c-bg-elev-2)] pb-2 pt-2">Personal {form.tipoPersonal === "SEGURIDAD" ? "de Seguridad" : "Técnico"}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Jerarquía">
                 <Select value={form.rangoId} onChange={(e) => set("rangoId", e.target.value)}>
@@ -586,9 +586,9 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
                 id="etac"
                 checked={form.perteneceETAC}
                 onChange={(e) => set("perteneceETAC", e.target.checked)}
-                className="w-4 h-4 rounded border-slate-700 text-blue-400"
+                className="w-4 h-4 rounded border-[var(--c-line)] text-[var(--c-blue-text)]"
               />
-              <label htmlFor="etac" className="text-sm text-slate-300">Perteneció al E.T.A.C.</label>
+              <label htmlFor="etac" className="text-sm text-[var(--c-text-secondary)]">Perteneció al E.T.A.C.</label>
             </div>
           </>
         )}
@@ -610,7 +610,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
           )}
         </div>
 
-        <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2 pt-2">Información Complementaria</h3>
+        <h3 className="text-base font-semibold text-[var(--c-text)] border-b border-[var(--c-bg-elev-2)] pb-2 pt-2">Información Complementaria</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Hijos a cargo">
             <Select value={String(form.hijosCargo)} onChange={(e) => set("hijosCargo", parseInt(e.target.value))}>
@@ -626,9 +626,9 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
                 id="sepelio"
                 checked={form.poseeSepelio}
                 onChange={(e) => set("poseeSepelio", e.target.checked)}
-                className="w-4 h-4 rounded border-slate-700 text-blue-400"
+                className="w-4 h-4 rounded border-[var(--c-line)] text-[var(--c-blue-text)]"
               />
-              <label htmlFor="sepelio" className="text-sm text-slate-300">Posee servicio de sepelio</label>
+              <label htmlFor="sepelio" className="text-sm text-[var(--c-text-secondary)]">Posee servicio de sepelio</label>
             </div>
           </div>
         </div>
@@ -644,7 +644,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
   function PasoMedica() {
     return (
       <div className="space-y-4">
-        <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2">Información Médica</h3>
+        <h3 className="text-base font-semibold text-[var(--c-text)] border-b border-[var(--c-bg-elev-2)] pb-2">Información Médica</h3>
         <Field label="Grupo sanguíneo *">
           <Select value={form.grupoSanguineo} onChange={(e) => set("grupoSanguineo", e.target.value)}>
             <option value="">Seleccionar...</option>
@@ -673,8 +673,8 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
     };
     return (
       <div className="space-y-4">
-        <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2">Información Académica</h3>
-        <p className="text-xs text-slate-500">Completá solo los niveles que hayas comenzado.</p>
+        <h3 className="text-base font-semibold text-[var(--c-text)] border-b border-[var(--c-bg-elev-2)] pb-2">Información Académica</h3>
+        <p className="text-xs text-[var(--c-text-faint)]">Completá solo los niveles que hayas comenzado.</p>
         {(["nivelPrimario", "nivelSecundario", "nivelTerciario", "nivelUniversitario", "nivelSuperior"] as const).map((campo) => {
           const labels: Record<typeof campo, string> = {
             nivelPrimario: "Primario", nivelSecundario: "Secundario",
@@ -693,7 +693,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
           <Textarea rows={3} value={form.detalleTitulos} onChange={(e) => set("detalleTitulos", e.target.value)} placeholder="Ej: 4to año de Psicología (en curso) — Licenciatura en Criminalística (completa)" />
         </Field>
 
-        <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2 pt-2">Licencia de Conducir</h3>
+        <h3 className="text-base font-semibold text-[var(--c-text)] border-b border-[var(--c-bg-elev-2)] pb-2 pt-2">Licencia de Conducir</h3>
         <Field label="Categoría *">
           <Select value={form.licenciaConducir} onChange={(e) => set("licenciaConducir", e.target.value)}>
             <option value="">Seleccionar...</option>
@@ -719,10 +719,10 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
   function PasoFoto() {
     return (
       <div className="space-y-5">
-        <h3 className="text-base font-semibold text-slate-100 border-b border-slate-800 pb-2">Foto del legajo</h3>
-        <div className="bg-amber-500/10 border border-amber-500/25 rounded-lg px-4 py-3 text-sm text-amber-400 space-y-1">
+        <h3 className="text-base font-semibold text-[var(--c-text)] border-b border-[var(--c-bg-elev-2)] pb-2">Foto del legajo</h3>
+        <div className="bg-[var(--c-amber)]/10 border border-[var(--c-amber)]/25 rounded-lg px-4 py-3 text-sm text-[var(--c-amber)] space-y-1">
           <p className="font-medium">Requisitos para la foto:</p>
-          <ul className="list-disc list-inside space-y-0.5 text-amber-400">
+          <ul className="list-disc list-inside space-y-0.5 text-[var(--c-amber)]">
             <li>Sin lentes ni gorra</li>
             <li>Preferentemente fondo blanco</li>
             <li>Espacio bien iluminado</li>
@@ -731,18 +731,18 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          <div className="w-32 h-32 rounded-full bg-slate-800 border-4 border-dashed border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="w-32 h-32 rounded-full bg-[var(--c-bg-elev-2)] border-4 border-dashed border-[var(--c-line)] flex items-center justify-center overflow-hidden shrink-0">
             {fotoPreview ? (
               <img src={fotoPreview} alt="Vista previa" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-slate-500 text-3xl">👤</span>
+              <span className="text-[var(--c-text-faint)] text-3xl">👤</span>
             )}
           </div>
           <div className="space-y-2 flex-1">
             <div className="flex flex-wrap gap-2">
               <label
                 htmlFor="foto-input"
-                className="inline-flex items-center gap-2 cursor-pointer bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 cursor-pointer bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:bg-[var(--c-bg-elev-2)] text-[var(--c-text-secondary)] text-sm font-medium px-4 py-2 rounded-lg transition-colors"
               >
                 📎 Seleccionar foto
               </label>
@@ -759,7 +759,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
               <button
                 type="button"
                 onClick={handleTomarFoto}
-                className="inline-flex items-center gap-2 cursor-pointer bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 cursor-pointer bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:bg-[var(--c-bg-elev-2)] text-[var(--c-text-secondary)] text-sm font-medium px-4 py-2 rounded-lg transition-colors"
               >
                 📷 Tomar foto
               </button>
@@ -774,9 +774,9 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
               />
             </div>
             {form.fotoFile && (
-              <p className="text-xs text-slate-400">{form.fotoFile.name}</p>
+              <p className="text-xs text-[var(--c-text-muted)]">{form.fotoFile.name}</p>
             )}
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[var(--c-text-faint)]">
               La foto es opcional. Podés subirla más tarde desde tu legajo.
               La imagen se comprimirá automáticamente.
             </p>
@@ -809,12 +809,12 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
       <div ref={inicioRef} />
       <StepIndicator />
 
-      <div key={paso} className="bg-slate-900 rounded-xl border border-slate-700 p-6 wizard-step-in">
+      <div key={paso} className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-6 wizard-step-in">
         {stepComponents[paso]}
       </div>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/25 rounded-lg px-4 py-3 text-sm text-red-400">
+        <div className="bg-[var(--c-coral)]/10 border border-[var(--c-coral)]/25 rounded-lg px-4 py-3 text-sm text-[var(--c-coral)]">
           {error}
         </div>
       )}
@@ -823,7 +823,7 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
         <button
           onClick={retroceder}
           disabled={paso === 0 || isPending}
-          className="px-4 py-2 text-sm font-medium text-slate-400 border border-slate-700 rounded-lg hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 text-sm font-medium text-[var(--c-text-muted)] border border-[var(--c-line)] rounded-lg hover:bg-[var(--c-bg-elev-2)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           ← Anterior
         </button>
@@ -832,14 +832,14 @@ export default function CrearLegajoWizard({ rangos, emailUsuario, datosIniciales
           <button
             onClick={handleSubmit}
             disabled={isPending}
-            className="px-6 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 text-sm font-semibold bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? "Enviando..." : "Enviar legajo"}
           </button>
         ) : (
           <button
             onClick={avanzar}
-            className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] text-white rounded-lg transition-colors"
           >
             Siguiente →
           </button>

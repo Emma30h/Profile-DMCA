@@ -26,12 +26,12 @@ export default async function OrganigramaPage() {
     <div className="flex flex-col gap-5 h-full">
       <div className="shrink-0 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-slate-100">Organigrama</h2>
+          <h2 className="text-xl font-semibold text-[var(--c-text)]">Organigrama</h2>
         </div>
         {esAdmin && (
           <Link
             href="/configuracion/organigrama"
-            className="shrink-0 inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+            className="shrink-0 inline-flex items-center gap-1.5 text-sm text-[var(--c-text-secondary)] hover:text-[var(--c-text)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] border border-[var(--c-line)] px-3 py-1.5 rounded-lg transition-colors"
           >
             ⚙️ Editar organigrama
           </Link>

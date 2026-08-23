@@ -17,11 +17,11 @@ const ROL_LABELS: Record<RolUsuario, string> = {
 };
 
 const ROL_BADGE: Record<RolUsuario, string> = {
-  SUPERADMIN: "bg-red-500/15 text-red-400",
-  ADMIN: "bg-blue-500/15 text-blue-300",
+  SUPERADMIN: "bg-[var(--c-coral)]/15 text-[var(--c-coral)]",
+  ADMIN: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
   SUPERVISOR: "bg-purple-500/15 text-purple-400",
-  OPERADOR: "bg-green-500/15 text-green-400",
-  READONLY: "bg-slate-800 text-slate-400",
+  OPERADOR: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
+  READONLY: "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]",
 };
 
 const ESTADO_CIVIL_LABELS: Record<string, string> = {
@@ -130,11 +130,11 @@ export default async function PerfilPage() {
       <EventosResumenMobile />
 
       {/* Hero — estilo LinkedIn */}
-      <div className="bg-slate-900 rounded-xl border border-slate-700">
+      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)]">
 
         {/* Banner + avatar: wrapper relativo para el overlap */}
         <div className="relative">
-          <div className="h-36 bg-gradient-to-br from-blue-950 via-blue-900 to-blue-700 rounded-t-xl overflow-hidden">
+          <div className="h-36 bg-gradient-to-br from-[var(--c-blue-strong)] via-[var(--c-blue-strong)] to-[var(--c-blue-strong)] rounded-t-xl overflow-hidden">
             <Image
               src="/logo-ojos-en-alerta-blanco.png"
               alt=""
@@ -167,10 +167,10 @@ export default async function PerfilPage() {
 
         {/* Datos — pt para dejar espacio al avatar */}
         <div className="px-6 pb-6 pt-14">
-          <h1 className="text-xl font-bold text-slate-100 leading-tight">{nombreCompleto}</h1>
+          <h1 className="text-xl font-bold text-[var(--c-text)] leading-tight">{nombreCompleto}</h1>
 
           {subtitulo && (
-            <p className="text-sm text-slate-400 mt-0.5">{subtitulo}</p>
+            <p className="text-sm text-[var(--c-text-muted)] mt-0.5">{subtitulo}</p>
           )}
 
           <div className="flex flex-wrap items-center gap-2 mt-2.5">
@@ -178,18 +178,18 @@ export default async function PerfilPage() {
               {ROL_LABELS[rol]}
             </span>
             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              usuario?.activo !== false ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"
+              usuario?.activo !== false ? "bg-[var(--c-green)]/15 text-[var(--c-green)]" : "bg-[var(--c-coral)]/15 text-[var(--c-coral)]"
             }`}>
               {usuario?.activo !== false ? "Cuenta activa" : "Cuenta inactiva"}
             </span>
             {solicitudFotoPendiente && (
-              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400">
+              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-[var(--c-amber)]/15 text-[var(--c-amber)]">
                 <span className="hourglass-flip">⏳</span> {solicitudFotoPendiente.tipo === "SUBIR" ? "Foto nueva en revisión" : "Solicitud para sacar tu foto en revisión"}
               </span>
             )}
           </div>
 
-          <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-[var(--c-text-faint)]">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
@@ -201,23 +201,23 @@ export default async function PerfilPage() {
       {/* Sin legajo vinculado: única forma de llegar a /mi-legajo para un
           READONLY, porque el Sidebar le oculta toda la navegación. */}
       {!agente && (
-        <div className="bg-slate-900 rounded-xl border border-slate-700 p-6 flex items-center justify-between gap-4 flex-wrap">
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-6 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[var(--c-amber)]/10 border border-[var(--c-amber)]/20 flex items-center justify-center text-[var(--c-amber)] shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-100">Todavía no tenés un legajo vinculado</p>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-sm font-medium text-[var(--c-text)]">Todavía no tenés un legajo vinculado</p>
+              <p className="text-xs text-[var(--c-text-muted)] mt-0.5">
                 Vinculalo con un legajo ya cargado o cargá tus datos desde cero.
               </p>
             </div>
           </div>
           <a
             href="/mi-legajo"
-            className="shrink-0 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 transition-colors"
+            className="shrink-0 rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] text-white text-sm font-medium px-4 py-2 transition-colors"
           >
             Ir a Mi Legajo
           </a>
@@ -231,70 +231,70 @@ export default async function PerfilPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
           {/* Datos personales */}
-          <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-5">Datos personales</p>
+          <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-6">
+            <p className="text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-5">Datos personales</p>
             <div className="space-y-4">
 
               {ubicacionActual && (
                 <FilaDato
                   icon={<IconMapPin />}
-                  label={<>Vive en <span className="font-medium text-slate-100">{ubicacionActual}</span></>}
+                  label={<>Vive en <span className="font-medium text-[var(--c-text)]">{ubicacionActual}</span></>}
                 />
               )}
 
               {origen && (
                 <FilaDato
                   icon={<IconHome />}
-                  label={<>De <span className="font-medium text-slate-100">{origen}</span></>}
+                  label={<>De <span className="font-medium text-[var(--c-text)]">{origen}</span></>}
                 />
               )}
 
               {agente.nacionalidad && (
                 <FilaDato
                   icon={<IconFlag />}
-                  label={<span className="font-medium text-slate-100">{agente.nacionalidad}</span>}
+                  label={<span className="font-medium text-[var(--c-text)]">{agente.nacionalidad}</span>}
                 />
               )}
 
               {fechaNacimientoFmt && (
                 <FilaDato
                   icon={<IconCake />}
-                  label={<>Nacido/a el <span className="font-medium text-slate-100">{fechaNacimientoFmt}</span></>}
+                  label={<>Nacido/a el <span className="font-medium text-[var(--c-text)]">{fechaNacimientoFmt}</span></>}
                 />
               )}
 
               {agente.estadoCivil && (
                 <FilaDato
                   icon={<IconHeart />}
-                  label={<span className="font-medium text-slate-100">{ESTADO_CIVIL_LABELS[agente.estadoCivil] ?? agente.estadoCivil}</span>}
+                  label={<span className="font-medium text-[var(--c-text)]">{ESTADO_CIVIL_LABELS[agente.estadoCivil] ?? agente.estadoCivil}</span>}
                 />
               )}
 
               {(agente.hijosCargo ?? 0) > 0 && (
                 <FilaDato
                   icon={<IconUsers />}
-                  label={<><span className="font-medium text-slate-100">{agente.hijosCargo}</span> {agente.hijosCargo === 1 ? "hijo a cargo" : "hijos a cargo"}</>}
+                  label={<><span className="font-medium text-[var(--c-text)]">{agente.hijosCargo}</span> {agente.hijosCargo === 1 ? "hijo a cargo" : "hijos a cargo"}</>}
                 />
               )}
 
               {sexoLabel && (
                 <FilaDato
                   icon={<IconPerson />}
-                  label={<span className="font-medium text-slate-100">{sexoLabel}</span>}
+                  label={<span className="font-medium text-[var(--c-text)]">{sexoLabel}</span>}
                 />
               )}
 
               {agente.grupoSanguineo && (
                 <FilaDato
                   icon={<IconDrop />}
-                  label={<>Grupo sanguíneo <span className="font-medium text-slate-100">{agente.grupoSanguineo}</span></>}
+                  label={<>Grupo sanguíneo <span className="font-medium text-[var(--c-text)]">{agente.grupoSanguineo}</span></>}
                 />
               )}
 
               {agente.telefono && (
                 <FilaDato
                   icon={<IconPhone />}
-                  label={<span className="font-medium text-slate-100">{agente.telefono}</span>}
+                  label={<span className="font-medium text-[var(--c-text)]">{agente.telefono}</span>}
                 />
               )}
 
@@ -305,35 +305,35 @@ export default async function PerfilPage() {
           <div className="flex flex-col gap-4">
 
             {(agente.sector || fechaIngresoFmt || agente.turno || agente.rango) && (
-              <div className="flex-1 bg-slate-900 rounded-xl border border-slate-700 p-6">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-5">Información laboral</p>
+              <div className="flex-1 bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-6">
+                <p className="text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-5">Información laboral</p>
                 <div className="space-y-4">
 
                   {agente.sector && (
                     <FilaDato
                       icon={<IconBuilding />}
-                      label={<span className="font-medium text-slate-100">{agente.sector.nombre}</span>}
+                      label={<span className="font-medium text-[var(--c-text)]">{agente.sector.nombre}</span>}
                     />
                   )}
 
                   {agente.rango && (
                     <FilaDato
                       icon={<IconBadge />}
-                      label={<span className="font-medium text-slate-100">{agente.rango.nombre}</span>}
+                      label={<span className="font-medium text-[var(--c-text)]">{agente.rango.nombre}</span>}
                     />
                   )}
 
                   {fechaIngresoFmt && (
                     <FilaDato
                       icon={<IconCalendar />}
-                      label={<>Ingresó el <span className="font-medium text-slate-100">{fechaIngresoFmt}</span></>}
+                      label={<>Ingresó el <span className="font-medium text-[var(--c-text)]">{fechaIngresoFmt}</span></>}
                     />
                   )}
 
                   {agente.turno && (
                     <FilaDato
                       icon={<IconClock />}
-                      label={<>Turno <span className="font-medium text-slate-100">{agente.turno}</span></>}
+                      label={<>Turno <span className="font-medium text-[var(--c-text)]">{agente.turno}</span></>}
                     />
                   )}
 
@@ -342,23 +342,23 @@ export default async function PerfilPage() {
             )}
 
             {/* Legajo vinculado — alineado al bottom de la columna */}
-            <div className="mt-auto bg-slate-900 rounded-xl border border-slate-700 p-6">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Legajo vinculado</p>
+            <div className="mt-auto bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-6">
+              <p className="text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-4">Legajo vinculado</p>
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-[var(--c-blue)]/10 border border-[var(--c-blue)]/20 flex items-center justify-center text-[var(--c-blue-text)] shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-100">
+                    <p className="font-medium text-[var(--c-text)]">
                       {agente.apellidos}, {agente.nombres}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-[var(--c-text-muted)] mt-0.5">
                       CUIL: <span className="font-mono">{agente.cuil}</span>
                       {agente.rango && (
-                        <span className="ml-2 text-slate-500">· {agente.rango.nombre}</span>
+                        <span className="ml-2 text-[var(--c-text-faint)]">· {agente.rango.nombre}</span>
                       )}
                     </p>
                   </div>
@@ -374,23 +374,23 @@ export default async function PerfilPage() {
 
       {/* Seguridad */}
       {esEmailProvider && (
-        <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Seguridad</p>
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-6">
+          <p className="text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-4">Seguridad</p>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-950 border border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[var(--c-bg)] border border-[var(--c-line)] flex items-center justify-center text-[var(--c-text-muted)] shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-100">Contraseña</p>
-                <p className="text-xs text-slate-400 mt-0.5">Enviamos un código a tu email para que puedas cambiarla</p>
+                <p className="text-sm font-medium text-[var(--c-text)]">Contraseña</p>
+                <p className="text-xs text-[var(--c-text-muted)] mt-0.5">Enviamos un código a tu email para que puedas cambiarla</p>
               </div>
             </div>
             <a
               href="/cambiar-contrasena"
-              className="shrink-0 rounded-lg border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium px-4 py-2 transition-colors"
+              className="shrink-0 rounded-lg border border-[var(--c-line)] hover:bg-[var(--c-bg-elev-2)] text-[var(--c-text-secondary)] text-sm font-medium px-4 py-2 transition-colors"
             >
               Cambiar
             </a>
@@ -406,8 +406,8 @@ export default async function PerfilPage() {
 function FilaDato({ icon, label }: { icon: React.ReactNode; label: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-slate-500 shrink-0">{icon}</span>
-      <p className="text-sm text-slate-400">{label}</p>
+      <span className="text-[var(--c-text-faint)] shrink-0">{icon}</span>
+      <p className="text-sm text-[var(--c-text-muted)]">{label}</p>
     </div>
   );
 }

@@ -38,9 +38,9 @@ export default function AvatarConVerFoto({ fotoUrl, sexo, inicial, nombreComplet
     <div ref={wrapperRef} className="relative">
       {/* Respaldo opaco: el ícono por defecto de AgenteAvatar (sin foto) usa
           un fondo semitransparente, pensado para asentarse sobre una tarjeta
-          bg-slate-900 — acá se superpone al banner con degradé, y sin esto
+          bg-[var(--c-bg-elev)] — acá se superpone al banner con degradé, y sin esto
           el degradé se filtraba de forma irregular detrás del ícono. */}
-      <div className="absolute inset-0 rounded-full bg-slate-900" />
+      <div className="absolute inset-0 rounded-full bg-[var(--c-bg-elev)]" />
       <div className="relative">
         <button
           type="button"
@@ -49,14 +49,14 @@ export default function AvatarConVerFoto({ fotoUrl, sexo, inicial, nombreComplet
           className={`block rounded-full ${fotoUrl ? "cursor-pointer" : "cursor-default"}`}
         >
           {inicial && !fotoUrl ? (
-            <div className="w-20 h-20 rounded-full bg-blue-700 border-4 border-slate-900 flex items-center justify-center text-white text-2xl font-bold shadow">
+            <div className="w-20 h-20 rounded-full bg-[var(--c-blue-strong)] border-4 border-[var(--c-bg-elev)] flex items-center justify-center text-white text-2xl font-bold shadow">
               {inicial}
             </div>
           ) : (
             <AgenteAvatar
               fotoUrl={fotoUrl}
               sexo={sexo}
-              sizeClassName="w-20 h-20 rounded-full border-4 border-slate-900 shadow"
+              sizeClassName="w-20 h-20 rounded-full border-4 border-[var(--c-bg-elev)] shadow"
               iconSizeClassName="h-8 w-8"
             />
           )}
@@ -67,7 +67,7 @@ export default function AvatarConVerFoto({ fotoUrl, sexo, inicial, nombreComplet
             <button
               type="button"
               onClick={() => { setPreviewAbierto(true); setPopoverAbierto(false); }}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 shadow-lg shadow-black/40 hover:bg-slate-700 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--c-bg-elev-2)] border border-[var(--c-line)] px-3 py-1.5 text-xs font-medium text-[var(--c-text)] shadow-lg shadow-black/40 hover:bg-[var(--c-line)] transition-colors"
             >
               👁️ Ver foto
             </button>

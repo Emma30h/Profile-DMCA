@@ -1,12 +1,70 @@
 @import "tailwindcss";
 
+/* ─── Tema claro/oscuro ──────────────────────────────────────────────────
+   Tailwind graba el valor final de cada color DENTRO de la clase compilada
+   (ej. .bg-slate-900 { background-color: #111c31 }), no como referencia a
+   una variable — así que redefinir --color-slate-900 en un selector
+   [data-theme="light"] no cambiaría nada ya generado. Por eso el contenido
+   (no el sidebar/header, que quedan siempre oscuros) usa estas variables
+   propias vía clases arbitrarias (bg-[var(--c-bg-elev)]) en vez de
+   bg-slate-900 directo: son variables reales, sí quedan vivas en el CSS de
+   salida y responden al atributo data-theme en tiempo de ejecución. */
 :root {
   --background: #0d1526;
   --foreground: #e6edf7;
-  /* La app es siempre oscura: le indica al navegador que use su esquema
-     oscuro para controles nativos (selector de fecha/hora, ícono de
-     calendario, scrollbars, checkbox de autocompletado, etc.). */
   color-scheme: dark;
+
+  --c-bg: #0d1526;
+  --c-bg-elev: #111c31;
+  --c-bg-elev-2: #17223a;
+  --c-line: #2b3550;
+  --c-line-strong: #3c4864;
+  --c-text: #e6edf7;
+  --c-text-secondary: #b3bcc9;
+  --c-text-muted: #8891a3;
+  --c-text-faint: #5c6576;
+  --c-on-accent: #ffffff;
+
+  --c-blue: #2f7cf6;
+  --c-blue-strong: #204d9c;
+  --c-blue-text: #5c9dff;
+  --c-blue-soft: #8fbcff;
+
+  --c-green: #34d399;
+  --c-green-strong: #1aa377;
+  --c-amber: #f0b429;
+  --c-amber-strong: #b5820f;
+  --c-coral: #ef5f6b;
+  --c-coral-strong: #cf2e3a;
+}
+
+[data-theme="light"] {
+  --background: #f2f2f3;
+  --foreground: #1d1f20;
+  color-scheme: light;
+
+  --c-bg: #f2f2f3;
+  --c-bg-elev: #ffffff;
+  --c-bg-elev-2: #ececee;
+  --c-line: #d7d7da;
+  --c-line-strong: #c3c3c7;
+  --c-text: #1d1f20;
+  --c-text-secondary: #4b4d4f;
+  --c-text-muted: #6d6f71;
+  --c-text-faint: #9a9b9d;
+  --c-on-accent: #ffffff;
+
+  --c-blue: #2f7cf6;
+  --c-blue-strong: #1e4fa8;
+  --c-blue-text: #2b5d9e;
+  --c-blue-soft: #4a79c4;
+
+  --c-green: #0f8f5b;
+  --c-green-strong: #0b7248;
+  --c-amber: #8f6200;
+  --c-amber-strong: #714d00;
+  --c-coral: #c8323f;
+  --c-coral-strong: #a52632;
 }
 
 @theme inline {
@@ -94,6 +152,16 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-head), var(--font-sans), sans-serif;
 }
+
+/* Toggle de tema (ver ThemeToggle.tsx): sin estado de React — evita el
+   set-state-in-effect que este repo trata como error (ver memoria del
+   proyecto) y el flash de hidratación que traería leer `document` recién
+   en un efecto. Los dos íconos se renderizan siempre; CSS decide cuál se
+   ve según el atributo que ya dejó puesto el script anti-flash del layout. */
+.icon-tema-oscuro { display: inline-flex; }
+.icon-tema-claro { display: none; }
+[data-theme="light"] .icon-tema-oscuro { display: none; }
+[data-theme="light"] .icon-tema-claro { display: inline-flex; }
 
 /* Fondo/texto por defecto de campos de formulario que no declaran su propio
    color (evita inputs blancos ilegibles sobre el tema oscuro). Los componentes

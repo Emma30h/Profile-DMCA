@@ -12,10 +12,10 @@ export default function AgenteAncladoChip() {
   if (!anclado) return null;
 
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-blue-500/40 bg-blue-500/10 py-1 pl-1 pr-1 text-xs font-medium text-blue-300">
+    <div className="flex items-center gap-0.5 rounded-lg border border-[var(--c-blue)]/40 bg-[var(--c-blue)]/10 py-1 pl-1 pr-1 text-xs font-medium text-[var(--c-blue-soft)]">
       <Link
         href={`/personal/${anclado.id}`}
-        className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 hover:bg-blue-500/20 transition-colors"
+        className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 hover:bg-[var(--c-blue)]/20 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
           <path
@@ -30,7 +30,7 @@ export default function AgenteAncladoChip() {
         type="button"
         onClick={desanclar}
         title="Desanclar"
-        className="rounded p-1 text-blue-400/70 hover:text-blue-200 hover:bg-blue-500/20 transition-colors"
+        className="rounded p-1 text-[var(--c-blue-text)]/70 hover:text-[var(--c-blue-soft)] hover:bg-[var(--c-blue)]/20 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

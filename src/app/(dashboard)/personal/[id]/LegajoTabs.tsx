@@ -266,12 +266,12 @@ function InputEdit({ label, value, onChange, type = "text" }: {
 }) {
   return (
     <div>
-      <label className="block text-xs text-slate-500 mb-1">{label}</label>
+      <label className="block text-xs text-[var(--c-text-faint)] mb-1">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-slate-700 px-2.5 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+        className="w-full rounded-md border border-[var(--c-line)] px-2.5 py-1.5 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent transition"
       />
     </div>
   );
@@ -283,11 +283,11 @@ function SelectEdit({ label, value, onChange, options }: {
 }) {
   return (
     <div>
-      <label className="block text-xs text-slate-500 mb-1">{label}</label>
+      <label className="block text-xs text-[var(--c-text-faint)] mb-1">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-slate-700 px-2.5 py-1.5 text-sm text-slate-100 bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+        className="w-full rounded-md border border-[var(--c-line)] px-2.5 py-1.5 text-sm text-[var(--c-text)] bg-[var(--c-bg-elev)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent transition"
       >
         <option value="">—</option>
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -305,9 +305,9 @@ function CheckEdit({ label, checked, onChange }: {
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-slate-700 text-blue-400 focus:ring-blue-500"
+        className="h-4 w-4 rounded border-[var(--c-line)] text-[var(--c-blue-text)] focus:ring-[var(--c-blue)]"
       />
-      <span className="text-sm text-slate-300">{label}</span>
+      <span className="text-sm text-[var(--c-text-secondary)]">{label}</span>
     </label>
   );
 }
@@ -317,13 +317,13 @@ function NumEdit({ label, value, onChange }: {
 }) {
   return (
     <div>
-      <label className="block text-xs text-slate-500 mb-1">{label}</label>
+      <label className="block text-xs text-[var(--c-text-faint)] mb-1">{label}</label>
       <input
         type="number"
         value={value}
         min={0}
         onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
-        className="w-full rounded-md border border-slate-700 px-2.5 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+        className="w-full rounded-md border border-[var(--c-line)] px-2.5 py-1.5 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent transition"
       />
     </div>
   );
@@ -334,7 +334,7 @@ function NumEdit({ label, value, onChange }: {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{title}</h3>
+      <h3 className="text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wider mb-3">{title}</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 md:grid-cols-3">{children}</div>
     </div>
   );
@@ -380,11 +380,11 @@ function Field({ label, value, full, icon, whatsapp, whatsappMensaje }: {
 }) {
   return (
     <div className={full ? "col-span-full" : ""}>
-      <p className="flex items-center gap-1.5 text-xs text-slate-500 mb-0.5">
-        {icon && <span className="text-slate-600 shrink-0">{icon}</span>}
+      <p className="flex items-center gap-1.5 text-xs text-[var(--c-text-faint)] mb-0.5">
+        {icon && <span className="text-[var(--c-line-strong)] shrink-0">{icon}</span>}
         {label}
       </p>
-      <p className={`flex items-center gap-2 text-sm ${value === "—" ? "text-slate-600" : "text-slate-200"}`}>
+      <p className={`flex items-center gap-2 text-sm ${value === "—" ? "text-[var(--c-line-strong)]" : "text-[var(--c-text)]"}`}>
         {value}
         {whatsapp && value !== "—" && (
           <a
@@ -392,7 +392,7 @@ function Field({ label, value, full, icon, whatsapp, whatsappMensaje }: {
             target="_blank"
             rel="noopener noreferrer"
             title="Escribir por WhatsApp"
-            className="text-green-500 hover:text-green-400 transition-colors"
+            className="text-[var(--c-green)] hover:text-[var(--c-green)] transition-colors"
           >
             <IconWhatsApp />
           </a>
@@ -617,7 +617,7 @@ function TabPersonal({ a, remitenteWhatsapp }: { a: AgenteDetalle; remitenteWhat
         <Field icon={<IconHomeMini />} label="Provincia de origen" value={val(a.provinciaOrigen)} />
         <Field icon={<IconHomeMini />} label="Ciudad de origen" value={val(a.ciudadOrigen)} />
       </Section>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
       <Section title="Salud">
         <Field icon={<IconDropMini />} label="Grupo sanguíneo" value={val(a.grupoSanguineo)} />
         <Field icon={<IconAlert />} label="Alergias" value={val(a.alergias)} />
@@ -625,14 +625,14 @@ function TabPersonal({ a, remitenteWhatsapp }: { a: AgenteDetalle; remitenteWhat
         <Field icon={<IconPill />} label="Medicamentos" value={val(a.medicamentos)} />
         <Field icon={<IconCross />} label="Cirugías" value={val(a.cirugias)} />
       </Section>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
       <Section title="Contacto">
         <Field icon={<IconMail />} label="Email" value={val(a.email)} />
         <Field icon={<IconPhoneMini />} label="Teléfono" value={val(a.telefono)} whatsapp={a.telefono} whatsappMensaje={mensajeWhatsapp} />
         <Field icon={<IconPhoneMini />} label="Teléfono alternativo" value={val(a.telefonoAlternativo)} whatsapp={a.telefonoAlternativo} whatsappMensaje={mensajeWhatsapp} />
         <Field icon={<IconUsersMini />} label="Contacto de emergencia" value={val(a.contactoEmergencia)} full />
       </Section>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
       <Section title="Domicilio">
         <Field icon={<IconMapPinMini />} label="Domicilio real" value={val(a.domicilioReal)} />
         {/* Espaciadores: fuerzan el salto de fila en md:grid-cols-3 para que
@@ -645,7 +645,7 @@ function TabPersonal({ a, remitenteWhatsapp }: { a: AgenteDetalle; remitenteWhat
         <Field icon={<IconMapPinMini />} label="Ciudad" value={val(a.ciudad)} />
         <Field icon={<IconMapPinMini />} label="Piso" value={val(a.piso)} />
       </Section>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
       <Section title="Familia y beneficios">
         <Field icon={<IconUsersMini />} label="Hijos a cargo" value={String(a.hijosCargo)} />
         <Field icon={<IconGift />} label="Posee servicio de sepelio" value={boolVal(a.poseeSepelio)} />
@@ -702,14 +702,14 @@ function TabLaboral({ a, esOperador = false }: { a: AgenteDetalle; esOperador?: 
               detalle del armamento ni del chaleco asignado. */}
           {!esOperador && (
             <>
-              <div className="border-t border-slate-800" />
+              <div className="border-t border-[var(--c-bg-elev-2)]" />
               <Section title="Armamento">
                 <Field icon={<IconShield />} label="Tipo de arma" value={val(a.tipoArma)} />
                 <Field icon={<IconShield />} label="Marca de pistola" value={val(a.marcaPistola)} />
                 <Field icon={<IconShield />} label="Modelo de pistola" value={val(a.modeloPistola)} />
                 <Field icon={<IconShield />} label="Calibre" value={val(a.calibre)} />
               </Section>
-              <div className="border-t border-slate-800" />
+              <div className="border-t border-[var(--c-bg-elev-2)]" />
               <Section title="Chaleco">
                 <Field icon={<IconShield />} label="Chaleco provisto" value={boolVal(a.chalecoProvisto)} />
                 <Field icon={<IconShield />} label="Marca" value={val(a.marcaChaleco)} />
@@ -719,7 +719,7 @@ function TabLaboral({ a, esOperador = false }: { a: AgenteDetalle; esOperador?: 
               </Section>
             </>
           )}
-          <div className="border-t border-slate-800" />
+          <div className="border-t border-[var(--c-bg-elev-2)]" />
           <Section title="Situación de revista">
             <Field icon={<IconShield />} label="Tarea No Operativa (TNO)" value={boolVal(a.enTNO)} />
             {a.enTNO && (
@@ -731,13 +731,13 @@ function TabLaboral({ a, esOperador = false }: { a: AgenteDetalle; esOperador?: 
           </Section>
         </>
       )}
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
       <Section title="Licencia de conducir">
         <Field icon={<IconIdCard />} label="Categoría" value={val(a.licenciaConducir)} />
         <Field icon={<IconCalendarMini />} label="Fecha de emisión" value={fmt(a.licenciaEmision)} />
         <Field icon={<IconCalendarMini />} label="Fecha de vencimiento" value={fmt(a.licenciaVencimiento)} />
       </Section>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
       <Section title="Nivel académico">
         <Field icon={<IconGraduation />} label="Primario" value={val(a.nivelPrimario)} />
         <Field icon={<IconGraduation />} label="Secundario" value={val(a.nivelSecundario)} />
@@ -783,10 +783,10 @@ function CondicionAscenso({ agenteId, fechaInicioCursoAscenso, canEdit }: {
   }
 
   return (
-    <div className="mb-6 pb-6 border-b border-slate-800">
+    <div className="mb-6 pb-6 border-b border-[var(--c-bg-elev-2)]">
       {fechaInicioCursoAscenso ? (
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 text-amber-400 px-3 py-1 text-xs font-medium">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--c-amber)]/15 text-[var(--c-amber)] px-3 py-1 text-xs font-medium">
             🎓 En curso de ascenso desde {fmt(fechaInicioCursoAscenso)}
           </span>
           {canEdit && (
@@ -795,7 +795,7 @@ function CondicionAscenso({ agenteId, fechaInicioCursoAscenso, canEdit }: {
                 type="button"
                 onClick={handleCancelar}
                 disabled={pending}
-                className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors disabled:opacity-50"
+                className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-3 py-1.5 text-xs font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
               >
                 Cancelar curso
               </button>
@@ -803,7 +803,7 @@ function CondicionAscenso({ agenteId, fechaInicioCursoAscenso, canEdit }: {
                 type="button"
                 onClick={() => setConfirmando(true)}
                 disabled={pending}
-                className="rounded-lg bg-green-600 hover:bg-green-700 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50"
+                className="rounded-lg bg-[var(--c-green-strong)] hover:bg-[var(--c-green-strong)] px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50"
               >
                 Confirmar ascenso
               </button>
@@ -816,29 +816,29 @@ function CondicionAscenso({ agenteId, fechaInicioCursoAscenso, canEdit }: {
             type="button"
             onClick={handleMarcar}
             disabled={pending}
-            className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors disabled:opacity-50"
+            className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-3 py-1.5 text-xs font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
           >
             🎓 Marcar en curso de ascenso
           </button>
         )
       )}
-      {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-2 text-xs text-[var(--c-coral)]">{error}</p>}
 
       {confirmando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => !pending && setConfirmando(false)} />
-          <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
-            <h3 className="text-base font-semibold text-slate-100">Confirmar ascenso</h3>
-            <p className="text-sm text-slate-400">
+          <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="text-base font-semibold text-[var(--c-text)]">Confirmar ascenso</h3>
+            <p className="text-sm text-[var(--c-text-muted)]">
               El agente va a pasar al siguiente rango de su cuerpo y se va a cerrar el curso de ascenso. Esta acción queda registrada en el historial.
             </p>
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-sm text-[var(--c-coral)]">{error}</p>}
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setConfirmando(false)}
                 disabled={pending}
-                className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+                className="rounded-lg border border-[var(--c-line)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -846,7 +846,7 @@ function CondicionAscenso({ agenteId, fechaInicioCursoAscenso, canEdit }: {
                 type="button"
                 onClick={handleConfirmar}
                 disabled={pending}
-                className="rounded-lg bg-green-600 hover:bg-green-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                className="rounded-lg bg-[var(--c-green-strong)] hover:bg-[var(--c-green-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
               >
                 {pending ? "Confirmando..." : "Sí, ascender"}
               </button>
@@ -898,16 +898,16 @@ function EventosCursoAscenso({ agenteId, eventos, canEdit }: {
   }
 
   return (
-    <div className="mb-6 pb-6 border-b border-slate-800">
+    <div className="mb-6 pb-6 border-b border-[var(--c-bg-elev-2)]">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Eventos del curso de ascenso</h3>
+        <h3 className="text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wider">Eventos del curso de ascenso</h3>
         {canEdit && !mostrarForm && (
           <button
             type="button"
             onClick={() => setMostrarForm(true)}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors group"
+            className="flex items-center gap-1.5 text-xs text-[var(--c-text-muted)] hover:text-[var(--c-text)] transition-colors group"
           >
-            <span className="w-6 h-6 rounded-full border border-slate-700 flex items-center justify-center shrink-0 transition-colors group-hover:border-blue-500 group-hover:text-blue-400">
+            <span className="w-6 h-6 rounded-full border border-[var(--c-line)] flex items-center justify-center shrink-0 transition-colors group-hover:border-[var(--c-blue)] group-hover:text-[var(--c-blue-text)]">
               <PlusIcon />
             </span>
             Agregar evento
@@ -916,54 +916,54 @@ function EventosCursoAscenso({ agenteId, eventos, canEdit }: {
       </div>
 
       {mostrarForm && (
-        <form onSubmit={handleAgregar} className="mb-4 space-y-2 rounded-lg border border-slate-800 p-3">
+        <form onSubmit={handleAgregar} className="mb-4 space-y-2 rounded-lg border border-[var(--c-bg-elev-2)] p-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Tipo</label>
+              <label className="block text-xs text-[var(--c-text-muted)] mb-1">Tipo</label>
               <select
                 value={tipo}
                 onChange={(e) => setTipo(e.target.value as TipoEventoCursoAscenso)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
               >
                 <option value="CLASE">Clase</option>
                 <option value="EXAMEN">Examen</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Fecha</label>
+              <label className="block text-xs text-[var(--c-text-muted)] mb-1">Fecha</label>
               <input
                 type="date"
                 value={fecha}
                 onChange={(e) => setFecha(e.target.value)}
                 required
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Observación (opcional)</label>
+            <label className="block text-xs text-[var(--c-text-muted)] mb-1">Observación (opcional)</label>
             <input
               type="text"
               value={observacion}
               onChange={(e) => setObservacion(e.target.value)}
               placeholder="Ej. materia, horario, lugar"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm placeholder-[var(--c-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
             />
           </div>
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p className="text-xs text-[var(--c-coral)]">{error}</p>}
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={() => { setMostrarForm(false); setError(null); }}
               disabled={pending}
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={pending}
-              className="rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50"
+              className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50"
             >
               {pending ? "Guardando..." : "Guardar"}
             </button>
@@ -972,26 +972,26 @@ function EventosCursoAscenso({ agenteId, eventos, canEdit }: {
       )}
 
       {eventos.length === 0 ? (
-        <p className="text-sm text-slate-500">Sin eventos cargados.</p>
+        <p className="text-sm text-[var(--c-text-faint)]">Sin eventos cargados.</p>
       ) : (
         <div className="space-y-2">
           {eventos.map((ev) => {
             const tipoEvento = ev.tipo as TipoEventoCursoAscenso;
             return (
-              <div key={ev.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 px-3 py-2">
+              <div key={ev.id} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--c-bg-elev-2)] px-3 py-2">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${TIPO_EVENTO_BADGE[tipoEvento] ?? "bg-slate-800 text-slate-400"}`}>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${TIPO_EVENTO_BADGE[tipoEvento] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                     {TIPO_EVENTO_LABEL[tipoEvento] ?? ev.tipo}
                   </span>
-                  <span className="text-sm text-slate-200 tabular-nums shrink-0">{fmt(ev.fecha)}</span>
-                  {ev.observacion && <span className="text-sm text-slate-400 truncate">{ev.observacion}</span>}
+                  <span className="text-sm text-[var(--c-text)] tabular-nums shrink-0">{fmt(ev.fecha)}</span>
+                  {ev.observacion && <span className="text-sm text-[var(--c-text-muted)] truncate">{ev.observacion}</span>}
                 </div>
                 {canEdit && (
                   <button
                     type="button"
                     onClick={() => setConfirmarEliminarId(ev.id)}
                     aria-label="Eliminar evento"
-                    className="text-slate-500 hover:text-red-400 transition-colors shrink-0"
+                    className="text-[var(--c-text-faint)] hover:text-[var(--c-coral)] transition-colors shrink-0"
                   >
                     <TrashIcon />
                   </button>
@@ -1005,13 +1005,13 @@ function EventosCursoAscenso({ agenteId, eventos, canEdit }: {
       {confirmarEliminarId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmarEliminarId(null)} />
-          <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
-            <h2 className="text-base font-semibold text-slate-100">Eliminar evento</h2>
-            <p className="text-sm text-slate-400">¿Eliminás este evento del curso? No se puede deshacer.</p>
-            {error && <p className="text-sm text-red-400">{error}</p>}
+          <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h2 className="text-base font-semibold text-[var(--c-text)]">Eliminar evento</h2>
+            <p className="text-sm text-[var(--c-text-muted)]">¿Eliminás este evento del curso? No se puede deshacer.</p>
+            {error && <p className="text-sm text-[var(--c-coral)]">{error}</p>}
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setConfirmarEliminarId(null)} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
-              <button type="button" onClick={() => handleEliminar(confirmarEliminarId)} disabled={pending} className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
+              <button type="button" onClick={() => setConfirmarEliminarId(null)} disabled={pending} className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50">Cancelar</button>
+              <button type="button" onClick={() => handleEliminar(confirmarEliminarId)} disabled={pending} className="rounded-lg bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
             </div>
           </div>
         </div>
@@ -1037,36 +1037,36 @@ function TabHistorial({ agenteId, historialRangos, eventosCursoAscenso, tipoPers
 }) {
   const tieneJerarquia = tipoPersonal === "SEGURIDAD" || tipoPersonal === "TECNICO";
   if (!tieneJerarquia) {
-    return <div className="py-12 text-center text-slate-500 text-sm">El personal civil no tiene historial de jerarquía.</div>;
+    return <div className="py-12 text-center text-[var(--c-text-faint)] text-sm">El personal civil no tiene historial de jerarquía.</div>;
   }
   return (
     <div>
       <CondicionAscenso agenteId={agenteId} fechaInicioCursoAscenso={fechaInicioCursoAscenso} canEdit={canManageAscenso} />
       <EventosCursoAscenso agenteId={agenteId} eventos={eventosCursoAscenso} canEdit={canManageAscenso} />
       {historialRangos.length === 0 ? (
-        <div className="py-12 text-center text-slate-500 text-sm">No hay registros de ascensos cargados aún.</div>
+        <div className="py-12 text-center text-[var(--c-text-faint)] text-sm">No hay registros de ascensos cargados aún.</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-800">
+              <tr className="border-b border-[var(--c-bg-elev-2)]">
                 {["Rango", "Cuerpo", "Desde", "Hasta", "Observación"].map((h) => (
-                  <th key={h} className="text-left py-2 pr-6 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="text-left py-2 pr-6 text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-[var(--c-bg-elev-2)]">
               {historialRangos.map((h) => (
                 <tr key={h.id}>
-                  <td className="py-3 pr-6 font-medium text-slate-200">{h.rango.nombre}</td>
-                  <td className="py-3 pr-6 text-slate-400 capitalize">{h.rango.cuerpo.toLowerCase()}</td>
-                  <td className="py-3 pr-6 text-slate-400">{fmt(h.fechaDesde)}</td>
-                  <td className="py-3 pr-6 text-slate-400">
+                  <td className="py-3 pr-6 font-medium text-[var(--c-text)]">{h.rango.nombre}</td>
+                  <td className="py-3 pr-6 text-[var(--c-text-muted)] capitalize">{h.rango.cuerpo.toLowerCase()}</td>
+                  <td className="py-3 pr-6 text-[var(--c-text-muted)]">{fmt(h.fechaDesde)}</td>
+                  <td className="py-3 pr-6 text-[var(--c-text-muted)]">
                     {h.fechaHasta ? fmt(h.fechaHasta) : (
-                      <span className="inline-flex items-center rounded-full bg-green-500/15 text-green-400 px-2 py-0.5 text-xs font-medium">Actual</span>
+                      <span className="inline-flex items-center rounded-full bg-[var(--c-green)]/15 text-[var(--c-green)] px-2 py-0.5 text-xs font-medium">Actual</span>
                     )}
                   </td>
-                  <td className="py-3 text-slate-400">{val(h.observacion)}</td>
+                  <td className="py-3 text-[var(--c-text-muted)]">{val(h.observacion)}</td>
                 </tr>
               ))}
             </tbody>
@@ -1080,22 +1080,22 @@ function TabHistorial({ agenteId, historialRangos, eventosCursoAscenso, tipoPers
 function TabProximamente({ label }: { label: string }) {
   return (
     <div className="py-16 text-center">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 mb-4">
-        <svg className="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--c-bg-elev-2)] mb-4">
+        <svg className="w-5 h-5 text-[var(--c-text-faint)]" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
         </svg>
       </div>
-      <p className="text-sm font-medium text-slate-400">{label}</p>
-      <p className="text-xs text-slate-500 mt-1">Esta sección estará disponible próximamente.</p>
+      <p className="text-sm font-medium text-[var(--c-text-muted)]">{label}</p>
+      <p className="text-xs text-[var(--c-text-faint)] mt-1">Esta sección estará disponible próximamente.</p>
     </div>
   );
 }
 
 const ESTADO_BADGE_SMALL: Record<string, string> = {
   PENDIENTE: "bg-yellow-500/15 text-yellow-400",
-  ACTIVO: "bg-green-500/15 text-green-400",
-  BAJA: "bg-slate-800 text-slate-400",
-  PASE: "bg-blue-500/15 text-blue-300",
+  ACTIVO: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
+  BAJA: "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]",
+  PASE: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
 };
 const ESTADO_LABEL_MAP: Record<string, string> = {
   PENDIENTE: "Pendiente", ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase",
@@ -1111,14 +1111,14 @@ function TabCambios({ auditLogs, historialEstados }: { auditLogs: AuditLogEntry[
     return (
       <div className="py-16 text-center">
         <p className="text-4xl mb-4">📋</p>
-        <p className="text-sm font-medium text-slate-400">Sin historial de cambios</p>
-        <p className="text-xs text-slate-500 mt-1">Los cambios que se realicen en este legajo aparecerán aquí.</p>
+        <p className="text-sm font-medium text-[var(--c-text-muted)]">Sin historial de cambios</p>
+        <p className="text-xs text-[var(--c-text-faint)] mt-1">Los cambios que se realicen en este legajo aparecerán aquí.</p>
       </div>
     );
   }
 
   const SECCION_BADGE: Record<string, string> = {
-    PERSONAL: "bg-blue-500/15 text-blue-300",
+    PERSONAL: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
     LABORAL: "bg-purple-500/15 text-purple-400",
   };
   const SECCION_LABEL: Record<string, string> = {
@@ -1131,25 +1131,25 @@ function TabCambios({ auditLogs, historialEstados }: { auditLogs: AuditLogEntry[
       {/* Historial de estados */}
       {historialEstados.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Cambios de estado</h3>
+          <h3 className="text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wider mb-3">Cambios de estado</h3>
           <div className="space-y-3">
             {historialEstados.map((h) => (
-              <div key={h.id} className="border border-slate-800 rounded-lg p-4">
+              <div key={h.id} className="border border-[var(--c-bg-elev-2)] rounded-lg p-4">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_BADGE_SMALL[h.estadoAnterior] ?? "bg-slate-800 text-slate-400"}`}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_BADGE_SMALL[h.estadoAnterior] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                       {ESTADO_LABEL_MAP[h.estadoAnterior] ?? h.estadoAnterior}
                     </span>
-                    <span className="text-slate-600 text-xs">→</span>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_BADGE_SMALL[h.estadoNuevo] ?? "bg-slate-800 text-slate-400"}`}>
+                    <span className="text-[var(--c-line-strong)] text-xs">→</span>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_BADGE_SMALL[h.estadoNuevo] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                       {ESTADO_LABEL_MAP[h.estadoNuevo] ?? h.estadoNuevo}
                     </span>
-                    <span className="text-sm text-slate-400">{h.usuarioNombre ?? "Usuario desconocido"}</span>
+                    <span className="text-sm text-[var(--c-text-muted)]">{h.usuarioNombre ?? "Usuario desconocido"}</span>
                   </div>
-                  <span className="text-xs text-slate-500 tabular-nums">{fmtFechaHora(h.createdAt)}</span>
+                  <span className="text-xs text-[var(--c-text-faint)] tabular-nums">{fmtFechaHora(h.createdAt)}</span>
                 </div>
                 {h.motivo && (
-                  <p className="mt-2 text-sm text-slate-400 border-t border-slate-800 pt-2">{h.motivo}</p>
+                  <p className="mt-2 text-sm text-[var(--c-text-muted)] border-t border-[var(--c-bg-elev-2)] pt-2">{h.motivo}</p>
                 )}
               </div>
             ))}
@@ -1161,34 +1161,34 @@ function TabCambios({ auditLogs, historialEstados }: { auditLogs: AuditLogEntry[
       {auditLogs.length > 0 && (
         <div>
           {historialEstados.length > 0 && (
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Cambios en datos</h3>
+            <h3 className="text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wider mb-3">Cambios en datos</h3>
           )}
           <div className="space-y-4">
             {auditLogs.map((log) => {
               const cambios: { campo: string; anterior: string; nuevo: string }[] = JSON.parse(log.cambios);
               return (
-                <div key={log.id} className="border border-slate-800 rounded-lg p-4 space-y-3">
+                <div key={log.id} className="border border-[var(--c-bg-elev-2)] rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${SECCION_BADGE[log.seccion] ?? "bg-slate-800 text-slate-400"}`}>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${SECCION_BADGE[log.seccion] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                         {SECCION_LABEL[log.seccion] ?? log.seccion}
                       </span>
-                      <span className="text-sm font-medium text-slate-200">
+                      <span className="text-sm font-medium text-[var(--c-text)]">
                         {log.usuarioNombre ?? "Usuario desconocido"}
                       </span>
                     </div>
-                    <span className="text-xs text-slate-500 tabular-nums">{fmtFechaHora(log.createdAt)}</span>
+                    <span className="text-xs text-[var(--c-text-faint)] tabular-nums">{fmtFechaHora(log.createdAt)}</span>
                   </div>
-                  <div className="divide-y divide-slate-800">
+                  <div className="divide-y divide-[var(--c-bg-elev-2)]">
                     {cambios.map((c, i) => (
                       <div key={i} className="py-2 grid grid-cols-[1fr_auto_1fr] gap-3 items-start text-sm">
                         <div>
-                          <p className="text-xs text-slate-500 mb-0.5">{c.campo}</p>
-                          <p className="text-slate-400 line-through">{c.anterior}</p>
+                          <p className="text-xs text-[var(--c-text-faint)] mb-0.5">{c.campo}</p>
+                          <p className="text-[var(--c-text-muted)] line-through">{c.anterior}</p>
                         </div>
-                        <span className="text-slate-600 mt-5">→</span>
+                        <span className="text-[var(--c-line-strong)] mt-5">→</span>
                         <div className="mt-5">
-                          <p className="text-slate-200 font-medium">{c.nuevo}</p>
+                          <p className="text-[var(--c-text)] font-medium">{c.nuevo}</p>
                         </div>
                       </div>
                     ))}
@@ -1268,22 +1268,22 @@ function TabComentarios({ agenteId, comentarios, canEdit }: {
               onChange={(e) => setTexto(e.target.value)}
               placeholder="Dejá una constancia sobre este legajo (ej. alta médica, cambio de situación, etc.)"
               rows={3}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] resize-none"
             />
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-sm text-[var(--c-coral)]">{error}</p>}
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => { setMostrarForm(false); setTexto(""); setError(null); }}
                 disabled={pending}
-                className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+                className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={pending || !texto.trim()}
-                className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
               >
                 {pending ? "Guardando..." : "Agregar constancia"}
               </button>
@@ -1293,9 +1293,9 @@ function TabComentarios({ agenteId, comentarios, canEdit }: {
           <button
             type="button"
             onClick={() => setMostrarForm(true)}
-            className="flex items-center gap-2.5 text-sm text-slate-400 hover:text-slate-200 transition-colors group"
+            className="flex items-center gap-2.5 text-sm text-[var(--c-text-muted)] hover:text-[var(--c-text)] transition-colors group"
           >
-            <span className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center shrink-0 transition-colors group-hover:border-blue-500 group-hover:text-blue-400">
+            <span className="w-8 h-8 rounded-full border border-[var(--c-line)] flex items-center justify-center shrink-0 transition-colors group-hover:border-[var(--c-blue)] group-hover:text-[var(--c-blue-text)]">
               <PlusIcon />
             </span>
             Agregar constancia
@@ -1306,43 +1306,43 @@ function TabComentarios({ agenteId, comentarios, canEdit }: {
       {comentarios.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-4xl mb-4">📝</p>
-          <p className="text-sm font-medium text-slate-400">Sin constancias</p>
-          <p className="text-xs text-slate-500 mt-1">Las constancias que se dejen sobre este legajo aparecerán acá.</p>
+          <p className="text-sm font-medium text-[var(--c-text-muted)]">Sin constancias</p>
+          <p className="text-xs text-[var(--c-text-faint)] mt-1">Las constancias que se dejen sobre este legajo aparecerán acá.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {comentarios.map((c) => (
-            <div key={c.id} className="border border-slate-800 rounded-lg p-4">
+            <div key={c.id} className="border border-[var(--c-bg-elev-2)] rounded-lg p-4">
               {confirmarEliminarId === c.id && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                   <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmarEliminarId(null)} />
-                  <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
-                    <h2 className="text-base font-semibold text-slate-100">Eliminar constancia</h2>
-                    <p className="text-sm text-slate-400">¿Eliminás esta constancia? No se puede deshacer.</p>
+                  <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+                    <h2 className="text-base font-semibold text-[var(--c-text)]">Eliminar constancia</h2>
+                    <p className="text-sm text-[var(--c-text-muted)]">¿Eliminás esta constancia? No se puede deshacer.</p>
                     <div className="flex justify-end gap-2">
-                      <button type="button" onClick={() => setConfirmarEliminarId(null)} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
-                      <button type="button" onClick={() => handleEliminar(c.id)} disabled={pending} className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
+                      <button type="button" onClick={() => setConfirmarEliminarId(null)} disabled={pending} className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50">Cancelar</button>
+                      <button type="button" onClick={() => handleEliminar(c.id)} disabled={pending} className="rounded-lg bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
                     </div>
                   </div>
                 </div>
               )}
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <span className="text-sm font-medium text-slate-200">{c.usuarioNombre ?? "Usuario desconocido"}</span>
+                <span className="text-sm font-medium text-[var(--c-text)]">{c.usuarioNombre ?? "Usuario desconocido"}</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500 tabular-nums">{fmtFechaHora(c.createdAt)}</span>
+                  <span className="text-xs text-[var(--c-text-faint)] tabular-nums">{fmtFechaHora(c.createdAt)}</span>
                   {canEdit && (
                     <button
                       type="button"
                       onClick={() => setConfirmarEliminarId(c.id)}
                       aria-label="Eliminar constancia"
-                      className="text-slate-500 hover:text-red-400 transition-colors"
+                      className="text-[var(--c-text-faint)] hover:text-[var(--c-coral)] transition-colors"
                     >
                       <TrashIcon />
                     </button>
                   )}
                 </div>
               </div>
-              <p className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{c.texto}</p>
+              <p className="mt-2 text-sm text-[var(--c-text-secondary)] whitespace-pre-wrap">{c.texto}</p>
             </div>
           ))}
         </div>
@@ -1377,7 +1377,7 @@ function EditTabPersonal({ form, setForm }: {
         <InputEdit label="Ciudad de origen" value={form.ciudadOrigen} onChange={set("ciudadOrigen")} />
       </Section>
 
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
 
       <Section title="Salud">
         <SelectEdit label="Grupo sanguíneo" value={form.grupoSanguineo} onChange={set("grupoSanguineo")} options={GRUPO_SANGUINEO_OPTIONS} />
@@ -1387,7 +1387,7 @@ function EditTabPersonal({ form, setForm }: {
         <InputEdit label="Cirugías" value={form.cirugias} onChange={set("cirugias")} />
       </Section>
 
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
 
       <Section title="Contacto">
         <InputEdit label="Email" value={form.email} onChange={set("email")} type="email" />
@@ -1398,7 +1398,7 @@ function EditTabPersonal({ form, setForm }: {
         </div>
       </Section>
 
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
 
       <Section title="Domicilio">
         <InputEdit label="Domicilio real" value={form.domicilioReal} onChange={set("domicilioReal")} />
@@ -1413,7 +1413,7 @@ function EditTabPersonal({ form, setForm }: {
         <InputEdit label="Piso" value={form.piso} onChange={set("piso")} />
       </Section>
 
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
 
       <Section title="Familia y beneficios">
         <NumEdit label="Hijos a cargo" value={form.hijosCargo} onChange={set("hijosCargo")} />
@@ -1486,7 +1486,7 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
 
       {esSeguridad && (
         <>
-          <div className="border-t border-slate-800" />
+          <div className="border-t border-[var(--c-bg-elev-2)]" />
           <Section title="Armamento">
             <InputEdit label="Tipo de arma" value={form.tipoArma} onChange={set("tipoArma")} />
             <InputEdit label="Marca de pistola" value={form.marcaPistola} onChange={set("marcaPistola")} />
@@ -1494,7 +1494,7 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
             <InputEdit label="Calibre" value={form.calibre} onChange={set("calibre")} />
           </Section>
 
-          <div className="border-t border-slate-800" />
+          <div className="border-t border-[var(--c-bg-elev-2)]" />
           <Section title="Chaleco">
             <CheckEdit label="Chaleco provisto" checked={form.chalecoProvisto} onChange={set("chalecoProvisto")} />
             <InputEdit label="Marca" value={form.marcaChaleco} onChange={set("marcaChaleco")} />
@@ -1503,7 +1503,7 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
             <InputEdit label="Vencimiento del chaleco" value={form.vencimientoChaleco} onChange={set("vencimientoChaleco")} type="date" />
           </Section>
 
-          <div className="border-t border-slate-800" />
+          <div className="border-t border-[var(--c-bg-elev-2)]" />
           <Section title="Situación de revista">
             <CheckEdit label="Tarea No Operativa (TNO)" checked={form.enTNO} onChange={set("enTNO")} />
             {form.enTNO && (
@@ -1516,7 +1516,7 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
         </>
       )}
 
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
 
       <Section title="Licencia de conducir">
         <InputEdit label="Categoría" value={form.licenciaConducir} onChange={set("licenciaConducir")} />
@@ -1524,7 +1524,7 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
         <InputEdit label="Fecha de vencimiento" value={form.licenciaVencimiento} onChange={set("licenciaVencimiento")} type="date" />
       </Section>
 
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-[var(--c-bg-elev-2)]" />
 
       <Section title="Nivel académico">
         <SelectEdit label="Primario" value={form.nivelPrimario} onChange={set("nivelPrimario")} options={NIVEL_OPTIONS} />
@@ -1767,15 +1767,15 @@ export default function LegajoTabs({
   }
 
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+    <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden">
       {/* Tab bar */}
-      <div className="border-b border-slate-700 flex items-stretch">
+      <div className="border-b border-[var(--c-line)] flex items-stretch">
         {tabScroll.left && (
           <button
             type="button"
             onClick={() => desplazarTabs(-1)}
             aria-label="Desplazar pestañas hacia la izquierda"
-            className="shrink-0 flex items-center justify-center w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+            className="shrink-0 flex items-center justify-center w-8 text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)] transition-colors"
           >
             <ChevronLeftIcon />
           </button>
@@ -1801,10 +1801,10 @@ export default function LegajoTabs({
                 className={`
                   flex items-center gap-1.5 whitespace-nowrap px-4 py-3.5 text-sm font-medium border-b-2 border-transparent transition-colors
                   ${isActive
-                    ? "text-blue-400"
+                    ? "text-[var(--c-blue-text)]"
                     : tab.locked
-                      ? "text-slate-600 cursor-not-allowed"
-                      : "text-slate-400 hover:text-slate-300 hover:border-slate-700 cursor-pointer"
+                      ? "text-[var(--c-line-strong)] cursor-not-allowed"
+                      : "text-[var(--c-text-muted)] hover:text-[var(--c-text-secondary)] hover:border-[var(--c-line)] cursor-pointer"
                   }
                 `}
               >
@@ -1819,7 +1819,7 @@ export default function LegajoTabs({
           })}
           {indicador && (
             <span
-              className="absolute bottom-0 h-0.5 bg-blue-500 transition-all duration-300 ease-out"
+              className="absolute bottom-0 h-0.5 bg-[var(--c-blue)] transition-all duration-300 ease-out"
               style={{ left: indicador.left, width: indicador.width }}
             />
           )}
@@ -1830,7 +1830,7 @@ export default function LegajoTabs({
             type="button"
             onClick={() => desplazarTabs(1)}
             aria-label="Desplazar pestañas hacia la derecha"
-            className="shrink-0 flex items-center justify-center w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+            className="shrink-0 flex items-center justify-center w-8 text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)] transition-colors"
           >
             <ChevronRightIcon />
           </button>
@@ -1842,11 +1842,11 @@ export default function LegajoTabs({
 
         {/* Barra de edición — solo en tabs editables y para admins */}
         {canEdit && tabEditable && (
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--c-bg-elev-2)]">
             <div>
-              {errorEdit && <p className="text-sm text-red-400">{errorEdit}</p>}
+              {errorEdit && <p className="text-sm text-[var(--c-coral)]">{errorEdit}</p>}
               {editando && !errorEdit && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[var(--c-text-faint)]">
                   El CUIL, sexo y fecha de nacimiento no se pueden modificar.
                 </p>
               )}
@@ -1856,7 +1856,7 @@ export default function LegajoTabs({
                 <button
                   type="button"
                   onClick={handleEditar}
-                  className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-300 transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text-secondary)] transition-colors"
                 >
                   <PencilIcon />
                   Editar
@@ -1868,7 +1868,7 @@ export default function LegajoTabs({
                     type="button"
                     onClick={handleCancelar}
                     disabled={pending}
-                    className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-300 transition-colors disabled:opacity-50"
+                    className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-3 py-1.5 text-sm font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
                   >
                     Cancelar
                   </button>
@@ -1876,7 +1876,7 @@ export default function LegajoTabs({
                     type="button"
                     onClick={handleGuardar}
                     disabled={pending}
-                    className="rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                    className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-3 py-1.5 text-sm font-medium text-white transition-colors disabled:opacity-50"
                   >
                     {pending ? "Guardando..." : "Guardar cambios"}
                   </button>
@@ -1960,11 +1960,11 @@ function SelectorTipoLicencia({ defaultValue, tipoPersonal }: { defaultValue?: T
   return (
     <>
       <div>
-        <label className="block text-xs font-medium text-slate-400 mb-1">Categoría</label>
+        <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Categoría</label>
         <select
           value={categoria}
           onChange={(e) => setCategoria(e.target.value as CategoriaLicencia)}
-          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
         >
           {categoriasDisponibles.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
@@ -1972,13 +1972,13 @@ function SelectorTipoLicencia({ defaultValue, tipoPersonal }: { defaultValue?: T
         </select>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
+        <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Tipo</label>
         <select
           key={categoria}
           name="tipo"
           required
           defaultValue={defaultValue && LICENCIA_CATEGORIA_DE_TIPO[defaultValue] === categoria ? defaultValue : undefined}
-          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
         >
           {LICENCIA_TIPOS_POR_CATEGORIA[categoria].map((t) => (
             <option key={t.value} value={t.value}>{t.label}</option>
@@ -1996,9 +1996,9 @@ const TIPO_PENDIENTE_LABELS: Record<string, string> = {
 };
 
 const TIPO_PENDIENTE_BADGE: Record<string, string> = {
-  ANUAL_ORDINARIA: "bg-blue-500/15 text-blue-300",
+  ANUAL_ORDINARIA: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
   DIA_ESTIMULO: "bg-pink-500/15 text-pink-400",
-  OTRO: "bg-slate-800 text-slate-400",
+  OTRO: "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]",
 };
 
 function labelUnidad(unidad: string, cantidad: number): string {
@@ -2027,37 +2027,37 @@ const ESTADO_PENDIENTE_LABELS: Record<string, string> = {
 const ESTADO_PENDIENTE_BADGE: Record<string, string> = {
   PENDIENTE: "bg-yellow-500/15 text-yellow-400",
   PARCIAL: "bg-orange-500/15 text-orange-400",
-  USADA: "bg-green-500/15 text-green-400",
+  USADA: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
 };
 
 function NuevaLicenciaSkeleton() {
   return (
-    <div className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4 space-y-3">
+    <div className="rounded-xl border border-[var(--c-blue)]/25 bg-[var(--c-blue)]/10 p-4 space-y-3">
       <div className="h-4 w-28 rounded skeleton-shimmer" />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="col-span-2">
           <div className="h-3 w-10 rounded skeleton-shimmer mb-1" />
-          <div className="h-[38px] rounded-lg border border-slate-800 skeleton-shimmer" />
+          <div className="h-[38px] rounded-lg border border-[var(--c-bg-elev-2)] skeleton-shimmer" />
         </div>
         <div>
           <div className="h-3 w-16 rounded skeleton-shimmer mb-1" />
-          <div className="h-[38px] rounded-lg border border-slate-800 skeleton-shimmer" />
+          <div className="h-[38px] rounded-lg border border-[var(--c-bg-elev-2)] skeleton-shimmer" />
         </div>
         <div>
           <div className="h-3 w-14 rounded skeleton-shimmer mb-1" />
-          <div className="h-[38px] rounded-lg border border-slate-800 skeleton-shimmer" />
+          <div className="h-[38px] rounded-lg border border-[var(--c-bg-elev-2)] skeleton-shimmer" />
         </div>
         <div>
           <div className="h-3 w-12 rounded skeleton-shimmer mb-1" />
-          <div className="h-[38px] rounded-lg border border-slate-800 skeleton-shimmer" />
+          <div className="h-[38px] rounded-lg border border-[var(--c-bg-elev-2)] skeleton-shimmer" />
         </div>
         <div>
           <div className="h-3 w-32 rounded skeleton-shimmer mb-1" />
-          <div className="h-[38px] rounded-lg border border-slate-800 skeleton-shimmer" />
+          <div className="h-[38px] rounded-lg border border-[var(--c-bg-elev-2)] skeleton-shimmer" />
         </div>
       </div>
       <div className="flex gap-2 justify-end">
-        <div className="h-9 w-24 rounded-lg border border-slate-800 skeleton-shimmer" />
+        <div className="h-9 w-24 rounded-lg border border-[var(--c-bg-elev-2)] skeleton-shimmer" />
         <div className="h-9 w-24 rounded-lg skeleton-shimmer" />
       </div>
     </div>
@@ -2318,7 +2318,7 @@ function TabLicencias({
     <div className="space-y-4">
       {/* Sub-pestañas */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex border border-slate-700 rounded-lg overflow-x-auto no-scrollbar">
+        <div className="flex border border-[var(--c-line)] rounded-lg overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => {
@@ -2326,7 +2326,7 @@ function TabLicencias({
               setAbriendoFormLicencia(false);
               setSubTab("licencias"); setMostrarForm(false); setEditandoId(null); setError(null);
             }}
-            className={`shrink-0 whitespace-nowrap px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "licencias" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"}`}
+            className={`shrink-0 whitespace-nowrap px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "licencias" ? "bg-[var(--c-blue)] text-white" : "bg-[var(--c-bg-elev)] text-[var(--c-text-muted)] hover:bg-[var(--c-bg-elev-2)]"}`}
           >
             Licencias
             <span className="ml-1.5 text-xs opacity-70">({licencias.length})</span>
@@ -2338,7 +2338,7 @@ function TabLicencias({
               setAbriendoFormLicencia(false);
               setSubTab("pendientes"); setMostrarForm(false); setEditandoId(null); setError(null);
             }}
-            className={`shrink-0 whitespace-nowrap px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "pendientes" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"}`}
+            className={`shrink-0 whitespace-nowrap px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "pendientes" ? "bg-[var(--c-blue)] text-white" : "bg-[var(--c-bg-elev)] text-[var(--c-text-muted)] hover:bg-[var(--c-bg-elev-2)]"}`}
           >
             Licencias Pendientes
             <span className="ml-1.5 text-xs opacity-70">({licenciasPendientes.length})</span>
@@ -2350,7 +2350,7 @@ function TabLicencias({
               setAbriendoFormLicencia(false);
               setSubTab("estadisticas"); setMostrarForm(false); setEditandoId(null); setError(null);
             }}
-            className={`shrink-0 whitespace-nowrap px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "estadisticas" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"}`}
+            className={`shrink-0 whitespace-nowrap px-4 py-1.5 text-sm font-medium transition-colors ${subTab === "estadisticas" ? "bg-[var(--c-blue)] text-white" : "bg-[var(--c-bg-elev)] text-[var(--c-text-muted)] hover:bg-[var(--c-bg-elev-2)]"}`}
           >
             Estadísticas
           </button>
@@ -2360,7 +2360,7 @@ function TabLicencias({
           <button
             type="button"
             onClick={handleAbrirNuevo}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-sm font-medium text-white transition-colors w-full sm:w-auto shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-3 py-1.5 text-sm font-medium text-white transition-colors w-full sm:w-auto shrink-0"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -2371,7 +2371,7 @@ function TabLicencias({
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-500/10 border border-red-500/25 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg bg-[var(--c-coral)]/10 border border-[var(--c-coral)]/25 px-4 py-3 text-sm text-[var(--c-coral)]">
           {error}
         </div>
       )}
@@ -2380,18 +2380,18 @@ function TabLicencias({
 
       {/* Formulario nueva licencia */}
       {mostrarForm && subTab === "licencias" && (
-        <form onSubmit={handleCrearLicencia} className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4 space-y-3">
-          <p className="text-sm font-medium text-slate-300">Nueva licencia</p>
+        <form onSubmit={handleCrearLicencia} className="rounded-xl border border-[var(--c-blue)]/25 bg-[var(--c-blue)]/10 p-4 space-y-3">
+          <p className="text-sm font-medium text-[var(--c-text-secondary)]">Nueva licencia</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <SelectorTipoLicencia tipoPersonal={tipoPersonal} />
-            <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2">
+            <div className="col-span-2 flex flex-wrap items-center gap-3 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)]/60 px-3 py-2">
               <button
                 type="button"
                 role="switch"
                 aria-checked={contadorActivo}
                 onClick={toggleContador}
-                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
-                  contadorActivo ? "bg-green-500" : "bg-slate-600"
+                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:ring-offset-1 ${
+                  contadorActivo ? "bg-[var(--c-green)]" : "bg-[var(--c-line-strong)]"
                 }`}
               >
                 <span
@@ -2400,15 +2400,15 @@ function TabLicencias({
                   }`}
                 />
               </button>
-              <span className="text-xs font-medium text-slate-300">Contador automático de días</span>
+              <span className="text-xs font-medium text-[var(--c-text-secondary)]">Contador automático de días</span>
               {contadorActivo && (
                 <div className="ml-auto flex items-center gap-3">
-                  <div className="flex rounded-lg border border-slate-700 overflow-hidden">
+                  <div className="flex rounded-lg border border-[var(--c-line)] overflow-hidden">
                     <button
                       type="button"
                       onClick={() => cambiarModoConteo("habiles")}
                       className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                        modoConteo === "habiles" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"
+                        modoConteo === "habiles" ? "bg-[var(--c-blue)] text-white" : "bg-[var(--c-bg-elev)] text-[var(--c-text-muted)] hover:bg-[var(--c-bg-elev-2)]"
                       }`}
                     >
                       Hábiles
@@ -2417,38 +2417,38 @@ function TabLicencias({
                       type="button"
                       onClick={() => cambiarModoConteo("corridos")}
                       className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                        modoConteo === "corridos" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"
+                        modoConteo === "corridos" ? "bg-[var(--c-blue)] text-white" : "bg-[var(--c-bg-elev)] text-[var(--c-text-muted)] hover:bg-[var(--c-bg-elev-2)]"
                       }`}
                     >
                       Corridos
                     </button>
                   </div>
-                  <label className="flex items-center gap-2 text-xs text-slate-400">
+                  <label className="flex items-center gap-2 text-xs text-[var(--c-text-muted)]">
                     Días de vacaciones
                     <input
                       type="number"
                       min={1}
                       value={diasVacaciones}
                       onChange={(e) => actualizarDiasVacaciones(e.target.value)}
-                      className="w-16 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-16 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
                     />
                   </label>
                 </div>
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Fecha inicio</label>
+              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Fecha inicio</label>
               <input
                 type="date"
                 name="fechaInicio"
                 required
                 value={fechaInicioForm}
                 onChange={(e) => actualizarFechaInicioForm(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Fecha fin</label>
+              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Fecha fin</label>
               <input
                 type="date"
                 name="fechaFin"
@@ -2456,72 +2456,72 @@ function TabLicencias({
                 readOnly={contadorActivo}
                 value={fechaFinForm}
                 onChange={(e) => setFechaFinForm(e.target.value)}
-                className={`w-full rounded-lg border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  contadorActivo ? "bg-slate-800 text-slate-400" : "bg-slate-900"
+                className={`w-full rounded-lg border border-[var(--c-line)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] ${
+                  contadorActivo ? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]" : "bg-[var(--c-bg-elev)]"
                 }`}
               />
               {contadorActivo && (
-                <p className="mt-1 text-[11px] text-slate-500">
+                <p className="mt-1 text-[11px] text-[var(--c-text-faint)]">
                   Calculada automáticamente ({modoConteo === "habiles" ? "días hábiles" : "días corridos"})
                 </p>
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Motivo</label>
-              <input type="text" name="motivo" placeholder="Opcional" className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Motivo</label>
+              <input type="text" name="motivo" placeholder="Opcional" className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Observación interna</label>
-              <input type="text" name="observacion" placeholder="Opcional" className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Observación interna</label>
+              <input type="text" name="observacion" placeholder="Opcional" className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            <button type="button" onClick={() => { setMostrarForm(false); setError(null); }} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
-            <button type="submit" disabled={pending} className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Guardando..." : "Guardar"}</button>
+            <button type="button" onClick={() => { setMostrarForm(false); setError(null); }} disabled={pending} className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50">Cancelar</button>
+            <button type="submit" disabled={pending} className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Guardando..." : "Guardar"}</button>
           </div>
         </form>
       )}
 
       {/* Formulario nuevo pendiente */}
       {mostrarForm && subTab === "pendientes" && (
-        <form onSubmit={handleCrearPendiente} className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4 space-y-3">
-          <p className="text-sm font-medium text-slate-300">Nuevo pendiente</p>
+        <form onSubmit={handleCrearPendiente} className="rounded-xl border border-[var(--c-blue)]/25 bg-[var(--c-blue)]/10 p-4 space-y-3">
+          <p className="text-sm font-medium text-[var(--c-text-secondary)]">Nuevo pendiente</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
-              <select name="tipo" required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Tipo</label>
+              <select name="tipo" required className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]">
                 {Object.entries(TIPO_PENDIENTE_LABELS).map(([v, l]) => (
                   <option key={v} value={v}>{l}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Detalle (si el tipo es &quot;Otro&quot;)</label>
-              <input type="text" name="tipoOtroDetalle" placeholder="Ej: Licencia por estudio" className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Detalle (si el tipo es &quot;Otro&quot;)</label>
+              <input type="text" name="tipoOtroDetalle" placeholder="Ej: Licencia por estudio" className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Unidad</label>
-              <select name="unidad" required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Unidad</label>
+              <select name="unidad" required className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]">
                 <option value="HABILES">Días hábiles</option>
                 <option value="CORRIDOS">Días corridos</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Año</label>
-              <input type="number" name="anio" required defaultValue={new Date().getFullYear()} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Año</label>
+              <input type="number" name="anio" required defaultValue={new Date().getFullYear()} className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Cantidad de días</label>
-              <input type="number" name="cantidadDias" min="1" required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Cantidad de días</label>
+              <input type="number" name="cantidadDias" min="1" required className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-slate-400 mb-1">Referencia</label>
-              <input type="text" name="referencia" placeholder="Opcional, ej: Día de la mujer 2025" className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Referencia</label>
+              <input type="text" name="referencia" placeholder="Opcional, ej: Día de la mujer 2025" className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            <button type="button" onClick={() => { setMostrarForm(false); setError(null); }} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
-            <button type="submit" disabled={pending} className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Guardando..." : "Guardar"}</button>
+            <button type="button" onClick={() => { setMostrarForm(false); setError(null); }} disabled={pending} className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50">Cancelar</button>
+            <button type="submit" disabled={pending} className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Guardando..." : "Guardar"}</button>
           </div>
         </form>
       )}
@@ -2529,7 +2529,7 @@ function TabLicencias({
       {/* Lista licencias */}
       {subTab === "licencias" && (
         licencias.length === 0 ? (
-          <p className="text-sm text-slate-500 text-center py-8">No hay licencias registradas.</p>
+          <p className="text-sm text-[var(--c-text-faint)] text-center py-8">No hay licencias registradas.</p>
         ) : (
           <div className="space-y-2">
             {licencias.map((l) => (
@@ -2537,65 +2537,65 @@ function TabLicencias({
                 {confirmarEliminarId === l.id && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmarEliminarId(null)} />
-                    <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
-                      <h2 className="text-base font-semibold text-slate-100">Eliminar licencia</h2>
-                      <p className="text-sm text-slate-400">¿Eliminás esta licencia {TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}?</p>
+                    <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+                      <h2 className="text-base font-semibold text-[var(--c-text)]">Eliminar licencia</h2>
+                      <p className="text-sm text-[var(--c-text-muted)]">¿Eliminás esta licencia {TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}?</p>
                       <div className="flex justify-end gap-2">
-                        <button type="button" onClick={() => setConfirmarEliminarId(null)} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
-                        <button type="button" onClick={() => handleEliminarLicencia(l.id)} disabled={pending} className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
+                        <button type="button" onClick={() => setConfirmarEliminarId(null)} disabled={pending} className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50">Cancelar</button>
+                        <button type="button" onClick={() => handleEliminarLicencia(l.id)} disabled={pending} className="rounded-lg bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
                       </div>
                     </div>
                   </div>
                 )}
                 {editandoId === l.id ? (
                   <form onSubmit={(e) => handleEditarLicencia(e, l.id)} className="rounded-xl border border-yellow-500/25 bg-yellow-500/10 p-4 space-y-3">
-                    <p className="text-sm font-medium text-slate-300">Editar licencia</p>
+                    <p className="text-sm font-medium text-[var(--c-text-secondary)]">Editar licencia</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <SelectorTipoLicencia defaultValue={l.tipo as TipoLicencia} tipoPersonal={tipoPersonal} />
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Fecha inicio</label>
-                        <input type="date" name="fechaInicio" defaultValue={l.fechaInicio.slice(0, 10)} required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Fecha inicio</label>
+                        <input type="date" name="fechaInicio" defaultValue={l.fechaInicio.slice(0, 10)} required className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Fecha fin</label>
-                        <input type="date" name="fechaFin" defaultValue={l.fechaFin.slice(0, 10)} required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Fecha fin</label>
+                        <input type="date" name="fechaFin" defaultValue={l.fechaFin.slice(0, 10)} required className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Motivo</label>
-                        <input type="text" name="motivo" defaultValue={l.motivo ?? ""} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Motivo</label>
+                        <input type="text" name="motivo" defaultValue={l.motivo ?? ""} className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">Observación interna</label>
-                        <input type="text" name="observacion" defaultValue={l.observacion ?? ""} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Observación interna</label>
+                        <input type="text" name="observacion" defaultValue={l.observacion ?? ""} className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                       </div>
                     </div>
                     <div className="flex gap-2 justify-end">
-                      <button type="button" onClick={() => setEditandoId(null)} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
-                      <button type="submit" disabled={pending} className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Guardando..." : "Guardar"}</button>
+                      <button type="button" onClick={() => setEditandoId(null)} disabled={pending} className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50">Cancelar</button>
+                      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Guardando..." : "Guardar"}</button>
                     </div>
                   </form>
                 ) : (
-                  <div className={`flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 ${pending ? "opacity-50" : ""}`}>
+                  <div className={`flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 rounded-xl border border-[var(--c-bg-elev-2)] bg-[var(--c-bg)] px-4 py-3 ${pending ? "opacity-50" : ""}`}>
                     <div className="flex flex-col sm:flex-row sm:items-start gap-1.5 sm:gap-3 min-w-0">
-                      <span className={`mt-0.5 inline-flex items-center justify-between gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium shrink-0 self-start ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-slate-800 text-slate-400"}`}>
+                      <span className={`mt-0.5 inline-flex items-center justify-between gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium shrink-0 self-start ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                         {TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}
                         <span>{TIPO_LICENCIA_EMOJI[l.tipo]}</span>
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-200">
+                        <p className="text-sm font-medium text-[var(--c-text)]">
                           {fmt(l.fechaInicio)} → {fmt(l.fechaFin)}
-                          <span className="ml-2 text-xs text-slate-400">{l.diasHabiles} {labelDias(l.diasHabiles)}</span>
+                          <span className="ml-2 text-xs text-[var(--c-text-muted)]">{l.diasHabiles} {labelDias(l.diasHabiles)}</span>
                         </p>
-                        {l.motivo && <p className="text-xs text-slate-400 mt-0.5">{l.motivo}</p>}
-                        {l.observacion && <p className="text-xs text-slate-500 italic mt-0.5">{l.observacion}</p>}
+                        {l.motivo && <p className="text-xs text-[var(--c-text-muted)] mt-0.5">{l.motivo}</p>}
+                        {l.observacion && <p className="text-xs text-[var(--c-text-faint)] italic mt-0.5">{l.observacion}</p>}
                       </div>
                     </div>
                     {canManage && (
                       <div className="flex items-center gap-1 shrink-0 self-end sm:self-start">
-                        <button type="button" onClick={() => { setEditandoId(l.id); setMostrarForm(false); setError(null); }} className="rounded-lg p-1.5 text-slate-500 hover:text-slate-400 hover:bg-slate-700 transition-colors" title="Editar">
+                        <button type="button" onClick={() => { setEditandoId(l.id); setMostrarForm(false); setError(null); }} className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-text-muted)] hover:bg-[var(--c-line)] transition-colors" title="Editar">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
-                        <button type="button" onClick={() => setConfirmarEliminarId(l.id)} className="rounded-lg p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Eliminar">
+                        <button type="button" onClick={() => setConfirmarEliminarId(l.id)} className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-coral)] hover:bg-[var(--c-coral)]/10 transition-colors" title="Eliminar">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
@@ -2613,7 +2613,7 @@ function TabLicencias({
       {/* Lista licencias pendientes */}
       {subTab === "pendientes" && (
         licenciasPendientes.length === 0 ? (
-          <p className="text-sm text-slate-500 text-center py-8">No hay licencias pendientes registradas.</p>
+          <p className="text-sm text-[var(--c-text-faint)] text-center py-8">No hay licencias pendientes registradas.</p>
         ) : (
           <div className="space-y-2">
             {licenciasPendientes.map((p) => {
@@ -2627,12 +2627,12 @@ function TabLicencias({
                   {confirmarEliminarId === p.id && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                       <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmarEliminarId(null)} />
-                      <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
-                        <h2 className="text-base font-semibold text-slate-100">Eliminar pendiente</h2>
-                        <p className="text-sm text-slate-400">¿Eliminás este registro {tipoLabel} de {p.anio}? Se borra también su historial de usos.</p>
+                      <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+                        <h2 className="text-base font-semibold text-[var(--c-text)]">Eliminar pendiente</h2>
+                        <p className="text-sm text-[var(--c-text-muted)]">¿Eliminás este registro {tipoLabel} de {p.anio}? Se borra también su historial de usos.</p>
                         <div className="flex justify-end gap-2">
-                          <button type="button" onClick={() => setConfirmarEliminarId(null)} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
-                          <button type="button" onClick={() => handleEliminarPendiente(p.id)} disabled={pending} className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
+                          <button type="button" onClick={() => setConfirmarEliminarId(null)} disabled={pending} className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50">Cancelar</button>
+                          <button type="button" onClick={() => handleEliminarPendiente(p.id)} disabled={pending} className="rounded-lg bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
                         </div>
                       </div>
                     </div>
@@ -2640,87 +2640,87 @@ function TabLicencias({
                   {confirmarEliminarUsoId && p.usos.some((u) => u.id === confirmarEliminarUsoId) && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                       <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmarEliminarUsoId(null)} />
-                      <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
-                        <h2 className="text-base font-semibold text-slate-100">Eliminar uso</h2>
-                        <p className="text-sm text-slate-400">¿Eliminás este registro de uso? Los días vuelven a quedar disponibles.</p>
+                      <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+                        <h2 className="text-base font-semibold text-[var(--c-text)]">Eliminar uso</h2>
+                        <p className="text-sm text-[var(--c-text-muted)]">¿Eliminás este registro de uso? Los días vuelven a quedar disponibles.</p>
                         <div className="flex justify-end gap-2">
-                          <button type="button" onClick={() => setConfirmarEliminarUsoId(null)} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
-                          <button type="button" onClick={() => handleEliminarUso(confirmarEliminarUsoId)} disabled={pending} className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
+                          <button type="button" onClick={() => setConfirmarEliminarUsoId(null)} disabled={pending} className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50">Cancelar</button>
+                          <button type="button" onClick={() => handleEliminarUso(confirmarEliminarUsoId)} disabled={pending} className="rounded-lg bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Eliminando..." : "Sí, eliminar"}</button>
                         </div>
                       </div>
                     </div>
                   )}
                   {editandoId === p.id ? (
                     <form onSubmit={(e) => handleEditarPendiente(e, p.id)} className="rounded-xl border border-yellow-500/25 bg-yellow-500/10 p-4 space-y-3">
-                      <p className="text-sm font-medium text-slate-300">Editar pendiente</p>
+                      <p className="text-sm font-medium text-[var(--c-text-secondary)]">Editar pendiente</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
-                          <select name="tipo" defaultValue={p.tipo} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                          <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Tipo</label>
+                          <select name="tipo" defaultValue={p.tipo} className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]">
                             {Object.entries(TIPO_PENDIENTE_LABELS).map(([v, lab]) => <option key={v} value={v}>{lab}</option>)}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">Detalle (si el tipo es &quot;Otro&quot;)</label>
-                          <input type="text" name="tipoOtroDetalle" defaultValue={p.tipoOtroDetalle ?? ""} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Detalle (si el tipo es &quot;Otro&quot;)</label>
+                          <input type="text" name="tipoOtroDetalle" defaultValue={p.tipoOtroDetalle ?? ""} className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">Unidad</label>
-                          <select name="unidad" defaultValue={p.unidad} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                          <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Unidad</label>
+                          <select name="unidad" defaultValue={p.unidad} className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]">
                             <option value="HABILES">Días hábiles</option>
                             <option value="CORRIDOS">Días corridos</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">Año</label>
-                          <input type="number" name="anio" defaultValue={p.anio} required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Año</label>
+                          <input type="number" name="anio" defaultValue={p.anio} required className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">Cantidad de días</label>
-                          <input type="number" name="cantidadDias" defaultValue={p.cantidadDias} min="1" required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Cantidad de días</label>
+                          <input type="number" name="cantidadDias" defaultValue={p.cantidadDias} min="1" required className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-xs font-medium text-slate-400 mb-1">Referencia</label>
-                          <input type="text" name="referencia" defaultValue={p.referencia ?? ""} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Referencia</label>
+                          <input type="text" name="referencia" defaultValue={p.referencia ?? ""} className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                         </div>
                       </div>
                       <div className="flex gap-2 justify-end">
-                        <button type="button" onClick={() => setEditandoId(null)} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
-                        <button type="submit" disabled={pending} className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Guardando..." : "Guardar"}</button>
+                        <button type="button" onClick={() => setEditandoId(null)} disabled={pending} className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50">Cancelar</button>
+                        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50">{pending ? "Guardando..." : "Guardar"}</button>
                       </div>
                     </form>
                   ) : (
-                    <div className={`rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 ${pending ? "opacity-50" : ""}`}>
+                    <div className={`rounded-xl border border-[var(--c-bg-elev-2)] bg-[var(--c-bg)] px-4 py-3 ${pending ? "opacity-50" : ""}`}>
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                         <div className="flex flex-col sm:flex-row sm:items-start gap-1.5 sm:gap-3 min-w-0">
-                          <span className={`mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 self-start ${TIPO_PENDIENTE_BADGE[p.tipo] ?? "bg-slate-800 text-slate-400"}`}>
+                          <span className={`mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 self-start ${TIPO_PENDIENTE_BADGE[p.tipo] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                             {tipoLabel}
                           </span>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-slate-200">
+                            <p className="text-sm font-medium text-[var(--c-text)]">
                               {p.anio} — {p.cantidadDias} {labelUnidad(p.unidad, p.cantidadDias)}
                               <span className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_PENDIENTE_BADGE[estado]}`}>
                                 {ESTADO_PENDIENTE_LABELS[estado]}
                               </span>
                             </p>
                             {estado !== "PENDIENTE" && (
-                              <p className="text-xs text-slate-400 mt-0.5">{diasUsados} usados · {diasRestantes} restantes</p>
+                              <p className="text-xs text-[var(--c-text-muted)] mt-0.5">{diasUsados} usados · {diasRestantes} restantes</p>
                             )}
-                            {p.referencia && <p className="text-xs text-slate-400 mt-0.5">{p.referencia}</p>}
+                            {p.referencia && <p className="text-xs text-[var(--c-text-muted)] mt-0.5">{p.referencia}</p>}
                           </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0 self-end sm:self-start">
                           {canManage && estado !== "USADA" && (
-                            <button type="button" onClick={() => { setUsoFormId(usoFormId === p.id ? null : p.id); setError(null); }} className="rounded-lg px-2 py-1 text-xs font-medium text-blue-400 hover:bg-blue-500/10 transition-colors">
+                            <button type="button" onClick={() => { setUsoFormId(usoFormId === p.id ? null : p.id); setError(null); }} className="rounded-lg px-2 py-1 text-xs font-medium text-[var(--c-blue-text)] hover:bg-[var(--c-blue)]/10 transition-colors">
                               Registrar uso
                             </button>
                           )}
                           {canManage && (
                             <>
-                              <button type="button" onClick={() => { setEditandoId(p.id); setMostrarForm(false); setUsoFormId(null); setError(null); }} className="rounded-lg p-1.5 text-slate-500 hover:text-slate-400 hover:bg-slate-700 transition-colors" title="Editar">
+                              <button type="button" onClick={() => { setEditandoId(p.id); setMostrarForm(false); setUsoFormId(null); setError(null); }} className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-text-muted)] hover:bg-[var(--c-line)] transition-colors" title="Editar">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                               </button>
-                              <button type="button" onClick={() => setConfirmarEliminarId(p.id)} className="rounded-lg p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Eliminar">
+                              <button type="button" onClick={() => setConfirmarEliminarId(p.id)} className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-coral)] hover:bg-[var(--c-coral)]/10 transition-colors" title="Eliminar">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                               </button>
                             </>
@@ -2730,39 +2730,39 @@ function TabLicencias({
 
                       {/* Mini-form registrar uso */}
                       {usoFormId === p.id && (
-                        <form onSubmit={(e) => handleRegistrarUso(e, p.id)} className="mt-3 rounded-lg border border-blue-500/25 bg-blue-500/10 p-3 space-y-2">
+                        <form onSubmit={(e) => handleRegistrarUso(e, p.id)} className="mt-3 rounded-lg border border-[var(--c-blue)]/25 bg-[var(--c-blue)]/10 p-3 space-y-2">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
-                              <label className="block text-xs font-medium text-slate-400 mb-1">Fecha</label>
-                              <input type="date" name="fecha" required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Fecha</label>
+                              <input type="date" name="fecha" required className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                             </div>
                             <div>
-                              <label className="block text-xs font-medium text-slate-400 mb-1">Cantidad de días (máx. {diasRestantes})</label>
-                              <input type="number" name="cantidadDias" min="1" max={diasRestantes} required className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Cantidad de días (máx. {diasRestantes})</label>
+                              <input type="number" name="cantidadDias" min="1" max={diasRestantes} required className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                             </div>
                             <div className="col-span-2">
-                              <label className="block text-xs font-medium text-slate-400 mb-1">Referencia</label>
-                              <input type="text" name="referencia" placeholder="Opcional" className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              <label className="block text-xs font-medium text-[var(--c-text-muted)] mb-1">Referencia</label>
+                              <input type="text" name="referencia" placeholder="Opcional" className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]" />
                             </div>
                           </div>
                           <div className="flex gap-2 justify-end">
-                            <button type="button" onClick={() => setUsoFormId(null)} disabled={pending} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancelar</button>
-                            <button type="submit" disabled={pending} className="rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50">{pending ? "Guardando..." : "Guardar"}</button>
+                            <button type="button" onClick={() => setUsoFormId(null)} disabled={pending} className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50">Cancelar</button>
+                            <button type="submit" disabled={pending} className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50">{pending ? "Guardando..." : "Guardar"}</button>
                           </div>
                         </form>
                       )}
 
                       {/* Historial de usos */}
                       {p.usos.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-slate-800 space-y-1.5">
+                        <div className="mt-3 pt-3 border-t border-[var(--c-bg-elev-2)] space-y-1.5">
                           {p.usos.map((u) => (
                             <div key={u.id} className="flex items-center justify-between gap-3 text-xs">
-                              <span className="text-slate-400">
+                              <span className="text-[var(--c-text-muted)]">
                                 {fmt(u.fecha)} — {u.cantidadDias} {labelUnidad(p.unidad, u.cantidadDias)}
-                                {u.referencia && <span className="text-slate-500"> · {u.referencia}</span>}
+                                {u.referencia && <span className="text-[var(--c-text-faint)]"> · {u.referencia}</span>}
                               </span>
                               {canManage && (
-                                <button type="button" onClick={() => setConfirmarEliminarUsoId(u.id)} className="text-slate-500 hover:text-red-400 transition-colors shrink-0" title="Eliminar uso">
+                                <button type="button" onClick={() => setConfirmarEliminarUsoId(u.id)} className="text-[var(--c-text-faint)] hover:text-[var(--c-coral)] transition-colors shrink-0" title="Eliminar uso">
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 </button>
                               )}

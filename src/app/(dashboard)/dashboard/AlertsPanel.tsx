@@ -8,15 +8,15 @@ import { buildQueryString } from "../personal/queryString";
 type Severidad = "ok" | "warn" | "crit";
 
 const SEV_DOT: Record<Severidad, string> = {
-  ok: "bg-green-500 shadow-[0_0_0_3px_rgba(34,197,94,.15)]",
-  warn: "bg-amber-400 shadow-[0_0_0_3px_rgba(251,191,36,.15)]",
-  crit: "bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,.15)]",
+  ok: "bg-[var(--c-green)] shadow-[0_0_0_3px_rgba(34,197,94,.15)]",
+  warn: "bg-[var(--c-amber)] shadow-[0_0_0_3px_rgba(251,191,36,.15)]",
+  crit: "bg-[var(--c-coral)] shadow-[0_0_0_3px_rgba(239,68,68,.15)]",
 };
 
 const SEV_CHIP: Record<Severidad, string> = {
-  ok: "bg-green-500/10 text-green-400",
-  warn: "bg-amber-400/10 text-amber-300",
-  crit: "bg-red-500/10 text-red-300",
+  ok: "bg-[var(--c-green)]/10 text-[var(--c-green)]",
+  warn: "bg-[var(--c-amber)]/10 text-[var(--c-amber)]",
+  crit: "bg-[var(--c-coral)]/10 text-[var(--c-coral)]",
 };
 
 interface Fila {
@@ -88,11 +88,11 @@ export default function AlertsPanel({ alertas }: { alertas: AlertaStats }) {
   const puntosARevisar = filas.filter((f) => f.severidad !== "ok").length;
 
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
-      <div className="flex items-center justify-between px-4.5 py-3.5 border-b border-slate-800">
-        <h3 className="text-sm font-semibold text-slate-100">Atención requerida</h3>
+    <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden">
+      <div className="flex items-center justify-between px-4.5 py-3.5 border-b border-[var(--c-bg-elev-2)]">
+        <h3 className="text-sm font-semibold text-[var(--c-text)]">Atención requerida</h3>
         <div className="flex items-center gap-2.5">
-          <span className="text-[11px] font-semibold text-slate-500 bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-full">
+          <span className="text-[11px] font-semibold text-[var(--c-text-faint)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] px-2 py-0.5 rounded-full">
             {puntosARevisar} {puntosARevisar === 1 ? "punto a revisar" : "puntos a revisar"}
           </span>
           <button
@@ -100,7 +100,7 @@ export default function AlertsPanel({ alertas }: { alertas: AlertaStats }) {
             onClick={() => setAbierto((v) => !v)}
             aria-expanded={abierto}
             aria-label={abierto ? "Colapsar Atención requerida" : "Expandir Atención requerida"}
-            className={`w-6 h-6 rounded-md flex items-center justify-center text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-transform duration-300 ${
+            className={`w-6 h-6 rounded-md flex items-center justify-center text-[var(--c-text-faint)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)] transition-transform duration-300 ${
               abierto ? "" : "-rotate-90"
             }`}
           >
@@ -118,17 +118,17 @@ export default function AlertsPanel({ alertas }: { alertas: AlertaStats }) {
               <Link
                 key={i}
                 href={f.href}
-                className="flex items-center gap-3.5 px-4.5 py-3.5 border-b border-slate-800 last:border-b-0 hover:bg-slate-800/40 transition-colors"
+                className="flex items-center gap-3.5 px-4.5 py-3.5 border-b border-[var(--c-bg-elev-2)] last:border-b-0 hover:bg-[var(--c-bg-elev-2)]/40 transition-colors"
               >
                 <span className={`w-2 h-2 rounded-full shrink-0 ${SEV_DOT[f.severidad]}`} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13.5px] font-medium text-slate-100">{f.titulo}</div>
-                  {f.meta && <div className="text-[11.5px] text-slate-500 mt-0.5">{f.meta}</div>}
+                  <div className="text-[13.5px] font-medium text-[var(--c-text)]">{f.titulo}</div>
+                  {f.meta && <div className="text-[11.5px] text-[var(--c-text-faint)] mt-0.5">{f.meta}</div>}
                 </div>
                 <span className={`text-[10.5px] font-bold tracking-wide px-2 py-1 rounded-md shrink-0 ${SEV_CHIP[f.severidad]}`}>
                   {f.chip}
                 </span>
-                <span className="text-slate-600 text-sm shrink-0">›</span>
+                <span className="text-[var(--c-line-strong)] text-sm shrink-0">›</span>
               </Link>
             ))}
           </div>

@@ -129,7 +129,7 @@ export default async function DashboardLayout({
         <Sidebar rol={rol} />
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6">{children}</main>
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 bg-[var(--c-bg)] text-[var(--c-text)]">{children}</main>
         </div>
         <EventosAsideShell>
           <Suspense fallback={<EventosAsideSkeleton />}>

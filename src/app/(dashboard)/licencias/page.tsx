@@ -57,8 +57,8 @@ export default async function LicenciasPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold text-slate-100">Licencias y Ausentismo</h2>
-        <p className="text-sm text-slate-400 mt-0.5">
+        <h2 className="text-xl font-semibold text-[var(--c-text)]">Licencias y Ausentismo</h2>
+        <p className="text-sm text-[var(--c-text-muted)] mt-0.5">
           {esSupervisor ? "Personal de tu sector" : "Todo el personal"}
         </p>
       </div>

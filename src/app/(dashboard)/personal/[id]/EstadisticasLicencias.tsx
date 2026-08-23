@@ -156,32 +156,32 @@ function InformeImprimible({
   if (!contenedor) return null;
 
   return createPortal(
-    <div className="print-informe px-10 py-8 text-slate-900">
-      <div className="flex items-start justify-between border-b-2 border-slate-800 pb-3">
+    <div className="print-informe px-10 py-8 text-[var(--c-bg-elev)]">
+      <div className="flex items-start justify-between border-b-2 border-[var(--c-bg-elev-2)] pb-3">
         <div>
           <h1 className="text-xl font-bold">Informe de ausentismo</h1>
-          <p className="text-sm text-slate-600">{tituloPeriodo}</p>
+          <p className="text-sm text-[var(--c-line-strong)]">{tituloPeriodo}</p>
         </div>
-        <p className="text-xs text-slate-500">Generado el {hoyLargoAR()}</p>
+        <p className="text-xs text-[var(--c-text-faint)]">Generado el {hoyLargoAR()}</p>
       </div>
 
       <div className="flex items-center gap-4 mt-4 mb-6">
         <AgenteAvatar fotoUrl={agente.fotoUrl} sexo={agente.sexo} sizeClassName="h-16 w-16 rounded-lg shrink-0" />
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-          <p><span className="text-slate-500">Personal:</span> {agente.nombreCompleto}</p>
-          <p><span className="text-slate-500">CUIL:</span> {agente.cuil}</p>
-          <p><span className="text-slate-500">Rango:</span> {agente.rango ?? "—"}</p>
-          <p><span className="text-slate-500">Sector:</span> {agente.sector ?? "—"}</p>
+          <p><span className="text-[var(--c-text-faint)]">Personal:</span> {agente.nombreCompleto}</p>
+          <p><span className="text-[var(--c-text-faint)]">CUIL:</span> {agente.cuil}</p>
+          <p><span className="text-[var(--c-text-faint)]">Rango:</span> {agente.rango ?? "—"}</p>
+          <p><span className="text-[var(--c-text-faint)]">Sector:</span> {agente.sector ?? "—"}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="rounded-lg border border-slate-300 bg-slate-50 px-4 py-3">
-          <p className="text-xs text-slate-500 uppercase tracking-wide">Total de días</p>
+        <div className="rounded-lg border border-[var(--c-text-secondary)] bg-[var(--c-text)] px-4 py-3">
+          <p className="text-xs text-[var(--c-text-faint)] uppercase tracking-wide">Total de días</p>
           <p className="text-2xl font-bold">{totalDias}</p>
         </div>
-        <div className="rounded-lg border border-slate-300 bg-slate-50 px-4 py-3">
-          <p className="text-xs text-slate-500 uppercase tracking-wide">Cantidad de licencias</p>
+        <div className="rounded-lg border border-[var(--c-text-secondary)] bg-[var(--c-text)] px-4 py-3">
+          <p className="text-xs text-[var(--c-text-faint)] uppercase tracking-wide">Cantidad de licencias</p>
           <p className="text-2xl font-bold">{totalLicencias}</p>
         </div>
       </div>
@@ -189,16 +189,16 @@ function InformeImprimible({
       <h2 className="text-sm font-semibold mb-2">Días por categoría</h2>
       <table className="w-full text-sm mb-6 border-collapse">
         <thead>
-          <tr className="border-b border-slate-300 text-left text-slate-500">
+          <tr className="border-b border-[var(--c-text-secondary)] text-left text-[var(--c-text-faint)]">
             <th className="py-1 font-medium">Categoría</th>
             <th className="py-1 font-medium text-right">Días</th>
           </tr>
         </thead>
         <tbody>
           {porCategoria.length === 0 ? (
-            <tr><td colSpan={2} className="py-2 text-slate-500">Sin licencias aprobadas en el período.</td></tr>
+            <tr><td colSpan={2} className="py-2 text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</td></tr>
           ) : porCategoria.map((c) => (
-            <tr key={c.categoria} className="border-b border-slate-200">
+            <tr key={c.categoria} className="border-b border-[var(--c-text)]">
               <td className="py-1">{c.info.label}</td>
               <td className="py-1 text-right">{c.dias}</td>
             </tr>
@@ -223,7 +223,7 @@ function InformeImprimible({
         )}
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="border-b border-slate-300 text-left text-slate-500">
+            <tr className="border-b border-[var(--c-text-secondary)] text-left text-[var(--c-text-faint)]">
               <th className="py-1 font-medium">Tipo</th>
               <th className="py-1 font-medium text-right">Cantidad</th>
               <th className="py-1 font-medium text-right">%</th>
@@ -231,15 +231,15 @@ function InformeImprimible({
           </thead>
           <tbody>
             {porTipo.length === 0 ? (
-              <tr><td colSpan={3} className="py-2 text-slate-500">Sin licencias aprobadas en el período.</td></tr>
+              <tr><td colSpan={3} className="py-2 text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</td></tr>
             ) : porTipo.map((t) => (
-              <tr key={t.tipo} className="border-b border-slate-200">
+              <tr key={t.tipo} className="border-b border-[var(--c-text)]">
                 <td className="py-1 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full shrink-0 inline-block" style={{ backgroundColor: categoriaColor(t.tipo) }} />
                   {t.label}
                 </td>
                 <td className="py-1 text-right">{t.cantidad}</td>
-                <td className="py-1 text-right text-slate-500">{Math.round((t.cantidad / totalLicencias) * 100)}%</td>
+                <td className="py-1 text-right text-[var(--c-text-faint)]">{Math.round((t.cantidad / totalLicencias) * 100)}%</td>
               </tr>
             ))}
           </tbody>
@@ -249,7 +249,7 @@ function InformeImprimible({
       <h2 className="text-sm font-semibold mb-2">Detalle cronológico</h2>
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="border-b border-slate-300 text-left text-slate-500">
+          <tr className="border-b border-[var(--c-text-secondary)] text-left text-[var(--c-text-faint)]">
             <th className="py-1 font-medium w-28">Tipo</th>
             <th className="py-1 font-medium w-20">Desde</th>
             <th className="py-1 font-medium w-20">Hasta</th>
@@ -259,14 +259,14 @@ function InformeImprimible({
         </thead>
         <tbody>
           {licenciasFiltradas.length === 0 ? (
-            <tr><td colSpan={5} className="py-2 text-slate-500">Sin licencias aprobadas en el período.</td></tr>
+            <tr><td colSpan={5} className="py-2 text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</td></tr>
           ) : licenciasFiltradas.map((l) => (
-            <tr key={l.id} className="border-b border-slate-200 align-top">
+            <tr key={l.id} className="border-b border-[var(--c-text)] align-top">
               <td className="py-1.5">{TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}</td>
               <td className="py-1.5">{fmt(l.fechaInicio)}</td>
               <td className="py-1.5">{fmt(l.fechaFin)}</td>
               <td className="py-1.5 text-right">{l.diasHabiles}</td>
-              <td className="py-1.5 pl-3 text-slate-600 break-words">{l.motivo || "—"}</td>
+              <td className="py-1.5 pl-3 text-[var(--c-line-strong)] break-words">{l.motivo || "—"}</td>
             </tr>
           ))}
         </tbody>
@@ -380,8 +380,8 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
 
   if (anios.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-8 text-center">
-        <p className="text-sm text-slate-500">Sin licencias aprobadas registradas todavía.</p>
+      <div className="rounded-xl border border-[var(--c-bg-elev-2)] bg-[var(--c-bg)] px-4 py-8 text-center">
+        <p className="text-sm text-[var(--c-text-faint)]">Sin licencias aprobadas registradas todavía.</p>
       </div>
     );
   }
@@ -390,9 +390,9 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
     <div className="space-y-5">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">Total — {tituloPeriodo}</p>
-          <p className="text-3xl font-semibold tracking-tight text-slate-100 tabular-nums">
-            {totalDias} <span className="text-base font-normal text-slate-400">{totalDias === 1 ? "día" : "días"}</span>
+          <p className="text-xs text-[var(--c-text-faint)] uppercase tracking-wide mb-0.5">Total — {tituloPeriodo}</p>
+          <p className="text-3xl font-semibold tracking-tight text-[var(--c-text)] tabular-nums">
+            {totalDias} <span className="text-base font-normal text-[var(--c-text-muted)]">{totalDias === 1 ? "día" : "días"}</span>
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -402,28 +402,28 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
                 type="date"
                 value={rangoDesde}
                 onChange={(e) => setRangoDesde(e.target.value)}
-                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
+                className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2.5 py-2 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
               />
-              <span className="text-slate-500 text-sm">→</span>
+              <span className="text-[var(--c-text-faint)] text-sm">→</span>
               <input
                 type="date"
                 value={rangoHasta}
                 onChange={(e) => setRangoHasta(e.target.value)}
-                className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:dark]"
+                className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2.5 py-2 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
               />
             </>
           )}
           <button
             type="button"
             onClick={() => window.print()}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+            className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] hover:text-[var(--c-text)]"
           >
             🖨️ Imprimir informe
           </button>
           <select
             value={modo === "anio" ? String(anioActivo) : modo}
             onChange={(e) => elegirPeriodo(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
           >
             {anios.map((a) => (
               <option key={a} value={a}>{a}</option>
@@ -435,22 +435,22 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
       </div>
 
       {/* Total de días por categoría */}
-      <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-slate-200">Días por categoría</h3>
+      <div className="rounded-xl border border-[var(--c-bg-elev-2)] bg-[var(--c-bg)] p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-[var(--c-text)]">Días por categoría</h3>
         {porCategoria.length === 0 ? (
-          <p className="text-sm text-slate-500">Sin licencias aprobadas en el período.</p>
+          <p className="text-sm text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</p>
         ) : (
           <div className="space-y-2.5">
             {porCategoria.map((c) => (
               <div key={c.categoria} className="flex items-center gap-3" title={`${c.info.label}: ${c.dias} ${c.dias === 1 ? "día" : "días"}`}>
-                <span className="w-40 shrink-0 text-xs text-slate-400 truncate">{c.info.label}</span>
-                <div className="flex-1 h-2 rounded-full bg-slate-900 overflow-hidden">
+                <span className="w-40 shrink-0 text-xs text-[var(--c-text-muted)] truncate">{c.info.label}</span>
+                <div className="flex-1 h-2 rounded-full bg-[var(--c-bg-elev)] overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{ width: `${Math.max(4, (c.dias / maxDiasCategoria) * 100)}%`, backgroundColor: CATEGORIA_LICENCIA_CHART_COLOR[c.categoria] }}
                   />
                 </div>
-                <span className="w-14 shrink-0 text-xs text-slate-300 text-right tabular-nums">{c.dias} {c.dias === 1 ? "día" : "días"}</span>
+                <span className="w-14 shrink-0 text-xs text-[var(--c-text-secondary)] text-right tabular-nums">{c.dias} {c.dias === 1 ? "día" : "días"}</span>
               </div>
             ))}
           </div>
@@ -458,10 +458,10 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
       </div>
 
       {/* Cantidad de licencias por tipo */}
-      <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-slate-200">Cantidad por tipo</h3>
+      <div className="rounded-xl border border-[var(--c-bg-elev-2)] bg-[var(--c-bg)] p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-[var(--c-text)]">Cantidad por tipo</h3>
         {porTipo.length === 0 ? (
-          <p className="text-sm text-slate-500">Sin licencias aprobadas en el período.</p>
+          <p className="text-sm text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</p>
         ) : (
           <div className="flex flex-col sm:flex-row items-center gap-5">
             <svg viewBox="0 0 100 100" className="w-28 h-28 shrink-0" role="img" aria-label="Distribución porcentual por tipo de licencia">
@@ -481,9 +481,9 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
               {porTipo.map((t) => (
                 <li key={t.tipo} className="flex items-center gap-2.5 text-sm">
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: categoriaColor(t.tipo) }} />
-                  <span className="flex-1 text-slate-300 truncate">{t.label}</span>
-                  <span className="text-xs text-slate-500 tabular-nums">{Math.round((t.cantidad / totalLicencias) * 100)}%</span>
-                  <span className="w-5 text-right text-slate-400 tabular-nums">{t.cantidad}</span>
+                  <span className="flex-1 text-[var(--c-text-secondary)] truncate">{t.label}</span>
+                  <span className="text-xs text-[var(--c-text-faint)] tabular-nums">{Math.round((t.cantidad / totalLicencias) * 100)}%</span>
+                  <span className="w-5 text-right text-[var(--c-text-muted)] tabular-nums">{t.cantidad}</span>
                 </li>
               ))}
             </ul>
@@ -492,14 +492,14 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
       </div>
 
       {/* Línea de tiempo del período */}
-      <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-slate-200">Línea de tiempo — {tituloPeriodo}</h3>
+      <div className="rounded-xl border border-[var(--c-bg-elev-2)] bg-[var(--c-bg)] p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-[var(--c-text)]">Línea de tiempo — {tituloPeriodo}</h3>
         {licenciasFiltradas.length === 0 || meses.length === 0 ? (
-          <p className="text-sm text-slate-500">Sin licencias aprobadas en el período.</p>
+          <p className="text-sm text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</p>
         ) : (
           <div className="space-y-2 overflow-x-auto">
             <div
-              className="grid gap-px text-[10px] text-slate-500 pl-0 min-w-max"
+              className="grid gap-px text-[10px] text-[var(--c-text-faint)] pl-0 min-w-max"
               style={{ gridTemplateColumns: `repeat(${meses.length}, minmax(28px, 1fr))` }}
             >
               {meses.map((m, i) => (

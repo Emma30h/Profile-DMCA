@@ -189,14 +189,14 @@ function construirLayout(
 }
 
 const ESTILO_CAJA: Record<Caja["kind"], string> = {
-  org: "bg-slate-700 border-slate-500 text-slate-50",
-  jefe: "bg-emerald-800 border-emerald-500 text-emerald-50",
-  div: "bg-amber-800 border-amber-500 text-amber-50",
+  org: "bg-[var(--c-line)] border-[var(--c-text-faint)] text-[var(--c-text)]",
+  jefe: "bg-[var(--c-green-strong)] border-[var(--c-green)] text-[var(--c-green)]",
+  div: "bg-[var(--c-amber-strong)] border-[var(--c-amber)] text-[var(--c-amber)]",
   persona: "", // se resuelve según esJefe, ver renderCaja
 };
 
 function EtiquetaLicencia() {
-  return <div className="text-[9px] mt-0.5 font-medium text-amber-300">En licencia</div>;
+  return <div className="text-[9px] mt-0.5 font-medium text-[var(--c-amber)]">En licencia</div>;
 }
 
 function renderCaja(caja: Caja, incluirFotos: boolean) {
@@ -236,7 +236,7 @@ function renderCaja(caja: Caja, incluirFotos: boolean) {
   }
   // persona
   const colorPersona = caja.esJefe
-    ? "bg-emerald-800 border-emerald-500 text-emerald-50"
+    ? "bg-[var(--c-green-strong)] border-[var(--c-green)] text-[var(--c-green)]"
     : "bg-orange-800 border-orange-600 text-orange-50";
   return (
     <div key={`persona-${caja.persona.nombre}`} className={`${baseFila} ${colorPersona}`} style={style}>
@@ -262,9 +262,9 @@ function renderCaja(caja: Caja, incluirFotos: boolean) {
 // una lista vertical con sangría, sin líneas — la lectura es de arriba hacia
 // abajo en vez de izquierda a derecha, pero los datos son los mismos.
 const ESTILO_MOBIL: Record<Exclude<Caja["kind"], "persona">, string> = {
-  org: "bg-slate-700 border-slate-500 text-slate-50",
-  jefe: "bg-emerald-800 border-emerald-500 text-emerald-50",
-  div: "bg-amber-800 border-amber-500 text-amber-50",
+  org: "bg-[var(--c-line)] border-[var(--c-text-faint)] text-[var(--c-text)]",
+  jefe: "bg-[var(--c-green-strong)] border-[var(--c-green)] text-[var(--c-green)]",
+  div: "bg-[var(--c-amber-strong)] border-[var(--c-amber)] text-[var(--c-amber)]",
 };
 
 function TarjetaPersonaMobil({ persona, esJefe }: { persona: Persona; esJefe?: boolean }) {
@@ -281,7 +281,7 @@ function TarjetaPersonaMobil({ persona, esJefe }: { persona: Persona; esJefe?: b
         <div className="text-[12px] font-semibold leading-tight">
           {persona.rango} {persona.nombre}
         </div>
-        {persona.licencia && <div className="text-[10px] mt-0.5 font-medium text-amber-300">En licencia</div>}
+        {persona.licencia && <div className="text-[10px] mt-0.5 font-medium text-[var(--c-amber)]">En licencia</div>}
       </div>
     </div>
   );
@@ -312,17 +312,17 @@ function FilaMobil({
         </div>
       )}
       {divisiones.length > 0 && (
-        <div className="ml-4 space-y-2.5 border-l-2 border-slate-800 pl-3.5">
+        <div className="ml-4 space-y-2.5 border-l-2 border-[var(--c-bg-elev-2)] pl-3.5">
           {divisiones.map((div) => (
             <div key={div.id} className="space-y-2">
               <div className={`rounded-lg border px-3 py-2 ${ESTILO_MOBIL.div}`}>
                 <span className="text-[12px] font-bold leading-tight">{div.titulo}</span>
               </div>
-              <div className="ml-4 space-y-1.5 border-l-2 border-slate-800 pl-3.5">
+              <div className="ml-4 space-y-1.5 border-l-2 border-[var(--c-bg-elev-2)] pl-3.5">
                 {div.roster.length > 0 ? (
                   div.roster.map((p, i) => <TarjetaPersonaMobil key={p.nombre} persona={p} esJefe={i === 0} />)
                 ) : (
-                  <p className="text-[11px] text-slate-500 italic">Sin nómina cargada</p>
+                  <p className="text-[11px] text-[var(--c-text-faint)] italic">Sin nómina cargada</p>
                 )}
               </div>
             </div>
@@ -478,34 +478,34 @@ function ControlesZoom({
   onRestablecer: () => void;
 }) {
   return (
-    <div className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 rounded-lg border border-slate-700 bg-slate-900/95 shadow-lg p-1">
+    <div className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)]/95 shadow-lg p-1">
       <button
         type="button"
         onClick={onAlejar}
         disabled={factorZoom <= ZOOM_MIN}
-        className="p-1.5 rounded-md text-slate-300 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        className="p-1.5 rounded-md text-[var(--c-text-secondary)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
         title="Alejar"
       >
         <ZoomOut className="w-4 h-4" strokeWidth={2} />
       </button>
-      <span className="w-11 text-center text-xs font-medium text-slate-400 tabular-nums">
+      <span className="w-11 text-center text-xs font-medium text-[var(--c-text-muted)] tabular-nums">
         {Math.round(factorZoom * 100)}%
       </span>
       <button
         type="button"
         onClick={onAcercar}
         disabled={factorZoom >= ZOOM_MAX}
-        className="p-1.5 rounded-md text-slate-300 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        className="p-1.5 rounded-md text-[var(--c-text-secondary)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
         title="Acercar"
       >
         <ZoomIn className="w-4 h-4" strokeWidth={2} />
       </button>
-      <span className="w-px h-4 bg-slate-700 mx-0.5" />
+      <span className="w-px h-4 bg-[var(--c-line)] mx-0.5" />
       <button
         type="button"
         onClick={onRestablecer}
         disabled={factorZoom === 1}
-        className="p-1.5 rounded-md text-slate-300 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        className="p-1.5 rounded-md text-[var(--c-text-secondary)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
         title="Restablecer zoom"
       >
         <Maximize2 className="w-4 h-4" strokeWidth={2} />
@@ -561,9 +561,9 @@ export default function OrganigramaChart({
 
   if (!centro || !layout) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-2 bg-slate-900 rounded-xl border border-slate-700 text-center px-8">
-        <p className="text-slate-300 font-semibold">Todavía no hay estructura cargada</p>
-        <p className="text-sm text-slate-500">Configurala desde &quot;Editar organigrama&quot;.</p>
+      <div className="h-full flex flex-col items-center justify-center gap-2 bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] text-center px-8">
+        <p className="text-[var(--c-text-secondary)] font-semibold">Todavía no hay estructura cargada</p>
+        <p className="text-sm text-[var(--c-text-faint)]">Configurala desde &quot;Editar organigrama&quot;.</p>
       </div>
     );
   }
@@ -613,12 +613,12 @@ export default function OrganigramaChart({
           junto con el resto de la UI de pantalla (no llevan la clase
           print-organigrama). */}
       <div className="shrink-0 flex items-center justify-end gap-3">
-        <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none">
+        <label className="flex items-center gap-1.5 text-xs text-[var(--c-text-muted)] cursor-pointer select-none">
           <input
             type="checkbox"
             checked={incluirFotos}
             onChange={(e) => setIncluirFotos(e.target.checked)}
-            className="h-3.5 w-3.5 rounded border-slate-600 bg-slate-800 text-blue-500 cursor-pointer focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+            className="h-3.5 w-3.5 rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev-2)] text-[var(--c-blue)] cursor-pointer focus:ring-2 focus:ring-[var(--c-blue)] focus:ring-offset-0"
           />
           Incluir fotos
         </label>
@@ -626,7 +626,7 @@ export default function OrganigramaChart({
           type="button"
           onClick={descargarImagen}
           disabled={descargando}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--c-text-secondary)] hover:text-[var(--c-text)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] border border-[var(--c-line)] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Download className="w-3.5 h-3.5" strokeWidth={2} />
           {descargando ? "Generando…" : "Descargar imagen"}
@@ -634,7 +634,7 @@ export default function OrganigramaChart({
         <button
           type="button"
           onClick={() => window.print()}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--c-text-secondary)] hover:text-[var(--c-text)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] border border-[var(--c-line)] px-3 py-1.5 rounded-lg transition-colors"
         >
           🖨️ Imprimir
         </button>
@@ -642,7 +642,7 @@ export default function OrganigramaChart({
 
       <div className="flex-1 min-h-0">
       {/* Desktop: el flowchart completo, escalado para entrar sin scroll. */}
-      <div className="hidden lg:flex relative h-full flex-col bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+      <div className="hidden lg:flex relative h-full flex-col bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden">
         <LogoMarcaDeAgua width={320} height={245} />
         <ControlesZoom
           factorZoom={factorZoom}
@@ -656,7 +656,7 @@ export default function OrganigramaChart({
           // que el contenedor — ahí se saca el centrado con flex, porque
           // combinado con overflow-auto deja el borde "de antes del centro"
           // inalcanzable con scroll (bug conocido de flex/grid + scroll).
-          className={`flex-1 min-h-0 overflow-auto bg-slate-950 ${
+          className={`flex-1 min-h-0 overflow-auto bg-[var(--c-bg)] ${
             factorZoom > 1 ? "" : "flex items-center justify-center"
           }`}
           style={{ backgroundImage: "radial-gradient(circle, #334155 1px, transparent 1px)", backgroundSize: "26px 26px" }}
@@ -683,7 +683,7 @@ export default function OrganigramaChart({
       </div>
 
       {/* Mobile: misma jerarquía, como lista vertical con sangría. */}
-      <div className="lg:hidden relative bg-slate-900 rounded-xl border border-slate-700 p-4 overflow-hidden">
+      <div className="lg:hidden relative bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4 overflow-hidden">
         <div ref={topMobilRef} />
         <LogoMarcaDeAgua width={200} height={153} />
         <div className="relative">
@@ -693,7 +693,7 @@ export default function OrganigramaChart({
           <button
             type="button"
             onClick={() => topMobilRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            className="fixed bottom-5 right-5 z-20 flex items-center justify-center h-11 w-11 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors"
+            className="fixed bottom-5 right-5 z-20 flex items-center justify-center h-11 w-11 rounded-full bg-[var(--c-blue)] text-white shadow-lg hover:bg-[var(--c-blue-strong)] transition-colors"
             aria-label="Volver al inicio del organigrama"
           >
             <ArrowUp className="w-5 h-5" strokeWidth={2} />

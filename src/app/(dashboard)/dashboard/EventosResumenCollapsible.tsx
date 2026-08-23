@@ -17,7 +17,7 @@ export default function EventosResumenCollapsible({
   const [abierto, setAbierto] = useState(false);
 
   return (
-    <div className="lg:hidden bg-slate-900 rounded-xl border border-slate-700 overflow-hidden mb-4">
+    <div className="lg:hidden bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden mb-4">
       <button
         type="button"
         onClick={() => setAbierto((v) => !v)}
@@ -25,11 +25,11 @@ export default function EventosResumenCollapsible({
         className="w-full flex items-center justify-between gap-3 px-4.5 py-3.5 text-left"
       >
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-slate-100">Turno y novedades de hoy</h3>
-          {!abierto && <p className="text-[11px] text-slate-500 mt-0.5 truncate">{resumenCerrado}</p>}
+          <h3 className="text-sm font-semibold text-[var(--c-text)]">Turno y novedades de hoy</h3>
+          {!abierto && <p className="text-[11px] text-[var(--c-text-faint)] mt-0.5 truncate">{resumenCerrado}</p>}
         </div>
         <span
-          className={`w-6 h-6 shrink-0 rounded-md flex items-center justify-center text-slate-500 transition-transform duration-300 ${
+          className={`w-6 h-6 shrink-0 rounded-md flex items-center justify-center text-[var(--c-text-faint)] transition-transform duration-300 ${
             abierto ? "" : "-rotate-90"
           }`}
         >
@@ -40,7 +40,7 @@ export default function EventosResumenCollapsible({
       </button>
 
       <div className={`dashboard-collapse ${abierto ? "abierto" : ""}`}>
-        <div className="divide-y divide-slate-800 border-t border-slate-800">
+        <div className="divide-y divide-[var(--c-bg-elev-2)] border-t border-[var(--c-bg-elev-2)]">
           {children}
         </div>
       </div>

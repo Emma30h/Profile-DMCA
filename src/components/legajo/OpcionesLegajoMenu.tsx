@@ -318,7 +318,7 @@ export default function OpcionesLegajoMenu({ href, agenteId, agente, esOperador 
           type="button"
           onClick={() => setMenuAbierto((v) => !v)}
           title="Opciones"
-          className="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="rounded-lg p-1.5 text-[var(--c-text-muted)] hover:text-white hover:bg-[var(--c-bg-elev-2)] transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10 6a2 2 0 100-4 2 2 0 000 4zm0 6a2 2 0 100-4 2 2 0 000 4zm0 6a2 2 0 100-4 2 2 0 000 4z" />
@@ -326,18 +326,18 @@ export default function OpcionesLegajoMenu({ href, agenteId, agente, esOperador 
         </button>
 
         {menuAbierto && (
-          <div className="absolute right-0 top-full mt-1.5 z-20 w-56 rounded-lg border border-slate-700 bg-slate-800 py-1.5 shadow-lg shadow-black/40">
+          <div className="absolute right-0 top-full mt-1.5 z-20 w-56 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] py-1.5 shadow-lg shadow-black/40">
             <button
               type="button"
               onClick={handleLimpiarFichero}
-              className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+              className="w-full text-left px-3 py-2 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-white transition-colors"
             >
               Limpiar fichero
             </button>
             <button
               type="button"
               onClick={handleAbrirExportar}
-              className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+              className="w-full text-left px-3 py-2 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-white transition-colors"
             >
               Exportar para WhatsApp
             </button>
@@ -349,10 +349,10 @@ export default function OpcionesLegajoMenu({ href, agenteId, agente, esOperador 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setExportarAbierto(false)} />
 
-          <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
+          <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
             <div className="px-6 pt-6 pb-4">
-              <h2 className="text-base font-semibold text-slate-100">Exportar para WhatsApp</h2>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <h2 className="text-base font-semibold text-[var(--c-text)]">Exportar para WhatsApp</h2>
+              <p className="text-sm text-[var(--c-text-muted)] mt-0.5">
                 Elegí qué datos de {agente.apellidos}, {agente.nombres} incluir en el mensaje.
               </p>
             </div>
@@ -361,25 +361,25 @@ export default function OpcionesLegajoMenu({ href, agenteId, agente, esOperador 
               {gruposDisponibles.map((g) => (
                 <label
                   key={g.id}
-                  className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-slate-800 cursor-pointer transition-colors"
+                  className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-[var(--c-bg-elev-2)] cursor-pointer transition-colors"
                 >
                   <input
                     type="checkbox"
                     checked={seleccion.has(g.id)}
                     onChange={() => toggleGrupo(g.id)}
-                    className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                    className="h-4 w-4 rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev-2)] text-[var(--c-blue)] focus:ring-2 focus:ring-[var(--c-blue)] focus:ring-offset-0"
                   />
-                  <span className="text-slate-500 shrink-0">{g.icono}</span>
-                  <span className="text-sm text-slate-200">{g.titulo}</span>
+                  <span className="text-[var(--c-text-faint)] shrink-0">{g.icono}</span>
+                  <span className="text-sm text-[var(--c-text)]">{g.titulo}</span>
                 </label>
               ))}
             </div>
 
-            <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-800 mt-4">
+            <div className="flex justify-end gap-2 px-6 py-4 border-t border-[var(--c-bg-elev-2)] mt-4">
               <button
                 type="button"
                 onClick={() => setExportarAbierto(false)}
-                className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors"
+                className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors"
               >
                 Cancelar
               </button>
@@ -387,7 +387,7 @@ export default function OpcionesLegajoMenu({ href, agenteId, agente, esOperador 
                 type="button"
                 onClick={handleCompartir}
                 disabled={seleccion.size === 0}
-                className="rounded-lg bg-green-600 hover:bg-green-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                className="rounded-lg bg-[var(--c-green-strong)] hover:bg-[var(--c-green-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
               >
                 Compartir por WhatsApp
               </button>

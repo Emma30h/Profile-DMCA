@@ -34,16 +34,16 @@ export default async function ConfiguracionOrganigramaPage() {
           volver no puede depender de estar arriba de todo — si no, scrolleando
           un poco ya no hay forma de volver a /organigrama sin usar el botón
           "atrás" del navegador. */}
-      <div className="sticky top-0 z-10 bg-slate-950/75 backdrop-blur-sm -mt-4 pt-4 lg:-mt-6 lg:pt-6 -mx-4 px-4 lg:-mx-6 lg:px-6 pb-3">
+      <div className="sticky top-0 z-10 bg-[var(--c-bg)]/75 backdrop-blur-sm -mt-4 pt-4 lg:-mt-6 lg:pt-6 -mx-4 px-4 lg:-mx-6 lg:px-6 pb-3">
         <Link
           href="/organigrama"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors mb-2"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--c-text-muted)] hover:text-[var(--c-text)] transition-colors mb-2"
         >
           <ArrowLeft className="w-4 h-4" strokeWidth={2} />
           Volver al organigrama
         </Link>
-        <h2 className="text-xl font-semibold text-slate-100">Editar organigrama</h2>
-        <p className="text-sm text-slate-400 mt-0.5">
+        <h2 className="text-xl font-semibold text-[var(--c-text)]">Editar organigrama</h2>
+        <p className="text-sm text-[var(--c-text-muted)] mt-0.5">
           Asigná quién ocupa cada puesto en cada sector. La estructura de sectores no se edita acá.
         </p>
       </div>

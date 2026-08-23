@@ -1,5 +1,5 @@
 function Bar({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-slate-800 ${className}`} />;
+  return <div className={`animate-pulse rounded bg-[var(--c-bg-elev-2)] ${className}`} />;
 }
 
 // Misma estructura (3 bloques con divide-y) y mismo padding p-4.5 que
@@ -7,7 +7,7 @@ function Bar({ className = "" }: { className?: string }) {
 // reemplazan al skeleton.
 export default function EventosAsideSkeleton() {
   return (
-    <div className="flex h-full flex-col divide-y divide-slate-700">
+    <div className="flex h-full flex-col divide-y divide-[var(--c-line)]">
       <div className="p-4.5 space-y-3">
         <Bar className="h-2.5 w-24" />
         <div className="space-y-1.5">

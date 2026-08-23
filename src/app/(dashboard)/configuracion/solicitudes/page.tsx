@@ -123,8 +123,8 @@ export default async function SolicitudesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold text-slate-100">Solicitudes de edición</h2>
-        <p className="text-sm text-slate-400 mt-0.5">
+        <h2 className="text-xl font-semibold text-[var(--c-text)]">Solicitudes de edición</h2>
+        <p className="text-sm text-[var(--c-text-muted)] mt-0.5">
           Gestioná los permisos temporales para que el personal actualice sus datos.
         </p>
       </div>
@@ -132,8 +132,8 @@ export default async function SolicitudesPage() {
       <GestorSolicitudes pendientes={pendientes} historial={historial} />
 
       <div>
-        <h2 className="text-xl font-semibold text-slate-100">Cambios de foto de perfil</h2>
-        <p className="text-sm text-slate-400 mt-0.5">
+        <h2 className="text-xl font-semibold text-[var(--c-text)]">Cambios de foto de perfil</h2>
+        <p className="text-sm text-[var(--c-text-muted)] mt-0.5">
           Revisá que la foto propuesta cumpla los estándares del legajo antes de aprobarla.
         </p>
       </div>
@@ -141,8 +141,8 @@ export default async function SolicitudesPage() {
       <GestorSolicitudesFoto pendientes={fotoPendientes} historial={fotoHistorial} />
 
       <div>
-        <h2 className="text-xl font-semibold text-slate-100">Vinculaciones de cuenta</h2>
-        <p className="text-sm text-slate-400 mt-0.5">
+        <h2 className="text-xl font-semibold text-[var(--c-text)]">Vinculaciones de cuenta</h2>
+        <p className="text-sm text-[var(--c-text-muted)] mt-0.5">
           Confirmá que la cuenta corresponda de verdad al legajo candidato antes de aprobar — el
           match es automático (CUIL, DNI o email), pero el acceso a los datos queda en tus manos.
         </p>

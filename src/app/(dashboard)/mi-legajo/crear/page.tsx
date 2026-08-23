@@ -27,8 +27,8 @@ export default async function CrearLegajoPage() {
   return (
     <div className="space-y-5 max-w-2xl mx-auto">
       <div>
-        <h2 className="text-xl font-semibold text-slate-100">Cargar mi legajo</h2>
-        <p className="text-sm text-slate-400 mt-1">
+        <h2 className="text-xl font-semibold text-[var(--c-text)]">Cargar mi legajo</h2>
+        <p className="text-sm text-[var(--c-text-muted)] mt-1">
           Completá tus datos en los siguientes pasos. Podés avanzar y volver cuando quieras.
           Un administrador revisará la información antes de validarla.
         </p>

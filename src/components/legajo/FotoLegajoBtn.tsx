@@ -147,7 +147,7 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
         type="button"
         onClick={handleAbrir}
         title="Cambiar foto"
-        className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+        className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-[var(--c-bg-elev-2)] border border-[var(--c-line-strong)] flex items-center justify-center text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-white transition-colors"
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -158,20 +158,20 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={handleCerrar} />
 
-          <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-md p-6 space-y-5">
+          <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-md p-6 space-y-5">
             <div>
-              <h2 className="text-base font-semibold text-slate-100">Cambiar foto del legajo</h2>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <h2 className="text-base font-semibold text-[var(--c-text)]">Cambiar foto del legajo</h2>
+              <p className="text-sm text-[var(--c-text-muted)] mt-0.5">
                 Subí un archivo desde tu equipo o pegá el link directo de la imagen.
               </p>
             </div>
 
-            <div className="flex gap-1 rounded-lg bg-slate-950 border border-slate-700 p-1 text-sm">
+            <div className="flex gap-1 rounded-lg bg-[var(--c-bg)] border border-[var(--c-line)] p-1 text-sm">
               <button
                 type="button"
                 onClick={() => { setModo("archivo"); setError(null); }}
                 className={`flex-1 rounded-md py-1.5 font-medium transition-colors ${
-                  modo === "archivo" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
+                  modo === "archivo" ? "bg-[var(--c-blue)] text-white" : "text-[var(--c-text-muted)] hover:text-[var(--c-text)]"
                 }`}
               >
                 Subir archivo
@@ -180,7 +180,7 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                 type="button"
                 onClick={() => { setModo("link"); setError(null); }}
                 className={`flex-1 rounded-md py-1.5 font-medium transition-colors ${
-                  modo === "link" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
+                  modo === "link" ? "bg-[var(--c-blue)] text-white" : "text-[var(--c-text-muted)] hover:text-[var(--c-text)]"
                 }`}
               >
                 Desde un link
@@ -190,13 +190,13 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
             {modo === "archivo" ? (
               <div key="archivo" className="space-y-3">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Imagen</label>
+                  <label className="block text-xs text-[var(--c-text-muted)] mb-1">Imagen</label>
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     onChange={handleArchivoChange}
-                    className="w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-200 hover:file:bg-slate-700"
+                    className="w-full text-sm text-[var(--c-text-secondary)] file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--c-bg-elev-2)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--c-text)] hover:file:bg-[var(--c-line)]"
                   />
                 </div>
                 {previewArchivo && (
@@ -210,12 +210,12 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                       alt=""
                       onLoad={() => setPreviewCargada(true)}
                       style={{ transform: `rotate(${rotacion}deg)` }}
-                      className={`w-24 h-24 rounded-lg object-cover border border-slate-700 transition-opacity transition-transform duration-200 ${
+                      className={`w-24 h-24 rounded-lg object-cover border border-[var(--c-line)] transition-opacity transition-transform duration-200 ${
                         previewCargada ? "opacity-100" : "opacity-0"
                       }`}
                     />
                     {pending && (
-                      <div className="absolute inset-0 rounded-lg bg-slate-950/70 flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-lg bg-[var(--c-bg)]/70 flex items-center justify-center">
                         <Spinner className="h-6 w-6 text-white" />
                       </div>
                     )}
@@ -225,7 +225,7 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                           type="button"
                           onClick={handleRotar}
                           title="Rotar foto"
-                          className="absolute -top-2 -left-2 h-6 w-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                          className="absolute -top-2 -left-2 h-6 w-6 rounded-full bg-[var(--c-bg-elev-2)] border border-[var(--c-line-strong)] flex items-center justify-center text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-white transition-colors"
                         >
                           <RotarIcon />
                         </button>
@@ -233,7 +233,7 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                           type="button"
                           onClick={handleQuitarArchivo}
                           title="Quitar foto"
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-[var(--c-bg-elev-2)] border border-[var(--c-line-strong)] flex items-center justify-center text-[var(--c-text-secondary)] hover:bg-[var(--c-coral-strong)] hover:text-white hover:border-[var(--c-coral-strong)] transition-colors"
                         >
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -247,13 +247,13 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
             ) : (
               <div key="link" className="space-y-3">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Link directo a la imagen</label>
+                  <label className="block text-xs text-[var(--c-text-muted)] mb-1">Link directo a la imagen</label>
                   <input
                     type="text"
                     value={link}
                     onChange={(e) => { setLink(e.target.value); setLinkRoto(false); setPreviewCargada(false); setRotacion(0); }}
                     placeholder="https://images2.imgbox.com/.../foto.jpg"
-                    className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2 text-sm text-[var(--c-text)] placeholder-[var(--c-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent"
                   />
                 </div>
                 {link.trim() && !linkRoto && (
@@ -268,12 +268,12 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                       onLoad={() => setPreviewCargada(true)}
                       onError={() => setLinkRoto(true)}
                       style={{ transform: `rotate(${rotacion}deg)` }}
-                      className={`w-24 h-24 rounded-lg object-cover border border-slate-700 transition-opacity transition-transform duration-200 ${
+                      className={`w-24 h-24 rounded-lg object-cover border border-[var(--c-line)] transition-opacity transition-transform duration-200 ${
                         previewCargada ? "opacity-100" : "opacity-0"
                       }`}
                     />
                     {pending && (
-                      <div className="absolute inset-0 rounded-lg bg-slate-950/70 flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-lg bg-[var(--c-bg)]/70 flex items-center justify-center">
                         <Spinner className="h-6 w-6 text-white" />
                       </div>
                     )}
@@ -283,7 +283,7 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                           type="button"
                           onClick={handleRotar}
                           title="Rotar foto"
-                          className="absolute -top-2 -left-2 h-6 w-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                          className="absolute -top-2 -left-2 h-6 w-6 rounded-full bg-[var(--c-bg-elev-2)] border border-[var(--c-line-strong)] flex items-center justify-center text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-white transition-colors"
                         >
                           <RotarIcon />
                         </button>
@@ -291,7 +291,7 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                           type="button"
                           onClick={() => { setLink(""); setLinkRoto(false); setRotacion(0); }}
                           title="Quitar foto"
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-[var(--c-bg-elev-2)] border border-[var(--c-line-strong)] flex items-center justify-center text-[var(--c-text-secondary)] hover:bg-[var(--c-coral-strong)] hover:text-white hover:border-[var(--c-coral-strong)] transition-colors"
                         >
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -302,12 +302,12 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                   </div>
                 )}
                 {link.trim() && linkRoto && (
-                  <p className="text-xs text-slate-500">No se pudo cargar una vista previa de ese link.</p>
+                  <p className="text-xs text-[var(--c-text-faint)]">No se pudo cargar una vista previa de ese link.</p>
                 )}
               </div>
             )}
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-sm text-[var(--c-coral)]">{error}</p>}
 
             <div className="flex justify-between items-center gap-2 pt-1">
               {fotoUrlActual ? (
@@ -315,7 +315,7 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                   type="button"
                   onClick={handleQuitarFotoActual}
                   disabled={pending}
-                  className="rounded-lg border border-red-500/30 bg-transparent hover:bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400 transition-colors disabled:opacity-50"
+                  className="rounded-lg border border-[var(--c-coral)]/30 bg-transparent hover:bg-[var(--c-coral)]/10 px-3 py-2 text-sm font-medium text-[var(--c-coral)] transition-colors disabled:opacity-50"
                 >
                   Quitar foto actual
                 </button>
@@ -327,7 +327,7 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                   type="button"
                   onClick={handleCerrar}
                   disabled={pending}
-                  className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors disabled:opacity-50"
+                  className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
                 >
                   Cancelar
                 </button>
@@ -335,7 +335,7 @@ export default function FotoLegajoBtn({ agenteId, fotoUrlActual }: Props) {
                   type="button"
                   onClick={handleConfirmar}
                   disabled={pending}
-                  className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                  className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
                 >
                   {pending ? "Guardando..." : "Guardar"}
                 </button>

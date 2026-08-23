@@ -69,7 +69,7 @@ export default function TipoPersonalBtn({ agenteId, tipoActual }: Props) {
       <button
         type="button"
         onClick={handleAbrir}
-        className="inline-flex items-center gap-1 hover:text-blue-300 transition-colors"
+        className="inline-flex items-center gap-1 hover:text-[var(--c-blue-soft)] transition-colors"
         title="Corregir tipo de personal"
       >
         {TIPO_LABEL[tipoActual] ?? tipoActual}
@@ -82,32 +82,32 @@ export default function TipoPersonalBtn({ agenteId, tipoActual }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={handleCerrar} />
 
-          <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-md p-6 space-y-5">
+          <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-md p-6 space-y-5">
             <div>
-              <h2 className="text-base font-semibold text-slate-100">Corregir tipo de personal</h2>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <h2 className="text-base font-semibold text-[var(--c-text)]">Corregir tipo de personal</h2>
+              <p className="text-sm text-[var(--c-text-muted)] mt-0.5">
                 Usar solo para corregir un error de carga — no es un cambio de situación laboral.
               </p>
             </div>
 
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Tipo de personal</label>
+              <label className="block text-xs text-[var(--c-text-muted)] mb-1">Tipo de personal</label>
               <select
                 value={nuevoTipo}
                 onChange={(e) => {
                   setNuevoTipo(e.target.value as TipoPersonal);
                   setError(null);
                 }}
-                className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-100 bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2 text-sm text-[var(--c-text)] bg-[var(--c-bg-elev)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent"
               >
                 {OPCIONES.map((o) => (
                   <option key={o} value={o}>{TIPO_LABEL[o]}</option>
                 ))}
               </select>
               {advertencia && (
-                <p className="text-xs text-amber-400 mt-2">{advertencia}</p>
+                <p className="text-xs text-[var(--c-amber)] mt-2">{advertencia}</p>
               )}
-              {error && <p className="text-sm text-red-400 mt-2">{error}</p>}
+              {error && <p className="text-sm text-[var(--c-coral)] mt-2">{error}</p>}
             </div>
 
             <div className="flex justify-end gap-2 pt-1">
@@ -115,7 +115,7 @@ export default function TipoPersonalBtn({ agenteId, tipoActual }: Props) {
                 type="button"
                 onClick={handleCerrar}
                 disabled={pending}
-                className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors disabled:opacity-50"
+                className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -123,7 +123,7 @@ export default function TipoPersonalBtn({ agenteId, tipoActual }: Props) {
                 type="button"
                 onClick={handleConfirmar}
                 disabled={pending}
-                className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                className="rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
               >
                 {pending ? "Guardando..." : "Confirmar"}
               </button>

@@ -41,8 +41,8 @@ export function usePersonalNav(): PersonalNavContextValue {
 function SelectSpinner() {
   return (
     <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-8">
-      <span className="h-10 w-10 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin" />
-      <p className="text-sm text-slate-400">Cargando legajo…</p>
+      <span className="h-10 w-10 rounded-full border-2 border-[var(--c-line)] border-t-[var(--c-blue)] animate-spin" />
+      <p className="text-sm text-[var(--c-text-muted)]">Cargando legajo…</p>
     </div>
   );
 }
@@ -50,7 +50,7 @@ function SelectSpinner() {
 function LegajoSkeleton() {
   return (
     <div className="space-y-5">
-      <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
+      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-6">
         <div className="flex items-start gap-5">
           <div className="h-16 w-16 rounded-xl skeleton-shimmer shrink-0" />
           <div className="flex-1 min-w-0 space-y-2.5 pt-1">
@@ -60,8 +60,8 @@ function LegajoSkeleton() {
           </div>
         </div>
       </div>
-      <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
-        <div className="flex gap-6 border-b border-slate-800 pb-3 mb-5">
+      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-6">
+        <div className="flex gap-6 border-b border-[var(--c-bg-elev-2)] pb-3 mb-5">
           <div className="h-4 w-24 rounded skeleton-shimmer" />
           <div className="h-4 w-24 rounded skeleton-shimmer" />
           <div className="h-4 w-28 rounded skeleton-shimmer" />
@@ -84,7 +84,7 @@ function EmptyState({ fitViewport }: { fitViewport: boolean }) {
       // aunque la cadena de h-full/flex-1 hacia arriba (main -> ... -> acá)
       // no llegue a resolver una altura real — sin esto, un h-full contra un
       // ancestro con alto "auto" colapsa a 0 y la tarjeta queda invisible.
-      className={`bg-slate-900 rounded-xl border border-slate-700 px-8 text-center flex flex-col items-center justify-center min-h-[420px] ${
+      className={`bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] px-8 text-center flex flex-col items-center justify-center min-h-[420px] ${
         fitViewport ? "h-full" : "py-20"
       }`}
     >
@@ -95,8 +95,8 @@ function EmptyState({ fitViewport }: { fitViewport: boolean }) {
         height={245}
         className="mb-5"
       />
-      <p className="text-slate-300 font-semibold">Seleccioná un agente</p>
-      <p className="text-sm text-slate-500 mt-1">
+      <p className="text-[var(--c-text-secondary)] font-semibold">Seleccioná un agente</p>
+      <p className="text-sm text-[var(--c-text-faint)] mt-1">
         Elegí un agente de la lista para ver su legajo completo.
       </p>
     </div>
@@ -106,7 +106,7 @@ function EmptyState({ fitViewport }: { fitViewport: boolean }) {
 function EmptyStateSkeleton({ fitViewport }: { fitViewport: boolean }) {
   return (
     <div
-      className={`bg-slate-900 rounded-xl border border-slate-700 px-8 flex flex-col items-center justify-center min-h-[420px] ${
+      className={`bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] px-8 flex flex-col items-center justify-center min-h-[420px] ${
         fitViewport ? "h-full" : "py-20"
       }`}
     >
@@ -312,14 +312,14 @@ export default function PersonalMasterShell({
       <div className="flex flex-col gap-5 h-full">
         <div className="shrink-0 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-slate-100">Personal</h2>
+            <h2 className="text-xl font-semibold text-[var(--c-text)]">Personal</h2>
           </div>
           <div className="flex items-center gap-2">
             <NominaBuilderBtn agentes={agentes} rol={rol} />
             {ROLES_ADMIN.includes(rol) && (
               <Link
                 href="/configuracion/importar-legajos"
-                className="shrink-0 inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+                className="shrink-0 inline-flex items-center gap-1.5 text-sm text-[var(--c-text-secondary)] hover:text-[var(--c-text)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] border border-[var(--c-line)] px-3 py-1.5 rounded-lg transition-colors"
               >
                 <IconImportar />
                 Importar legajos
@@ -338,7 +338,7 @@ export default function PersonalMasterShell({
               los dos por vez, igual que cualquier patrón lista/detalle en
               mobile. En desktop (lg:) siempre conviven lado a lado, como antes. */}
           <aside
-            className={`bg-slate-900 rounded-xl border border-slate-700 overflow-hidden flex-col ${
+            className={`bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden flex-col ${
               hadSelection ? "hidden lg:flex" : "flex"
             } ${fitViewport ? "lg:h-full" : "lg:sticky lg:top-0 lg:h-[calc(100vh-6rem)]"}`}
           >
@@ -354,7 +354,7 @@ export default function PersonalMasterShell({
               selectedId={selectedId}
             />
             <div className="relative flex-1 min-h-0 flex flex-col">
-              <div className="px-4 py-2 text-xs text-slate-500 border-b border-slate-800">
+              <div className="px-4 py-2 text-xs text-[var(--c-text-faint)] border-b border-[var(--c-bg-elev-2)]">
                 {agentes.length} {agentes.length === 1 ? "agente encontrado" : "agentes encontrados"}
               </div>
               <ListaAgentes
@@ -365,8 +365,8 @@ export default function PersonalMasterShell({
                 onSelect={(href) => navigate(href, "select")}
               />
               {filtrosPending && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/80">
-                  <span className="h-8 w-8 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin" />
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--c-bg-elev)]/80">
+                  <span className="h-8 w-8 rounded-full border-2 border-[var(--c-line)] border-t-[var(--c-blue)] animate-spin" />
                 </div>
               )}
             </div>

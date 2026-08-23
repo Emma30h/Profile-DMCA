@@ -16,7 +16,7 @@ export default function VerLegajoBtn() {
       type="button"
       onClick={handleClick}
       disabled={pending}
-      className="shrink-0 min-w-[112px] inline-flex items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-80 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 transition-colors"
+      className="shrink-0 min-w-[112px] inline-flex items-center justify-center rounded-lg bg-[var(--c-blue)] hover:bg-[var(--c-blue-strong)] disabled:opacity-80 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 transition-colors"
     >
       {pending ? <Spinner /> : "Ver mi legajo"}
     </button>

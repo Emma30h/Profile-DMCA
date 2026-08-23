@@ -85,9 +85,9 @@ function estadoVigencia(l: LicenciaRow): EstadoVigencia {
 }
 
 const VIGENCIA_COLOR: Record<Exclude<EstadoVigencia, null>, string> = {
-  activa: "bg-green-500",
+  activa: "bg-[var(--c-green)]",
   pendiente: "bg-yellow-500",
-  vencida: "bg-red-500",
+  vencida: "bg-[var(--c-coral)]",
 };
 
 const VIGENCIA_LABEL: Record<Exclude<EstadoVigencia, null>, string> = {
@@ -348,7 +348,7 @@ function CalendarioMes({
           manejarClicDerecho(e, href);
         }}
         className={`flex items-center justify-between gap-1 rounded px-1 mb-0.5 text-[10px] font-medium leading-4 transition-all ${
-          TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-slate-800 text-slate-400"
+          TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"
         } ${resaltada ? "ring-2 ring-white" : ""} ${atenuada ? "opacity-30" : ""}`}
         title={`${l.agente.apellidos}, ${l.agente.nombres} — Licencia ${TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo} (doble click para ${enModal ? "ver el mes" : "resaltar"}${resaltada ? "; click derecho para ir al legajo" : ""})`}
       >
@@ -374,7 +374,7 @@ function CalendarioMes({
       <Link
         key={l.id}
         href={`/personal/${l.agente.id}?tab=licencias&volver=${encodeURIComponent("/licencias")}`}
-        className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-slate-800 text-slate-400"}`}
+        className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}
       >
         <span className="min-w-0 truncate">{l.agente.apellidos}, {l.agente.nombres}</span>
         <span className="shrink-0 text-base">{TIPO_LICENCIA_EMOJI[l.tipo]}</span>
@@ -394,7 +394,7 @@ function CalendarioMes({
           una tarjeta por día con actividad, ordenadas cronológicamente. */}
       <div className="lg:hidden space-y-2">
         {diasConLicencias.length === 0 ? (
-          <p className="text-sm text-slate-500 text-center py-8">Sin licencias en este mes.</p>
+          <p className="text-sm text-[var(--c-text-faint)] text-center py-8">Sin licencias en este mes.</p>
         ) : (
           diasConLicencias.map((dia) => {
             const lics = getLicenciasDelDia(dia);
@@ -405,15 +405,15 @@ function CalendarioMes({
             return (
               <div
                 key={dia}
-                className={`rounded-lg border p-3 space-y-2 ${esHoy ? "border-blue-400 bg-blue-500/10" : "border-slate-800 bg-slate-900"}`}
+                className={`rounded-lg border p-3 space-y-2 ${esHoy ? "border-[var(--c-blue-text)] bg-[var(--c-blue)]/10" : "border-[var(--c-bg-elev-2)] bg-[var(--c-bg-elev)]"}`}
               >
                 <div className="flex items-baseline gap-2">
-                  <span className={`text-sm font-semibold ${esHoy ? "text-blue-400" : "text-slate-200"}`}>{dia}</span>
-                  <span className="text-xs text-slate-500 uppercase">{nombreDia}</span>
+                  <span className={`text-sm font-semibold ${esHoy ? "text-[var(--c-blue-text)]" : "text-[var(--c-text)]"}`}>{dia}</span>
+                  <span className="text-xs text-[var(--c-text-faint)] uppercase">{nombreDia}</span>
                   {nombreFeriado && (
-                    <span className="text-xs text-slate-400 truncate">· {nombreFeriado}</span>
+                    <span className="text-xs text-[var(--c-text-muted)] truncate">· {nombreFeriado}</span>
                   )}
-                  {esHoy && <span className="text-[10px] font-medium text-blue-400 ml-auto">Hoy</span>}
+                  {esHoy && <span className="text-[10px] font-medium text-[var(--c-blue-text)] ml-auto">Hoy</span>}
                 </div>
                 <div className="space-y-1">{lics.map(renderLicenciaAgenda)}</div>
               </div>
@@ -426,7 +426,7 @@ function CalendarioMes({
       <div className="hidden lg:block">
       <div className="grid grid-cols-7 mb-1">
         {["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"].map((d) => (
-          <div key={d} className="text-center text-xs font-semibold text-slate-500 py-1">{d}</div>
+          <div key={d} className="text-center text-xs font-semibold text-[var(--c-text-faint)] py-1">{d}</div>
         ))}
       </div>
       <div className="space-y-1">
@@ -444,7 +444,7 @@ function CalendarioMes({
                 <div
                   key={di}
                   className={`min-h-[80px] rounded-lg p-1 border text-xs ${
-                    esHoy ? "border-blue-400 bg-blue-500/10" : "border-slate-800 bg-slate-900"
+                    esHoy ? "border-[var(--c-blue-text)] bg-[var(--c-blue)]/10" : "border-[var(--c-bg-elev-2)] bg-[var(--c-bg-elev)]"
                   }`}
                 >
                   <div className="flex justify-end mb-0.5">
@@ -452,20 +452,20 @@ function CalendarioMes({
                       <span
                         className={`inline-flex items-center justify-center h-5 w-5 rounded-full font-medium ${
                           nombreFeriado
-                            ? "cursor-pointer bg-slate-300/20 text-slate-200 ring-1 ring-slate-300/40"
+                            ? "cursor-pointer bg-[var(--c-text-secondary)]/20 text-[var(--c-text)] ring-1 ring-[var(--c-text-secondary)]/40"
                             : esHoy
-                              ? "text-blue-400"
-                              : "text-slate-400"
+                              ? "text-[var(--c-blue-text)]"
+                              : "text-[var(--c-text-muted)]"
                         }`}
                       >
                         {dia}
                       </span>
                       {nombreFeriado && (
                         <div className="pointer-events-none absolute bottom-full right-0 z-20 mb-1.5 hidden group-hover/feriado:block">
-                          <div className="whitespace-nowrap rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-medium text-slate-200 shadow-lg shadow-black/30">
+                          <div className="whitespace-nowrap rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] px-2 py-1 text-[11px] font-medium text-[var(--c-text)] shadow-lg shadow-black/30">
                             {nombreFeriado}
                           </div>
-                          <div className="absolute -bottom-1 right-2 h-2 w-2 rotate-45 border-b border-r border-slate-700 bg-slate-800" />
+                          <div className="absolute -bottom-1 right-2 h-2 w-2 rotate-45 border-b border-r border-[var(--c-line)] bg-[var(--c-bg-elev-2)]" />
                         </div>
                       )}
                     </div>
@@ -479,7 +479,7 @@ function CalendarioMes({
                     <button
                       type="button"
                       onClick={() => setDiaExpandido(dia)}
-                      className="block w-full text-left text-[10px] text-slate-500 px-1 hover:text-slate-300 hover:underline"
+                      className="block w-full text-left text-[10px] text-[var(--c-text-faint)] px-1 hover:text-[var(--c-text-secondary)] hover:underline"
                     >
                       +{overflow} más
                     </button>
@@ -493,7 +493,7 @@ function CalendarioMes({
       </div>
       {menuContextual && (
         <div
-          className="fixed z-[60] rounded-lg border border-slate-700 bg-slate-800 py-1 text-xs shadow-lg shadow-black/40"
+          className="fixed z-[60] rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] py-1 text-xs shadow-lg shadow-black/40"
           style={{ top: menuContextual.y, left: menuContextual.x }}
         >
           <button
@@ -502,7 +502,7 @@ function CalendarioMes({
               router.push(menuContextual.href);
               setMenuContextual(null);
             }}
-            className="block w-full whitespace-nowrap px-3 py-1.5 text-left font-medium text-slate-200 hover:bg-slate-700"
+            className="block w-full whitespace-nowrap px-3 py-1.5 text-left font-medium text-[var(--c-text)] hover:bg-[var(--c-line)]"
           >
             Ir a Licencias/Ausentismos
           </button>
@@ -520,12 +520,12 @@ function CalendarioMes({
         >
           <div className="flex flex-col sm:flex-row items-start gap-4 w-full max-w-md sm:max-w-none sm:w-auto" onClick={(e) => e.stopPropagation()}>
             <div
-              className="w-full sm:w-96 max-h-[80vh] shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl shadow-black/50 animate-fade-in flex flex-col"
+              className="w-full sm:w-96 max-h-[80vh] shrink-0 overflow-hidden rounded-xl border border-[var(--c-line)] bg-[var(--c-bg-elev)] p-4 shadow-xl shadow-black/50 animate-fade-in flex flex-col"
               style={alturaCalendario ? { height: `${alturaCalendario}px` } : undefined}
               onClick={cerrarPorClickEnListaDelDia}
             >
               <div className="flex items-center justify-between mb-3 shrink-0">
-                <h4 className="text-sm font-semibold text-slate-200 capitalize">
+                <h4 className="text-sm font-semibold text-[var(--c-text)] capitalize">
                   {new Date(anio, mes, diaExpandido).toLocaleDateString("es-AR", {
                     weekday: "long", day: "2-digit", month: "long", year: "numeric",
                   })}
@@ -533,7 +533,7 @@ function CalendarioMes({
                 <button
                   type="button"
                   onClick={cerrarModalDia}
-                  className="rounded-lg p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
+                  className="rounded-lg p-1 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -549,16 +549,16 @@ function CalendarioMes({
                 key={panelParaMostrar.id}
                 ref={panelRef}
                 onClick={() => setMenuContextual(null)}
-                className={`w-full sm:w-96 max-h-[80vh] shrink-0 overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl shadow-black/50 ${
+                className={`w-full sm:w-96 max-h-[80vh] shrink-0 overflow-y-auto rounded-xl border border-[var(--c-line)] bg-[var(--c-bg-elev)] p-4 shadow-xl shadow-black/50 ${
                   panelSaliendo ? "animate-slide-out-left" : "animate-slide-in-right"
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-slate-200">Detalle de la licencia</h4>
+                  <h4 className="text-sm font-semibold text-[var(--c-text)]">Detalle de la licencia</h4>
                   <button
                     type="button"
                     onClick={() => setPanelLicencia(null)}
-                    className="rounded-lg p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
+                    className="rounded-lg p-1 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -611,11 +611,11 @@ function MiniCalendarioLicencia({ licencia }: { licencia: LicenciaRow }) {
     ...Array.from({ length: diasEnMes }, (_, i) => i + 1),
   ];
 
-  const badge = TIPO_LICENCIA_BADGE[licencia.tipo] ?? "bg-slate-800 text-slate-400";
+  const badge = TIPO_LICENCIA_BADGE[licencia.tipo] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]";
 
   return (
     <div>
-      <p className="mb-1 text-sm font-medium text-slate-200">
+      <p className="mb-1 text-sm font-medium text-[var(--c-text)]">
         {licencia.agente.apellidos}, {licencia.agente.nombres}
       </p>
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -624,16 +624,16 @@ function MiniCalendarioLicencia({ licencia }: { licencia: LicenciaRow }) {
           onClick={() => setOffsetMes((o) => o - 1)}
           disabled={offsetMes <= 0}
           aria-label="Mes anterior"
-          className="rounded-lg p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500"
+          className="rounded-lg p-1 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[var(--c-text-faint)]"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <p className="text-xs text-slate-500 capitalize">
+        <p className="text-xs text-[var(--c-text-faint)] capitalize">
           {fmtMes(anio, mes)}
           {mesesDeRango > 0 && (
-            <span className="ml-1 text-slate-600 tabular-nums">({offsetMes + 1}/{mesesDeRango + 1})</span>
+            <span className="ml-1 text-[var(--c-line-strong)] tabular-nums">({offsetMes + 1}/{mesesDeRango + 1})</span>
           )}
         </p>
         <button
@@ -641,7 +641,7 @@ function MiniCalendarioLicencia({ licencia }: { licencia: LicenciaRow }) {
           onClick={() => setOffsetMes((o) => o + 1)}
           disabled={offsetMes >= mesesDeRango}
           aria-label="Mes siguiente"
-          className="rounded-lg p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500"
+          className="rounded-lg p-1 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[var(--c-text-faint)]"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -650,7 +650,7 @@ function MiniCalendarioLicencia({ licencia }: { licencia: LicenciaRow }) {
       </div>
       <div className="grid grid-cols-7 mb-1">
         {["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"].map((d) => (
-          <div key={d} className="text-center text-[10px] font-semibold text-slate-500 py-1">{d}</div>
+          <div key={d} className="text-center text-[10px] font-semibold text-[var(--c-text-faint)] py-1">{d}</div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-0.5">
@@ -661,7 +661,7 @@ function MiniCalendarioLicencia({ licencia }: { licencia: LicenciaRow }) {
             <div
               key={i}
               className={`flex h-8 items-center justify-center rounded-md text-xs font-medium ${
-                enRango ? badge : "text-slate-500"
+                enRango ? badge : "text-[var(--c-text-faint)]"
               }`}
             >
               {dia}
@@ -675,15 +675,15 @@ function MiniCalendarioLicencia({ licencia }: { licencia: LicenciaRow }) {
 
 function TablaLicenciasSkeleton() {
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
-      <div className="bg-slate-950 border-b border-slate-700 px-4 py-3 flex gap-6">
+    <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden">
+      <div className="bg-[var(--c-bg)] border-b border-[var(--c-line)] px-4 py-3 flex gap-6">
         <div className="h-3 w-24 rounded skeleton-shimmer" />
         <div className="h-3 w-20 rounded skeleton-shimmer" />
         <div className="h-3 w-16 rounded skeleton-shimmer" />
         <div className="h-3 w-28 rounded skeleton-shimmer" />
         <div className="h-3 w-10 rounded skeleton-shimmer" />
       </div>
-      <div className="divide-y divide-slate-800">
+      <div className="divide-y divide-[var(--c-bg-elev-2)]">
         {Array.from({ length: 5 }, (_, i) => (
           <div key={i} className="px-4 py-3 flex items-center gap-6">
             <div className="h-3 w-32 rounded skeleton-shimmer" />
@@ -700,7 +700,7 @@ function TablaLicenciasSkeleton() {
 
 function CalendarioSkeleton() {
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-700 p-5">
+    <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-5">
       <div className="flex items-center justify-between mb-5">
         <div className="h-6 w-6 rounded skeleton-shimmer" />
         <div className="h-4 w-32 rounded skeleton-shimmer" />
@@ -891,14 +891,14 @@ export default function VistaLicencias({
   // la cabecera ni del tamaño/scroll de la tabla.
   function renderCabeceraFiltrable(columna: "sector" | "tipo" | "periodo" | "agente", label: string, activo: boolean) {
     if (!filtrosActivos) {
-      return <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</th>;
+      return <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">{label}</th>;
     }
     return (
       <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide">
         <button
           type="button"
           onClick={() => abrirColumna(columna)}
-          className={`inline-flex items-center gap-1 uppercase tracking-wide transition-colors ${activo ? "text-blue-400" : "text-slate-400 hover:text-slate-200"}`}
+          className={`inline-flex items-center gap-1 uppercase tracking-wide transition-colors ${activo ? "text-[var(--c-blue-text)]" : "text-[var(--c-text-muted)] hover:text-[var(--c-text)]"}`}
         >
           {label}
           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -919,12 +919,12 @@ export default function VistaLicencias({
   const contenidoFiltroSector = (
     <div className="space-y-0.5">
       {sectores.map((s) => (
-        <label key={s.id} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-slate-700 cursor-pointer">
+        <label key={s.id} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
           <input
             type="checkbox"
             checked={filtroSectores.includes(s.nombre)}
             onChange={() => toggleFiltroSector(s.nombre)}
-            className="rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+            className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
           />
           {s.nombre}
         </label>
@@ -933,7 +933,7 @@ export default function VistaLicencias({
         <button
           type="button"
           onClick={() => setFiltroSectores([])}
-          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-blue-400 hover:bg-slate-700 hover:text-blue-300"
+          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
         </button>
@@ -944,12 +944,12 @@ export default function VistaLicencias({
   const contenidoFiltroTipo = (
     <div className="space-y-0.5">
       {tiposLicencia.map(([v, l]) => (
-        <label key={v} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-slate-700 cursor-pointer">
+        <label key={v} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
           <input
             type="checkbox"
             checked={filtroTipos.includes(v)}
             onChange={() => toggleFiltroTipo(v)}
-            className="rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+            className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
           />
           {l}
         </label>
@@ -958,7 +958,7 @@ export default function VistaLicencias({
         <button
           type="button"
           onClick={() => setFiltroTipos([])}
-          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-blue-400 hover:bg-slate-700 hover:text-blue-300"
+          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
         </button>
@@ -969,28 +969,28 @@ export default function VistaLicencias({
   const contenidoFiltroPeriodo = (
     <div className="space-y-2">
       <div>
-        <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Desde</label>
+        <label className="block text-[10px] font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1">Desde</label>
         <input
           type="date"
           value={filtroPeriodoInicio}
           onChange={(e) => setFiltroPeriodoInicio(e.target.value)}
-          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-xs text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
         />
       </div>
       <div>
-        <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Hasta</label>
+        <label className="block text-[10px] font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1">Hasta</label>
         <input
           type="date"
           value={filtroPeriodoFin}
           onChange={(e) => setFiltroPeriodoFin(e.target.value)}
-          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-xs text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
         />
       </div>
       {(filtroPeriodoInicio || filtroPeriodoFin) && (
         <button
           type="button"
           onClick={() => { setFiltroPeriodoInicio(""); setFiltroPeriodoFin(""); }}
-          className="w-full rounded px-2 py-1 text-left text-[11px] text-blue-400 hover:bg-slate-700 hover:text-blue-300"
+          className="w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
         </button>
@@ -1001,12 +1001,12 @@ export default function VistaLicencias({
   const contenidoFiltroAgente = (
     <div className="space-y-0.5">
       {agentesUnicos.map((a) => (
-        <label key={a.id} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-slate-700 cursor-pointer">
+        <label key={a.id} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
           <input
             type="checkbox"
             checked={filtroAgentes.includes(a.id)}
             onChange={() => toggleFiltroAgente(a.id)}
-            className="rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500"
+            className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
           />
           {a.apellidos}, {a.nombres}
         </label>
@@ -1015,7 +1015,7 @@ export default function VistaLicencias({
         <button
           type="button"
           onClick={() => setFiltroAgentes([])}
-          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-blue-400 hover:bg-slate-700 hover:text-blue-300"
+          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
         </button>
@@ -1035,30 +1035,30 @@ export default function VistaLicencias({
     <div className="space-y-4">
       {/* Pestañas principales + toggle vista */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="relative flex border-b border-slate-700">
+        <div className="relative flex border-b border-[var(--c-line)]">
           <button
             type="button"
             ref={(el) => { tabButtonRefs.current.licencias = el ?? undefined; }}
             onClick={() => { setMainTab("licencias"); setFiltroTipos([]); }}
-            className={`px-5 py-2.5 text-sm font-medium border-b-2 border-transparent transition-colors -mb-px ${mainTab === "licencias" ? "text-blue-400" : "text-slate-400 hover:text-slate-300"}`}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 border-transparent transition-colors -mb-px ${mainTab === "licencias" ? "text-[var(--c-blue-text)]" : "text-[var(--c-text-muted)] hover:text-[var(--c-text-secondary)]"}`}
           >
             Licencias
-            <span className="ml-2 inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-400">{licencias.length}</span>
+            <span className="ml-2 inline-flex items-center rounded-full bg-[var(--c-bg-elev-2)] px-2 py-0.5 text-xs font-medium text-[var(--c-text-muted)]">{licencias.length}</span>
           </button>
           {esAdmin && (
             <button
               type="button"
               ref={(el) => { tabButtonRefs.current.feriados = el ?? undefined; }}
               onClick={() => setMainTab("feriados")}
-              className={`px-5 py-2.5 text-sm font-medium border-b-2 border-transparent transition-colors -mb-px ${mainTab === "feriados" ? "text-blue-400" : "text-slate-400 hover:text-slate-300"}`}
+              className={`px-5 py-2.5 text-sm font-medium border-b-2 border-transparent transition-colors -mb-px ${mainTab === "feriados" ? "text-[var(--c-blue-text)]" : "text-[var(--c-text-muted)] hover:text-[var(--c-text-secondary)]"}`}
             >
               Feriados
-              <span className="ml-2 inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-400">{feriados.length}</span>
+              <span className="ml-2 inline-flex items-center rounded-full bg-[var(--c-bg-elev-2)] px-2 py-0.5 text-xs font-medium text-[var(--c-text-muted)]">{feriados.length}</span>
             </button>
           )}
           {indicador && (
             <span
-              className="absolute bottom-0 h-0.5 bg-blue-500 transition-all duration-300 ease-out"
+              className="absolute bottom-0 h-0.5 bg-[var(--c-blue)] transition-all duration-300 ease-out"
               style={{ left: indicador.left, width: indicador.width }}
             />
           )}
@@ -1066,11 +1066,11 @@ export default function VistaLicencias({
 
         {/* Toggle lista / calendario */}
         {mainTab !== "feriados" && (
-          <div className="flex items-center border border-slate-700 rounded-lg overflow-hidden">
+          <div className="flex items-center border border-[var(--c-line)] rounded-lg overflow-hidden">
             <button
               type="button"
               onClick={() => cambiarVista("lista")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors ${targetVista === "lista" ? "bg-slate-950 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors ${targetVista === "lista" ? "bg-[var(--c-bg)] text-white" : "bg-[var(--c-bg-elev)] text-[var(--c-text-muted)] hover:bg-[var(--c-bg-elev-2)]"}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -1080,7 +1080,7 @@ export default function VistaLicencias({
             <button
               type="button"
               onClick={() => cambiarVista("calendario")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors ${targetVista === "calendario" ? "bg-slate-950 text-white" : "bg-slate-900 text-slate-400 hover:bg-slate-800"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors ${targetVista === "calendario" ? "bg-[var(--c-bg)] text-white" : "bg-[var(--c-bg-elev)] text-[var(--c-text-muted)] hover:bg-[var(--c-bg-elev-2)]"}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1093,7 +1093,7 @@ export default function VistaLicencias({
 
       {/* Feriados */}
       {mainTab === "feriados" && (
-        <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden">
           <GestorFeriados feriados={feriados} />
         </div>
       )}
@@ -1106,13 +1106,13 @@ export default function VistaLicencias({
           placeholder="Buscar por apellido o nombre..."
           value={filtroBusqueda}
           onChange={(e) => setFiltroBusqueda(e.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-96"
+          className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] w-full sm:w-96"
         />
         <button
           type="button"
           onClick={toggleFiltrosActivos}
           className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-            filtrosActivos ? "border-blue-500 bg-blue-500/10 text-blue-300" : "border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
+            filtrosActivos ? "border-[var(--c-blue)] bg-[var(--c-blue)]/10 text-[var(--c-blue-soft)]" : "border-[var(--c-line)] bg-[var(--c-bg-elev)] text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)]"
           }`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1120,19 +1120,19 @@ export default function VistaLicencias({
           </svg>
           Filtros
           {cantidadFiltrosColumna > 0 && (
-            <span className="inline-flex items-center justify-center rounded-full bg-blue-500 h-4 min-w-4 px-1 text-[10px] font-semibold text-white">
+            <span className="inline-flex items-center justify-center rounded-full bg-[var(--c-blue)] h-4 min-w-4 px-1 text-[10px] font-semibold text-white">
               {cantidadFiltrosColumna}
             </span>
           )}
         </button>
-        <label className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm cursor-pointer">
+        <label className="inline-flex items-center gap-2 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-1.5 text-sm cursor-pointer">
           <button
             type="button"
             role="switch"
             aria-checked={soloVigentes}
             onClick={() => setSoloVigentes((v) => !v)}
-            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
-              soloVigentes ? "bg-green-500" : "bg-slate-600"
+            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:ring-offset-1 ${
+              soloVigentes ? "bg-[var(--c-green)]" : "bg-[var(--c-line-strong)]"
             }`}
           >
             <span
@@ -1151,29 +1151,29 @@ export default function VistaLicencias({
         targetVista === "lista" ? <TablaLicenciasSkeleton /> : <CalendarioSkeleton />
       )}
       {mainTab === "licencias" && !vistaPending && vista === "lista" && (
-        <div key={vista} className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden animate-fade-in">
+        <div key={vista} className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden animate-fade-in">
           {/* Mobile: la tabla de 6 columnas no entra en un teléfono sin
               scroll horizontal permanente — mismo criterio que el resto de
               la app (calendario/agenda), acá una tarjeta por licencia. */}
-          <div className="lg:hidden divide-y divide-slate-800">
+          <div className="lg:hidden divide-y divide-[var(--c-bg-elev-2)]">
             {licenciasFiltradas.length === 0 ? (
-              <p className="px-6 py-12 text-center text-sm text-slate-500">No hay licencias.</p>
+              <p className="px-6 py-12 text-center text-sm text-[var(--c-text-faint)]">No hay licencias.</p>
             ) : (
               licenciasVisibles.map((l) => (
                 <div key={l.id} className="px-4 py-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <Link href={`/personal/${l.agente.id}?tab=licencias&volver=${encodeURIComponent("/licencias")}`} className="font-medium text-slate-100 hover:text-blue-400 transition-colors truncate">
+                    <Link href={`/personal/${l.agente.id}?tab=licencias&volver=${encodeURIComponent("/licencias")}`} className="font-medium text-[var(--c-text)] hover:text-[var(--c-blue-text)] transition-colors truncate">
                       {l.agente.apellidos}, {l.agente.nombres}
                     </Link>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-slate-800 text-slate-400"}`}>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                       {TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}
                       <span>{TIPO_LICENCIA_EMOJI[l.tipo]}</span>
                     </span>
                   </div>
                   {!esSupervisor && l.agente.sector && (
-                    <p className="text-xs text-slate-400">{l.agente.sector}</p>
+                    <p className="text-xs text-[var(--c-text-muted)]">{l.agente.sector}</p>
                   )}
-                  <div className="flex items-center justify-between gap-2 text-xs text-slate-300">
+                  <div className="flex items-center justify-between gap-2 text-xs text-[var(--c-text-secondary)]">
                     <span className="inline-flex items-center gap-1.5">
                       {!soloVigentes && estadoVigencia(l) && (
                         <span
@@ -1183,10 +1183,10 @@ export default function VistaLicencias({
                       )}
                       {fmt(l.fechaInicio)} → {fmt(l.fechaFin)}
                     </span>
-                    <span className="text-slate-400">{l.diasHabiles} días</span>
+                    <span className="text-[var(--c-text-muted)]">{l.diasHabiles} días</span>
                   </div>
                   {l.motivo && (
-                    <p className="text-xs text-slate-500 truncate">{l.motivo}</p>
+                    <p className="text-xs text-[var(--c-text-faint)] truncate">{l.motivo}</p>
                   )}
                 </div>
               ))
@@ -1195,40 +1195,40 @@ export default function VistaLicencias({
           <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-950 border-b border-slate-700">
+                <tr className="bg-[var(--c-bg)] border-b border-[var(--c-line)]">
                   {renderCabeceraFiltrable("agente", "Agente", filtroAgentes.length > 0)}
                   {!esSupervisor && renderCabeceraFiltrable("sector", "Sector", filtroSectores.length > 0)}
                   {renderCabeceraFiltrable("tipo", "Tipo", filtroTipos.length > 0)}
                   {renderCabeceraFiltrable("periodo", "Período", Boolean(filtroPeriodoInicio || filtroPeriodoFin))}
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Días</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Motivo</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">Días</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">Motivo</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-[var(--c-bg-elev-2)]">
                 {licenciasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={esSupervisor ? 5 : 6} className="px-6 py-12 text-center text-sm text-slate-500">
+                    <td colSpan={esSupervisor ? 5 : 6} className="px-6 py-12 text-center text-sm text-[var(--c-text-faint)]">
                       No hay licencias.
                     </td>
                   </tr>
                 ) : (
                   licenciasVisibles.map((l) => (
-                    <tr key={l.id} className="hover:bg-slate-800 transition-colors">
+                    <tr key={l.id} className="hover:bg-[var(--c-bg-elev-2)] transition-colors">
                       <td className="px-4 py-3">
-                        <Link href={`/personal/${l.agente.id}?tab=licencias&volver=${encodeURIComponent("/licencias")}`} className="font-medium text-slate-100 hover:text-blue-400 transition-colors">
+                        <Link href={`/personal/${l.agente.id}?tab=licencias&volver=${encodeURIComponent("/licencias")}`} className="font-medium text-[var(--c-text)] hover:text-[var(--c-blue-text)] transition-colors">
                           {l.agente.apellidos}, {l.agente.nombres}
                         </Link>
                       </td>
                       {!esSupervisor && (
-                        <td className="px-4 py-3 text-slate-400 text-xs">{l.agente.sector ?? "—"}</td>
+                        <td className="px-4 py-3 text-[var(--c-text-muted)] text-xs">{l.agente.sector ?? "—"}</td>
                       )}
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center justify-between gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-slate-800 text-slate-400"}`}>
+                        <span className={`inline-flex items-center justify-between gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${TIPO_LICENCIA_BADGE[l.tipo] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                           {TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}
                           <span>{TIPO_LICENCIA_EMOJI[l.tipo]}</span>
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-300 whitespace-nowrap">
+                      <td className="px-4 py-3 text-[var(--c-text-secondary)] whitespace-nowrap">
                         <span className="inline-flex items-center gap-1.5">
                           {!soloVigentes && estadoVigencia(l) && (
                             <span
@@ -1239,8 +1239,8 @@ export default function VistaLicencias({
                           {fmt(l.fechaInicio)} → {fmt(l.fechaFin)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-300 text-center">{l.diasHabiles}</td>
-                      <td className="px-4 py-3 text-slate-400 text-xs max-w-[200px] truncate">{l.motivo ?? "—"}</td>
+                      <td className="px-4 py-3 text-[var(--c-text-secondary)] text-center">{l.diasHabiles}</td>
+                      <td className="px-4 py-3 text-[var(--c-text-muted)] text-xs max-w-[200px] truncate">{l.motivo ?? "—"}</td>
                     </tr>
                   ))
                 )}
@@ -1248,18 +1248,18 @@ export default function VistaLicencias({
           </table>
           </div>
           {cantidadVisible < licenciasFiltradas.length && (
-            <div className="flex items-center justify-between border-t border-slate-800 px-4 py-3">
-              <span className="text-xs text-slate-500">
+            <div className="flex items-center justify-between border-t border-[var(--c-bg-elev-2)] px-4 py-3">
+              <span className="text-xs text-[var(--c-text-faint)]">
                 Mostrando {licenciasVisibles.length} de {licenciasFiltradas.length}
               </span>
               <button
                 type="button"
                 onClick={cargarMas}
                 disabled={cargandoMas}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 transition-colors disabled:opacity-70"
+                className="inline-flex items-center gap-2 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] px-3 py-1.5 text-xs font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] transition-colors disabled:opacity-70"
               >
                 {cargandoMas && (
-                  <span className="h-3 w-3 rounded-full border-2 border-slate-600 border-t-blue-500 animate-spin" />
+                  <span className="h-3 w-3 rounded-full border-2 border-[var(--c-line-strong)] border-t-[var(--c-blue)] animate-spin" />
                 )}
                 Cargar más
               </button>
@@ -1269,25 +1269,25 @@ export default function VistaLicencias({
       )}
 
       {mainTab === "licencias" && !vistaPending && vista === "calendario" && (
-        <div key={vista} className="bg-slate-900 rounded-xl border border-slate-700 p-3 lg:p-5 animate-fade-in">
+        <div key={vista} className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-3 lg:p-5 animate-fade-in">
           {/* Navegación mes */}
           <div className="flex items-center justify-between mb-5">
             <button
               type="button"
               onClick={() => cambiarMes(-1)}
               disabled={cargandoMes}
-              className="rounded-lg p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h3 className="text-sm font-semibold text-slate-200 capitalize">{fmtMes(calAnio, calMes)}</h3>
+            <h3 className="text-sm font-semibold text-[var(--c-text)] capitalize">{fmtMes(calAnio, calMes)}</h3>
             <button
               type="button"
               onClick={() => cambiarMes(1)}
               disabled={cargandoMes}
-              className="rounded-lg p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1298,14 +1298,14 @@ export default function VistaLicencias({
           <div className="relative">
             <CalendarioMes anio={calAnio} mes={calMes} licencias={licenciasFiltradas} feriados={feriados} />
             {cargandoMes && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-slate-900/70">
-                <span className="h-8 w-8 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin" />
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--c-bg-elev)]/70">
+                <span className="h-8 w-8 rounded-full border-2 border-[var(--c-line)] border-t-[var(--c-blue)] animate-spin" />
               </div>
             )}
           </div>
 
           {/* Leyenda */}
-          <div className="mt-4 pt-4 border-t border-slate-800">
+          <div className="mt-4 pt-4 border-t border-[var(--c-bg-elev-2)]">
             <div className="flex flex-wrap gap-2">
               {Object.entries(TIPO_LICENCIA_BADGE).map(([tipo, badge]) => (
                 <span key={tipo} className={`inline-flex items-center justify-between gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${badge}`}>
@@ -1325,15 +1325,15 @@ export default function VistaLicencias({
         onClick={() => setColumnaAbierta(null)}
       >
         <div
-          className="w-80 max-h-[80vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl shadow-black/50 animate-fade-in"
+          className="w-80 max-h-[80vh] overflow-y-auto rounded-xl border border-[var(--c-line)] bg-[var(--c-bg-elev)] p-4 shadow-xl shadow-black/50 animate-fade-in"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-slate-200">Filtrar por {FILTRO_COLUMNA_TITULOS[columnaAbierta]}</h4>
+            <h4 className="text-sm font-semibold text-[var(--c-text)]">Filtrar por {FILTRO_COLUMNA_TITULOS[columnaAbierta]}</h4>
             <button
               type="button"
               onClick={() => setColumnaAbierta(null)}
-              className="rounded-lg p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
+              className="rounded-lg p-1 text-[var(--c-text-faint)] hover:text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

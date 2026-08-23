@@ -53,9 +53,9 @@ function Ring({ side, iconSize }: { side: RingSide; iconSize: number }) {
         </div>
       </div>
       <div className="text-center">
-        <div className="text-xl font-semibold tracking-tight text-slate-100 tabular-nums">{side.value}</div>
-        <div className="text-xs font-medium text-slate-300 mt-0.5">{side.label}</div>
-        <div className="text-[11px] text-slate-500 mt-px tabular-nums">{side.pct}%</div>
+        <div className="text-xl font-semibold tracking-tight text-[var(--c-text)] tabular-nums">{side.value}</div>
+        <div className="text-xs font-medium text-[var(--c-text-secondary)] mt-0.5">{side.label}</div>
+        <div className="text-[11px] text-[var(--c-text-faint)] mt-px tabular-nums">{side.pct}%</div>
       </div>
     </div>
   );
@@ -74,11 +74,11 @@ export default function RingCompare({
     <div className="flex flex-wrap items-center justify-center py-1.5">
       <Ring side={left} iconSize={iconSize} />
       <div className="flex flex-col items-center gap-2.5 px-2 sm:px-5 self-stretch">
-        <span className="w-px flex-1 bg-slate-800" />
-        <span className="w-8 h-8 rounded-full bg-slate-950 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 tracking-wide shrink-0">
+        <span className="w-px flex-1 bg-[var(--c-bg-elev-2)]" />
+        <span className="w-8 h-8 rounded-full bg-[var(--c-bg)] border border-[var(--c-line)] flex items-center justify-center text-[10px] font-bold text-[var(--c-text-faint)] tracking-wide shrink-0">
           VS
         </span>
-        <span className="w-px flex-1 bg-slate-800" />
+        <span className="w-px flex-1 bg-[var(--c-bg-elev-2)]" />
       </div>
       <Ring side={right} iconSize={iconSize} />
     </div>

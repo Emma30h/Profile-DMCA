@@ -20,7 +20,7 @@ export default async function EventosAsideContent() {
   ]);
 
   return (
-    <div className="flex h-full flex-col divide-y divide-slate-700">
+    <div className="flex h-full flex-col divide-y divide-[var(--c-line)]">
       <TurnoHoyCard turnoHoy={turnoHoy} semana={semana} eventosAscenso={eventosAscenso} />
       <EfemeridesHoyCard eventos={efemerides} />
       {/* flex-1: absorbe el espacio sobrante cuando hay pocas novedades, así

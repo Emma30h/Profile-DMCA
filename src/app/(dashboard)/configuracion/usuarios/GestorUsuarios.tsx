@@ -21,11 +21,11 @@ const ROL_LABELS: Record<RolUsuario, string> = {
 };
 
 const ROL_BADGE: Record<RolUsuario, string> = {
-  SUPERADMIN: "bg-red-500/15 text-red-400",
-  ADMIN: "bg-blue-500/15 text-blue-300",
+  SUPERADMIN: "bg-[var(--c-coral)]/15 text-[var(--c-coral)]",
+  ADMIN: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
   SUPERVISOR: "bg-purple-500/15 text-purple-400",
-  OPERADOR: "bg-green-500/15 text-green-400",
-  READONLY: "bg-slate-800 text-slate-400",
+  OPERADOR: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
+  READONLY: "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]",
 };
 
 
@@ -60,7 +60,7 @@ function TablaUsuarios({
 }) {
   if (usuarios.length === 0) {
     return (
-      <div className="px-6 py-12 text-center text-slate-500 text-sm">
+      <div className="px-6 py-12 text-center text-[var(--c-text-faint)] text-sm">
         No hay usuarios en esta categoría.
       </div>
     );
@@ -70,28 +70,28 @@ function TablaUsuarios({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-slate-950 border-b border-slate-700">
-            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+          <tr className="bg-[var(--c-bg)] border-b border-[var(--c-line)]">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">
               Personal
             </th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">
               Email
             </th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">
               Rol
             </th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">
               Agente vinculado
             </th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">
               Estado
             </th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">
               Acciones
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-800">
+        <tbody className="divide-y divide-[var(--c-bg-elev-2)]">
           {usuarios.map((u) => (
             <FilaUsuario
               key={u.id}
@@ -133,19 +133,19 @@ export default function GestorUsuarios({
   return (
     <div>
       {/* Pestañas */}
-      <div className="relative flex border-b border-slate-700 mb-0">
+      <div className="relative flex border-b border-[var(--c-line)] mb-0">
         <button
           type="button"
           ref={(el) => { tabButtonRefs.current.privilegiados = el ?? undefined; }}
           onClick={() => setTab("privilegiados")}
           className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 border-transparent -mb-px ${
             tab === "privilegiados"
-              ? "text-blue-400"
-              : "text-slate-400 hover:text-slate-300"
+              ? "text-[var(--c-blue-text)]"
+              : "text-[var(--c-text-muted)] hover:text-[var(--c-text-secondary)]"
           }`}
         >
           Administradores
-          <span className="ml-2 inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-400">
+          <span className="ml-2 inline-flex items-center rounded-full bg-[var(--c-bg-elev-2)] px-2 py-0.5 text-xs font-medium text-[var(--c-text-muted)]">
             {privilegiados.length}
           </span>
         </button>
@@ -155,18 +155,18 @@ export default function GestorUsuarios({
           onClick={() => setTab("readonly")}
           className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 border-transparent -mb-px ${
             tab === "readonly"
-              ? "text-blue-400"
-              : "text-slate-400 hover:text-slate-300"
+              ? "text-[var(--c-blue-text)]"
+              : "text-[var(--c-text-muted)] hover:text-[var(--c-text-secondary)]"
           }`}
         >
           Solo lectura
-          <span className="ml-2 inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-400">
+          <span className="ml-2 inline-flex items-center rounded-full bg-[var(--c-bg-elev-2)] px-2 py-0.5 text-xs font-medium text-[var(--c-text-muted)]">
             {soloLectura.length}
           </span>
         </button>
         {indicador && (
           <span
-            className="absolute bottom-0 h-0.5 bg-blue-500 transition-all duration-300 ease-out"
+            className="absolute bottom-0 h-0.5 bg-[var(--c-blue)] transition-all duration-300 ease-out"
             style={{ left: indicador.left, width: indicador.width }}
           />
         )}
@@ -348,12 +348,12 @@ function FilaUsuario({
         <td colSpan={6} className="p-0">
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/40" onClick={handleCerrarEstado} />
-            <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-slate-100">
+                <h2 className="text-base font-semibold text-[var(--c-text)]">
                   {confirmarEstado.activar ? "Activar usuario" : "Desactivar usuario"}
                 </h2>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-[var(--c-text-faint)]">
                   Paso {confirmarEstado.paso === "confirmar" ? 1 : 2} de 2
                 </span>
               </div>
@@ -361,12 +361,12 @@ function FilaUsuario({
               {confirmarEstado.paso === "confirmar" && (
                 <>
                   <div>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-[var(--c-text-muted)]">
                       ¿Estás seguro de que querés {confirmarEstado.activar ? "activar" : "desactivar"} a{" "}
-                      <span className="font-medium text-slate-200">{nombreMostrado}</span>?
+                      <span className="font-medium text-[var(--c-text)]">{nombreMostrado}</span>?
                     </p>
                     {!confirmarEstado.activar && (
-                      <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2 mt-3">
+                      <p className="text-xs text-[var(--c-amber)] bg-[var(--c-amber)]/10 border border-[var(--c-amber)]/25 rounded-lg px-3 py-2 mt-3">
                         Su sesión se cerrará inmediatamente y no podrá volver a ingresar al sistema.
                       </p>
                     )}
@@ -375,7 +375,7 @@ function FilaUsuario({
                     <button
                       type="button"
                       onClick={handleCerrarEstado}
-                      className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors"
+                      className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors"
                     >
                       Cancelar
                     </button>
@@ -383,7 +383,7 @@ function FilaUsuario({
                       type="button"
                       onClick={handleAvanzarEstado}
                       className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
-                        confirmarEstado.activar ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+                        confirmarEstado.activar ? "bg-[var(--c-green-strong)] hover:bg-[var(--c-green-strong)]" : "bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)]"
                       }`}
                     >
                       {confirmarEstado.activar ? "Sí, activar" : "Sí, desactivar"}
@@ -395,9 +395,9 @@ function FilaUsuario({
               {confirmarEstado.paso === "password" && (
                 <>
                   <div>
-                    <label htmlFor={`password-estado-${usuario.id}`} className="block text-xs font-medium text-slate-300 mb-1">
+                    <label htmlFor={`password-estado-${usuario.id}`} className="block text-xs font-medium text-[var(--c-text-secondary)] mb-1">
                       Confirmá tu contraseña para {confirmarEstado.activar ? "activar" : "desactivar"} a{" "}
-                      <span className="font-medium text-slate-300">{nombreMostrado}</span>
+                      <span className="font-medium text-[var(--c-text-secondary)]">{nombreMostrado}</span>
                     </label>
                     <div className="relative">
                       <input
@@ -408,25 +408,25 @@ function FilaUsuario({
                         value={passwordEstado}
                         onChange={(e) => setPasswordEstado(e.target.value)}
                         placeholder="Tu contraseña"
-                        className="w-full rounded-lg border border-slate-700 px-3 py-2.5 pr-10 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2.5 pr-10 text-sm text-[var(--c-text)] placeholder-[var(--c-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent transition"
                       />
                       <button
                         type="button"
                         onClick={() => setMostrarPasswordEstado((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--c-text-faint)] hover:text-[var(--c-text-muted)]"
                         tabIndex={-1}
                       >
                         {mostrarPasswordEstado ? <EyeOffIcon /> : <EyeIcon />}
                       </button>
                     </div>
                   </div>
-                  {errorEstado && <p className="text-xs text-red-400">{errorEstado}</p>}
+                  {errorEstado && <p className="text-xs text-[var(--c-coral)]">{errorEstado}</p>}
                   <div className="flex justify-end gap-2">
                     <button
                       type="button"
                       onClick={handleCerrarEstado}
                       disabled={pendingEstado}
-                      className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors disabled:opacity-50"
+                      className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
                     >
                       Cancelar
                     </button>
@@ -435,7 +435,7 @@ function FilaUsuario({
                       onClick={handleConfirmarEstado}
                       disabled={pendingEstado || passwordEstado.length === 0}
                       className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 inline-flex items-center gap-1.5 ${
-                        confirmarEstado.activar ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+                        confirmarEstado.activar ? "bg-[var(--c-green-strong)] hover:bg-[var(--c-green-strong)]" : "bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)]"
                       }`}
                     >
                       {pendingEstado && <Spinner className="h-3.5 w-3.5" />}
@@ -456,10 +456,10 @@ function FilaUsuario({
         <td colSpan={6} className="p-0">
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/40" onClick={handleCerrarEliminar} />
-            <div className="relative bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <div className="relative bg-[var(--c-bg-elev)] rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-slate-100">Eliminar usuario</h2>
-                <span className="text-xs text-slate-500">
+                <h2 className="text-base font-semibold text-[var(--c-text)]">Eliminar usuario</h2>
+                <span className="text-xs text-[var(--c-text-faint)]">
                   Paso {pasoEliminar === "confirmar" ? 1 : pasoEliminar === "codigo" ? 2 : 3} de 3
                 </span>
               </div>
@@ -467,23 +467,23 @@ function FilaUsuario({
               {pasoEliminar === "confirmar" && (
                 <>
                   <div>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-[var(--c-text-muted)]">
                       ¿Estás seguro de que querés eliminar definitivamente a{" "}
-                      <span className="font-medium text-slate-200">{nombreMostrado}</span>?
+                      <span className="font-medium text-[var(--c-text)]">{nombreMostrado}</span>?
                     </p>
-                    <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2 mt-3">
+                    <p className="text-xs text-[var(--c-coral)] bg-[var(--c-coral)]/10 border border-[var(--c-coral)]/25 rounded-lg px-3 py-2 mt-3">
                       Esta acción no se puede deshacer. Se borran sus notificaciones y solicitudes.
                       {usuario.agente && " Su legajo NO se borra, solo queda sin vincular a ninguna cuenta."}
                       {" "}Te vamos a pedir un código enviado a tu correo y tu contraseña para confirmar.
                     </p>
                   </div>
-                  {errorEliminar && <p className="text-xs text-red-400">{errorEliminar}</p>}
+                  {errorEliminar && <p className="text-xs text-[var(--c-coral)]">{errorEliminar}</p>}
                   <div className="flex justify-end gap-2">
                     <button
                       type="button"
                       onClick={handleCerrarEliminar}
                       disabled={pendingEliminar}
-                      className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors disabled:opacity-50"
+                      className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
                     >
                       Cancelar
                     </button>
@@ -491,7 +491,7 @@ function FilaUsuario({
                       type="button"
                       onClick={handleSolicitarCodigo}
                       disabled={pendingEliminar}
-                      className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                      className="rounded-lg bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
                     >
                       {pendingEliminar && <Spinner className="h-3.5 w-3.5" />}
                       {pendingEliminar ? "Enviando..." : "Enviar código de confirmación"}
@@ -502,9 +502,9 @@ function FilaUsuario({
 
               {pasoEliminar === "codigo" && (
                 <>
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-[var(--c-text-muted)]">
                     Ingresá el código de 8 dígitos que enviamos a tu correo para confirmar la eliminación de{" "}
-                    <span className="font-medium text-slate-200">{nombreMostrado}</span>.
+                    <span className="font-medium text-[var(--c-text)]">{nombreMostrado}</span>.
                   </p>
                   <input
                     type="text"
@@ -515,16 +515,16 @@ function FilaUsuario({
                     value={codigoEliminar}
                     onChange={(e) => setCodigoEliminar(e.target.value.replace(/\D/g, ""))}
                     placeholder="00000000"
-                    className="w-full rounded-lg border border-slate-700 px-3 py-2.5 text-sm text-center tracking-[0.3em] font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition"
+                    className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2.5 text-sm text-center tracking-[0.3em] font-mono text-[var(--c-text)] placeholder-[var(--c-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--c-coral)] focus:border-transparent transition"
                   />
-                  {errorEliminar && <p className="text-xs text-red-400">{errorEliminar}</p>}
-                  <div className="flex items-center justify-between text-xs text-slate-400">
+                  {errorEliminar && <p className="text-xs text-[var(--c-coral)]">{errorEliminar}</p>}
+                  <div className="flex items-center justify-between text-xs text-[var(--c-text-muted)]">
                     <span>¿No llegó el correo?</span>
                     <button
                       type="button"
                       onClick={handleReenviarCodigo}
                       disabled={cooldownEliminar > 0 || pendingEliminar}
-                      className="text-blue-400 hover:text-blue-300 disabled:text-slate-500 disabled:cursor-not-allowed font-medium transition-colors"
+                      className="text-[var(--c-blue-text)] hover:text-[var(--c-blue-soft)] disabled:text-[var(--c-text-faint)] disabled:cursor-not-allowed font-medium transition-colors"
                     >
                       {cooldownEliminar > 0 ? `Reenviar en ${cooldownEliminar}s` : "Reenviar código"}
                     </button>
@@ -534,7 +534,7 @@ function FilaUsuario({
                       type="button"
                       onClick={handleCerrarEliminar}
                       disabled={pendingEliminar}
-                      className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors disabled:opacity-50"
+                      className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
                     >
                       Cancelar
                     </button>
@@ -542,7 +542,7 @@ function FilaUsuario({
                       type="button"
                       onClick={handleVerificarCodigo}
                       disabled={pendingEliminar || codigoEliminar.length !== 8}
-                      className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                      className="rounded-lg bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
                     >
                       {pendingEliminar && <Spinner className="h-3.5 w-3.5" />}
                       {pendingEliminar ? "Verificando..." : "Verificar código"}
@@ -553,9 +553,9 @@ function FilaUsuario({
 
               {pasoEliminar === "password" && (
                 <>
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-[var(--c-text-muted)]">
                     Por último, confirmá tu contraseña para eliminar definitivamente a{" "}
-                    <span className="font-medium text-slate-200">{nombreMostrado}</span>.
+                    <span className="font-medium text-[var(--c-text)]">{nombreMostrado}</span>.
                   </p>
                   <div className="relative">
                     <input
@@ -565,24 +565,24 @@ function FilaUsuario({
                       value={passwordEliminar}
                       onChange={(e) => setPasswordEliminar(e.target.value)}
                       placeholder="Tu contraseña"
-                      className="w-full rounded-lg border border-slate-700 px-3 py-2.5 pr-10 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition"
+                      className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2.5 pr-10 text-sm text-[var(--c-text)] placeholder-[var(--c-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--c-coral)] focus:border-transparent transition"
                     />
                     <button
                       type="button"
                       onClick={() => setMostrarPasswordEliminar((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--c-text-faint)] hover:text-[var(--c-text-muted)]"
                       tabIndex={-1}
                     >
                       {mostrarPasswordEliminar ? <EyeOffIcon /> : <EyeIcon />}
                     </button>
                   </div>
-                  {errorEliminar && <p className="text-xs text-red-400">{errorEliminar}</p>}
+                  {errorEliminar && <p className="text-xs text-[var(--c-coral)]">{errorEliminar}</p>}
                   <div className="flex justify-end gap-2">
                     <button
                       type="button"
                       onClick={handleCerrarEliminar}
                       disabled={pendingEliminar}
-                      className="rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors disabled:opacity-50"
+                      className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] hover:bg-[var(--c-bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--c-text-secondary)] transition-colors disabled:opacity-50"
                     >
                       Cancelar
                     </button>
@@ -590,7 +590,7 @@ function FilaUsuario({
                       type="button"
                       onClick={handleConfirmarPassword}
                       disabled={pendingEliminar || passwordEliminar.length === 0}
-                      className="rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                      className="rounded-lg bg-[var(--c-coral-strong)] hover:bg-[var(--c-coral-strong)] px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
                     >
                       {pendingEliminar && <Spinner className="h-3.5 w-3.5" />}
                       {pendingEliminar ? "Eliminando..." : "Eliminar definitivamente"}
@@ -603,16 +603,16 @@ function FilaUsuario({
         </td>
       </tr>
     )}
-    <tr className={`transition-colors ${pending || pendingEstado || pendingVincular || pendingEliminar ? "opacity-50" : "hover:bg-slate-800"}`}>
+    <tr className={`transition-colors ${pending || pendingEstado || pendingVincular || pendingEliminar ? "opacity-50" : "hover:bg-[var(--c-bg-elev-2)]"}`}>
       {/* Identidad */}
       <td className="px-4 py-3">
         {(usuario.jerarquia || usuario.apellido || usuario.nombre) ? (
-          <p className="font-medium text-slate-100">
+          <p className="font-medium text-[var(--c-text)]">
             {[usuario.jerarquia, usuario.apellido, usuario.nombre].filter(Boolean).join(" ")}
-            {esPropioUsuario && <span className="ml-1 text-xs text-slate-500">(vos)</span>}
+            {esPropioUsuario && <span className="ml-1 text-xs text-[var(--c-text-faint)]">(vos)</span>}
           </p>
         ) : (
-          <p className="text-slate-400 italic text-xs">
+          <p className="text-[var(--c-text-muted)] italic text-xs">
             Sin nombre{esPropioUsuario && <span className="ml-1">(vos)</span>}
           </p>
         )}
@@ -620,14 +620,14 @@ function FilaUsuario({
 
       {/* Email */}
       <td className="px-4 py-3">
-        <p className="text-sm text-slate-400">{usuario.email}</p>
+        <p className="text-sm text-[var(--c-text-muted)]">{usuario.email}</p>
       </td>
 
       {/* Rol */}
       <td className="px-4 py-3">
         {esPropioUsuario ? (
           // No puede cambiarse su propio rol
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ROL_BADGE[rol] ?? "bg-slate-800 text-slate-400"}`}>
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ROL_BADGE[rol] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
             {ROL_LABELS[rol] ?? rol}
           </span>
         ) : pending ? (
@@ -636,12 +636,12 @@ function FilaUsuario({
           // puntos suspensivos centrados — misma señal de "carga en curso"
           // que .loading-dots usa en el resto de la app, sin texto porque acá
           // no hay lugar para un label al lado.
-          <div className="flex items-center justify-center rounded-md border border-slate-700 bg-slate-900 px-2 py-1 h-[30px] min-w-[130px]">
+          <div className="flex items-center justify-center rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 h-[30px] min-w-[130px]">
             {/* Los "." se apoyan en la línea de base del texto, así que con
                 text-2xl quedan visualmente pegados abajo del box — se
                 compensa subiéndolos con -translate-y en vez de perseguir el
                 centrado con más padding. */}
-            <span className="loading-dots inline-flex items-center gap-0.5 text-2xl leading-none text-slate-500 -translate-y-1.5" aria-hidden="true">
+            <span className="loading-dots inline-flex items-center gap-0.5 text-2xl leading-none text-[var(--c-text-faint)] -translate-y-1.5" aria-hidden="true">
               <span>.</span><span>.</span><span>.</span>
             </span>
           </div>
@@ -650,7 +650,7 @@ function FilaUsuario({
             value={usuario.rol}
             onChange={handleRol}
             disabled={pending}
-            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-sm text-[var(--c-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] cursor-pointer"
           >
             {ROLES_USUARIO.map((r) => (
               <option key={r} value={r}>
@@ -665,7 +665,7 @@ function FilaUsuario({
       <td className="px-4 py-3">
         <div className="flex items-center gap-1.5 h-7">
           {pendingVincular ? (
-            <div className="progress-bar-track h-7 w-full max-w-[220px] rounded-md border border-slate-700">
+            <div className="progress-bar-track h-7 w-full max-w-[220px] rounded-md border border-[var(--c-line)]">
               <div className="progress-bar-fill" />
             </div>
           ) : (
@@ -674,7 +674,7 @@ function FilaUsuario({
                 value={usuario.agente?.id ?? ""}
                 onChange={handleVincular}
                 disabled={pending || bloqueado}
-                className={`rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[220px] ${bloqueado ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+                className={`rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-sm text-[var(--c-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] max-w-[220px] ${bloqueado ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
               >
                 <option value="">— Sin vincular —</option>
                 {opcionesAgentes.map((a) => (
@@ -687,7 +687,7 @@ function FilaUsuario({
                 type="button"
                 onClick={() => setBloqueado((v) => !v)}
                 title={bloqueado ? "Desbloquear" : "Bloquear"}
-                className="text-slate-500 hover:text-slate-400 transition-colors flex-shrink-0"
+                className="text-[var(--c-text-faint)] hover:text-[var(--c-text-muted)] transition-colors flex-shrink-0"
               >
                 {bloqueado ? <LockIcon /> : <UnlockIcon />}
               </button>
@@ -700,7 +700,7 @@ function FilaUsuario({
       <td className="px-4 py-3">
         <div className={`flex items-center gap-2 h-5 ${pendingEstado ? "justify-center" : ""}`}>
           {pendingEstado ? (
-            <Spinner className="h-4 w-4 text-slate-400" />
+            <Spinner className="h-4 w-4 text-[var(--c-text-muted)]" />
           ) : (
             <>
               <button
@@ -709,9 +709,9 @@ function FilaUsuario({
                 aria-checked={usuario.activo}
                 onClick={esPropioUsuario ? undefined : handleToggle}
                 disabled={pending || esPropioUsuario}
-                className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:ring-offset-1 ${
                   esPropioUsuario ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-                } ${usuario.activo ? "bg-green-500" : "bg-slate-600"}`}
+                } ${usuario.activo ? "bg-[var(--c-green)]" : "bg-[var(--c-line-strong)]"}`}
               >
                 <span
                   className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -719,7 +719,7 @@ function FilaUsuario({
                   }`}
                 />
               </button>
-              <span className={`text-xs font-medium ${usuario.activo ? "text-green-400" : "text-slate-500"}`}>
+              <span className={`text-xs font-medium ${usuario.activo ? "text-[var(--c-green)]" : "text-[var(--c-text-faint)]"}`}>
                 {usuario.activo ? "Activo" : "Inactivo"}
               </span>
             </>
@@ -740,7 +740,7 @@ function FilaUsuario({
               ? "Desactivá la cuenta antes de eliminarla"
               : "Eliminar usuario"
           }
-          className="text-slate-500 hover:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-slate-500"
+          className="text-[var(--c-text-faint)] hover:text-[var(--c-coral)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-[var(--c-text-faint)]"
         >
           <TrashIcon />
         </button>

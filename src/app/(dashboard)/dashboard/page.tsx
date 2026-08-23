@@ -58,7 +58,7 @@ export default async function DashboardPage() {
             value={stats.kpi.enPase}
             sub="a otra dependencia"
             icon="⇄"
-            badgeClass="bg-blue-500/10 text-blue-300"
+            badgeClass="bg-[var(--c-blue)]/10 text-[var(--c-blue-soft)]"
             href={stats.kpi.enPase > 0 ? "/personal?estado=PASE" : undefined}
           />
           <KpiTile
@@ -66,16 +66,16 @@ export default async function DashboardPage() {
             value={stats.kpi.enBaja}
             sub="fuera de servicio"
             icon="−"
-            badgeClass="bg-slate-800 text-slate-500"
+            badgeClass="bg-[var(--c-bg-elev-2)] text-[var(--c-text-faint)]"
             href={stats.kpi.enBaja > 0 ? "/personal?estado=BAJA" : undefined}
           />
           <KpiTile
             label="Legajos pendientes"
             value={stats.kpi.legajosPendientes}
             sub={stats.kpi.legajosPendientes === 0 ? "al día — nada por validar" : "esperando validación"}
-            subClass={stats.kpi.legajosPendientes === 0 ? "text-green-400" : undefined}
+            subClass={stats.kpi.legajosPendientes === 0 ? "text-[var(--c-green)]" : undefined}
             icon="✓"
-            badgeClass="bg-green-500/10 text-green-400"
+            badgeClass="bg-[var(--c-green)]/10 text-[var(--c-green)]"
             href={stats.kpi.legajosPendientes > 0 ? "/personal?estado=PENDIENTE" : undefined}
           />
           <KpiTile
@@ -83,7 +83,7 @@ export default async function DashboardPage() {
             value={stats.kpi.licenciasActivasHoy}
             sub={`+${stats.kpi.licenciasProximas} próximas a iniciar`}
             icon="◐"
-            badgeClass="bg-amber-400/10 text-amber-300"
+            badgeClass="bg-[var(--c-amber)]/10 text-[var(--c-amber)]"
             href={
               stats.kpi.licenciasActivasHoyIds.length > 0
                 ? `/personal?${buildQueryString({ ids: stats.kpi.licenciasActivasHoyIds.join(",") })}`
@@ -112,8 +112,8 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5 mb-4">
-        <h3 className="text-sm font-semibold text-slate-100 mb-1">Activos por sexo</h3>
+      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 mb-4">
+        <h3 className="text-sm font-semibold text-[var(--c-text)] mb-1">Activos por sexo</h3>
         <RingCompare
           iconSize={78}
           left={{
@@ -138,15 +138,15 @@ export default async function DashboardPage() {
             stats.sexo.otros.map((o) => (
               <span
                 key={o.label}
-                className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-300 bg-slate-950 border border-slate-800 pl-2 pr-2.5 py-1 rounded-full"
+                className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full"
               >
                 <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: OTROS_COLOR }} />
                 {SEXO_LABEL[o.label] ?? o.label}
-                <b className="text-slate-100 font-bold">{o.count}</b>
+                <b className="text-[var(--c-text)] font-bold">{o.count}</b>
               </span>
             ))
           ) : (
-            <span className="text-[11px] text-slate-500 text-center">
+            <span className="text-[11px] text-[var(--c-text-faint)] text-center">
               Sin registros en No binario / Otro / Prefiero no decir entre el personal activo.
             </span>
           )}
@@ -156,10 +156,10 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
         <HijosACargoCard hijos={stats.hijos} />
 
-        <div className="bg-slate-900 rounded-xl border border-slate-700 p-4.5">
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
           <div className="flex items-baseline justify-between mb-1">
-            <h3 className="text-sm font-semibold text-slate-100">Padres y madres</h3>
-            <span className="text-[11px] text-slate-500 tabular-nums">
+            <h3 className="text-sm font-semibold text-[var(--c-text)]">Padres y madres</h3>
+            <span className="text-[11px] text-[var(--c-text-faint)] tabular-nums">
               {stats.padresMadres.totalConHijos} con hijos a cargo
             </span>
           </div>

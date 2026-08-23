@@ -67,9 +67,9 @@ function nombreCobertura(item: CoberturaTurnoInfo): string {
 function GrupoCobertura({ titulo, items, hoy }: { titulo: string; items: CoberturaTurnoInfo[]; hoy: string }) {
   return (
     <div>
-      <div className="text-slate-400 text-[11px] mb-1">{titulo}</div>
+      <div className="text-[var(--c-text-muted)] text-[11px] mb-1">{titulo}</div>
       {items.length === 0 ? (
-        <div className="text-slate-500 text-[12px]">Sin turnos cargados esta semana</div>
+        <div className="text-[var(--c-text-faint)] text-[12px]">Sin turnos cargados esta semana</div>
       ) : (
         <div className="space-y-1">
           {items.map((item) => {
@@ -77,11 +77,11 @@ function GrupoCobertura({ titulo, items, hoy }: { titulo: string; items: Cobertu
             return (
               <div
                 key={item.id}
-                className={`text-[12px] rounded-md px-2 py-1 ${esHoy ? "bg-blue-500/10" : ""}`}
+                className={`text-[12px] rounded-md px-2 py-1 ${esHoy ? "bg-[var(--c-blue)]/10" : ""}`}
               >
-                <span className={`font-medium capitalize ${esHoy ? "text-blue-300" : "text-slate-400"}`}>{fmtDiaCorto(item.fecha)}</span>
-                <span className="text-slate-200"> — {nombreCobertura(item)}</span>
-                <div className="text-slate-500 truncate">
+                <span className={`font-medium capitalize ${esHoy ? "text-[var(--c-blue-soft)]" : "text-[var(--c-text-muted)]"}`}>{fmtDiaCorto(item.fecha)}</span>
+                <span className="text-[var(--c-text)]"> — {nombreCobertura(item)}</span>
+                <div className="text-[var(--c-text-faint)] truncate">
                   {item.lugar}
                   {item.zona && ` · Zona ${item.zona}`}
                 </div>
@@ -96,24 +96,24 @@ function GrupoCobertura({ titulo, items, hoy }: { titulo: string; items: Cobertu
 
 function ListaEventosAscenso({ eventos, hoy }: { eventos: EventoCursoAscensoSemanaInfo[]; hoy: string }) {
   if (eventos.length === 0) {
-    return <div className="text-slate-500 text-[12px]">Sin eventos de ascenso cargados esta semana</div>;
+    return <div className="text-[var(--c-text-faint)] text-[12px]">Sin eventos de ascenso cargados esta semana</div>;
   }
   return (
     <div className="space-y-1">
       {eventos.map((ev) => {
         const esHoy = ev.fecha === hoy;
         return (
-          <div key={ev.id} className={`text-[12px] rounded-md px-2 py-1 ${esHoy ? "bg-blue-500/10" : ""}`}>
+          <div key={ev.id} className={`text-[12px] rounded-md px-2 py-1 ${esHoy ? "bg-[var(--c-blue)]/10" : ""}`}>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`font-medium capitalize ${esHoy ? "text-blue-300" : "text-slate-400"}`}>{fmtDiaCorto(ev.fecha)}</span>
-              <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${TIPO_EVENTO_BADGE[ev.tipo] ?? "bg-slate-800 text-slate-400"}`}>
+              <span className={`font-medium capitalize ${esHoy ? "text-[var(--c-blue-soft)]" : "text-[var(--c-text-muted)]"}`}>{fmtDiaCorto(ev.fecha)}</span>
+              <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${TIPO_EVENTO_BADGE[ev.tipo] ?? "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]"}`}>
                 {TIPO_EVENTO_LABEL[ev.tipo] ?? ev.tipo}
               </span>
             </div>
-            <div className="text-slate-200">
+            <div className="text-[var(--c-text)]">
               {ev.agente.rango ? `${ev.agente.rango} ` : ""}{ev.agente.nombreCompleto}
             </div>
-            {ev.observacion && <div className="text-slate-500 truncate">{ev.observacion}</div>}
+            {ev.observacion && <div className="text-[var(--c-text-faint)] truncate">{ev.observacion}</div>}
           </div>
         );
       })}
@@ -188,15 +188,15 @@ export default function TurnoHoyCard({ turnoHoy, semana, eventosAscenso }: {
             aria-label={VISTA_LABEL[v]}
             aria-current={vista === v}
             className={`h-1.5 rounded-full transition-all ${
-              vista === v ? "w-5 bg-blue-500" : "w-1.5 bg-slate-700 hover:bg-slate-600"
+              vista === v ? "w-5 bg-[var(--c-blue)]" : "w-1.5 bg-[var(--c-line)] hover:bg-[var(--c-line-strong)]"
             }`}
           />
         ))}
       </div>
 
       <div className="flex items-center justify-between mb-2.5 gap-2 flex-wrap">
-        <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide whitespace-nowrap">{VISTA_LABEL[vista]}</h3>
-        <span className="text-[11px] text-slate-500 tabular-nums whitespace-nowrap">
+        <h3 className="text-[11px] font-semibold text-[var(--c-text-muted)] uppercase tracking-wide whitespace-nowrap">{VISTA_LABEL[vista]}</h3>
+        <span className="text-[11px] text-[var(--c-text-faint)] tabular-nums whitespace-nowrap">
           {vista === "hoy" ? fecha : `${fmtDiaCorto(semana.desde)} al ${fmtDiaCorto(semana.hasta)}`}
         </span>
       </div>
@@ -213,10 +213,10 @@ export default function TurnoHoyCard({ turnoHoy, semana, eventosAscenso }: {
         >
           <div className="shrink-0 w-full space-y-3 text-[13px]">
             <div>
-              <div className="text-slate-400 text-[11px] mb-0.5">En servicio</div>
+              <div className="text-[var(--c-text-muted)] text-[11px] mb-0.5">En servicio</div>
               {grupo ? (
                 <div className="space-y-1">
-                  <div className={`font-semibold ${grupo === 1 ? "text-blue-300" : "text-purple-300"}`}>
+                  <div className={`font-semibold ${grupo === 1 ? "text-[var(--c-blue-soft)]" : "text-purple-300"}`}>
                     Turno {grupo === 1 ? "I" : "II"}
                   </div>
                   <div className="space-y-0.5">
@@ -228,15 +228,15 @@ export default function TurnoHoyCard({ turnoHoy, semana, eventosAscenso }: {
                           className={`flex items-center justify-between gap-3 rounded-md px-2 py-1 text-[12px] transition-colors ${
                             vigente
                               ? grupo === 1
-                                ? "bg-blue-500/15"
+                                ? "bg-[var(--c-blue)]/15"
                                 : "bg-purple-500/15"
                               : ""
                           }`}
                         >
-                          <span className={vigente ? "font-medium text-slate-200" : "text-slate-500"}>
+                          <span className={vigente ? "font-medium text-[var(--c-text)]" : "text-[var(--c-text-faint)]"}>
                             {b.horario}
                           </span>
-                          <span className={`font-semibold ${grupo === 1 ? "text-blue-300" : "text-purple-300"}`}>
+                          <span className={`font-semibold ${grupo === 1 ? "text-[var(--c-blue-soft)]" : "text-purple-300"}`}>
                             {b.letras[grupo - 1]}
                           </span>
                         </div>
@@ -245,26 +245,26 @@ export default function TurnoHoyCard({ turnoHoy, semana, eventosAscenso }: {
                   </div>
                 </div>
               ) : (
-                <div className="text-slate-500">Sin definir</div>
+                <div className="text-[var(--c-text-faint)]">Sin definir</div>
               )}
             </div>
             <div>
-              <div className="text-slate-400 text-[11px] mb-0.5">Superior de turno</div>
-              <div className={turnoHoy.superiorTurno ? "font-medium text-slate-200" : "text-slate-500"}>
+              <div className="text-[var(--c-text-muted)] text-[11px] mb-0.5">Superior de turno</div>
+              <div className={turnoHoy.superiorTurno ? "font-medium text-[var(--c-text)]" : "text-[var(--c-text-faint)]"}>
                 {turnoHoy.superiorTurno
                   ? `${turnoHoy.superiorTurnoRango ? `${turnoHoy.superiorTurnoRango} ` : ""}${turnoHoy.superiorTurno}`
                   : "Sin definir"}
                 {/* Cubre 20 a 8 hs (cruza la medianoche, ver diaDeTurnoActual()
                     en actions/turnos.ts) — horario fijo, no depende del agente. */}
                 {turnoHoy.superiorTurno && (
-                  <span className="ml-1.5 text-[11px] font-normal text-slate-500">(20:00 a 08:00 Hrs)</span>
+                  <span className="ml-1.5 text-[11px] font-normal text-[var(--c-text-faint)]">(20:00 a 08:00 Hrs)</span>
                 )}
               </div>
             </div>
             {turnoHoy.esFinDeSemana && (
               <div>
-                <div className="text-slate-400 text-[11px] mb-0.5">Jefe de fin de semana</div>
-                <div className={turnoHoy.jefeFinDe ? "font-medium text-amber-300" : "text-slate-500"}>
+                <div className="text-[var(--c-text-muted)] text-[11px] mb-0.5">Jefe de fin de semana</div>
+                <div className={turnoHoy.jefeFinDe ? "font-medium text-[var(--c-amber)]" : "text-[var(--c-text-faint)]"}>
                   {turnoHoy.jefeFinDe ?? "Sin definir"}
                 </div>
               </div>

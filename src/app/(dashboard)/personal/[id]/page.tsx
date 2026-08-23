@@ -195,7 +195,7 @@ export default async function PersonalDetallePage({
       <InvalidarAnclajeAnterior id={agente.id} />
       <div className="space-y-5">
         {/* Header del legajo */}
-        <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-6">
           <div className="flex items-center justify-between mb-4 lg:hidden">
             <VolverMovilBtn href={volverHref} agenteId={agente.id} />
             <OpcionesLegajoMenu href={volverHref} agenteId={agente.id} agente={agenteSerializado} esOperador={esOperador} />
@@ -213,7 +213,7 @@ export default async function PersonalDetallePage({
                 />
               </VerFotoTrigger>
               {estado === "ACTIVO" && (
-                <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-green-500 border-2 border-slate-900" />
+                <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-[var(--c-green)] border-2 border-[var(--c-bg-elev)]" />
               )}
               {canEdit && <FotoLegajoBtn agenteId={agente.id} fotoUrlActual={agente.fotoUrl} />}
             </div>
@@ -222,17 +222,17 @@ export default async function PersonalDetallePage({
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h1 className="text-xl font-bold text-slate-100 leading-tight">
+                  <h1 className="text-xl font-bold text-[var(--c-text)] leading-tight">
                     {agente.apellidos}, {agente.nombres}
                   </h1>
                   {canEdit ? (
-                    <p className="text-sm font-semibold text-blue-400 uppercase tracking-wide mt-0.5">
+                    <p className="text-sm font-semibold text-[var(--c-blue-text)] uppercase tracking-wide mt-0.5">
                       {rangoPrefijo}
                       <TipoPersonalBtn agenteId={agente.id} tipoActual={tipo} />
                     </p>
                   ) : (
                     subtitulo && (
-                      <p className="text-sm font-semibold text-blue-400 uppercase tracking-wide mt-0.5">{subtitulo}</p>
+                      <p className="text-sm font-semibold text-[var(--c-blue-text)] uppercase tracking-wide mt-0.5">{subtitulo}</p>
                     )
                   )}
                 </div>
@@ -243,14 +243,14 @@ export default async function PersonalDetallePage({
                     <EstadoBadgeInfo estado={estado} desde={estadoDesde} motivo={estadoMotivo} />
                   )}
                   {agente.turno && (
-                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-800 text-white">
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-[var(--c-bg-elev-2)] text-white">
                       {agente.turno}
                     </span>
                   )}
                   {agente.enTNO && (
                     <span
                       title="Tarea No Operativa"
-                      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400"
+                      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-[var(--c-amber)]/15 text-[var(--c-amber)]"
                     >
                       TNO
                     </span>
@@ -262,9 +262,9 @@ export default async function PersonalDetallePage({
               </div>
 
               {/* Datos rápidos */}
-              <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-sm text-slate-400">
+              <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-sm text-[var(--c-text-muted)]">
                 <span>
-                  <span className="text-slate-500">CUIL:</span>{" "}
+                  <span className="text-[var(--c-text-faint)]">CUIL:</span>{" "}
                   <span className="font-mono">{agente.cuil}</span>
                 </span>
               </div>
