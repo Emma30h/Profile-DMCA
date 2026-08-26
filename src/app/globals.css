@@ -317,25 +317,17 @@ textarea::placeholder {
   }
 }
 
-/* Panel de marca de login/signup: barrido tipo radar detrás del contenido —
-   referencia directa a "Ojos en Alerta" (vigilancia), gira lentísimo y se
-   funde con el degradé sin tapar el texto. mix-blend-mode: screen para que
-   sume luz en vez de tapar con un color plano. */
-@keyframes auth-radar-sweep {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+/* Entrada de la tarjeta de login/signup: fundido + leve desplazamiento al
+   montar, para que la pantalla no aparezca de golpe. */
+@keyframes auth-card-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.auth-radar-sweep {
-  position: absolute;
-  inset: -35%;
-  border-radius: 9999px;
-  background: conic-gradient(from 0deg, transparent 0%, transparent 80%, rgba(147, 197, 253, 0.4) 91%, rgba(147, 197, 253, 0.1) 96%, transparent 100%);
-  animation: auth-radar-sweep 10s linear infinite;
-  mix-blend-mode: screen;
-  pointer-events: none;
+.auth-card-in {
+  animation: auth-card-in 0.55s ease-out both;
 }
 @media (prefers-reduced-motion: reduce) {
-  .auth-radar-sweep { animation: none; }
+  .auth-card-in { animation: none; }
 }
 
 /* Ping de sonar alrededor del emblema del panel de marca — dos anillos con
@@ -355,43 +347,18 @@ textarea::placeholder {
   .auth-sonar-ping, .auth-sonar-ping-delay { animation: none; }
 }
 
-/* Contactos de radar: puntos que "destellan" al azar, cada uno generado
-   por JS (ver AuthBrandPanel) justo sobre el ángulo por el que va pasando
-   auth-radar-sweep en ese instante — a diferencia del barrido (que gira
-   siempre igual), cada contacto es efímero: aparece, brilla y desaparece
-   del DOM, así que la animación no es infinite. */
-@keyframes auth-radar-blip-pop {
-  0% { opacity: 0; transform: scale(0.5); box-shadow: 0 0 0 0 rgba(125, 211, 252, 0); animation-timing-function: ease-in-out; }
-  25% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 8px 2px rgba(125, 211, 252, 0.7); animation-timing-function: ease-in-out; }
-  45% { opacity: 0.85; transform: scale(1); box-shadow: 0 0 6px 1px rgba(125, 211, 252, 0.45); animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1); }
-  100% { opacity: 0; transform: scale(0.85); box-shadow: 0 0 0 0 rgba(125, 211, 252, 0); }
-}
-.auth-radar-blip-pop {
-  animation: auth-radar-blip-pop 3.6s forwards;
-}
-@media (prefers-reduced-motion: reduce) {
-  .auth-radar-blip-pop { display: none; }
-}
-
-/* Entrada de la tarjeta de login/signup y de los ítems del checklist de
-   marca: fundido + leve desplazamiento al montar, para que la pantalla no
-   aparezca de golpe. */
-@keyframes auth-card-in {
-  from { opacity: 0; transform: translateY(14px); }
+/* Transición entre "Ingresar" / "Crear cuenta" en el panel de acceso: mismo
+   criterio que wizard-step-in (fundido + deslizamiento sutil al remontar),
+   nombrado aparte por ser una sección distinta de la app. */
+@keyframes auth-view-in {
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.auth-card-in {
-  animation: auth-card-in 0.55s ease-out both;
-}
-@keyframes auth-item-in {
-  from { opacity: 0; transform: translateX(-10px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-.auth-item-in {
-  animation: auth-item-in 0.45s ease-out both;
+.auth-view-in {
+  animation: auth-view-in 0.32s ease-out both;
 }
 @media (prefers-reduced-motion: reduce) {
-  .auth-card-in, .auth-item-in { animation: none; }
+  .auth-view-in { animation: none; }
 }
 
 /* Wizard de carga de legajo: al cambiar de paso (el contenedor se
@@ -464,7 +431,7 @@ textarea::placeholder {
 }
 
 /* "Ingresando..." con puntos que van y vienen — solo aparece si el login
-   tarda más de lo esperado (ver LoginForm.tsx), para reforzar que sigue en
+   tarda más de lo esperado (ver AuthScreen.tsx), para reforzar que sigue en
    curso sin que un texto estático se sienta "trabado". */
 @keyframes loading-dot {
   0%, 80%, 100% { opacity: 0.2; }
@@ -542,18 +509,298 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
 /* Impresión de informes puntuales (ej. ausentismo por legajo): en vez de
    tocar sidebar/header/tabs de todo el shell para que se oculten al imprimir,
    se oculta todo el body y se revela solo el subárbol marcado — funciona sin
-   importar dónde vive ese subárbol en el DOM. El bloque .print-informe trae
-   su propia paleta clara porque el tema oscuro de la app (texto claro sobre
-   fondo oscuro) es ilegible en papel/PDF.
-   Sin position:fixed a propósito (a diferencia de una versión anterior): un
-   detalle cronológico con motivos largos puede superar una página, y
-   position:fixed no pagina — recorta lo que sobra de la página 1 en vez de
-   pasarlo a la 2 (se verificó con Chrome headless). En flujo normal pagina
-   bien, a cambio de que EstadisticasLicencias.tsx tenga que insertar este
-   bloque como primer hijo de <body> (mismo mecanismo que .print-nomina) para
-   que no le queden páginas en blanco adelante. */
+   importar dónde vive ese subárbol en el DOM.
+   Sin position:fixed en .print-informe a propósito (a diferencia de una
+   versión anterior): un detalle cronológico con motivos largos puede superar
+   una página, y position:fixed no pagina — recorta lo que sobra de la
+   página 1 en vez de pasarlo a la 2 (se verificó con Chrome headless). En
+   flujo normal pagina bien, a cambio de que EstadisticasLicencias.tsx tenga
+   que insertar este bloque como primer hijo de <body> (mismo mecanismo que
+   .print-nomina) para que no le queden páginas en blanco adelante.
+   El bloque SÍ usa position:fixed para .inf-runhead/.inf-runfoot (la franja
+   fina de encabezado/pie que se repite en cada hoja impresa) — es un truco
+   distinto y mucho más chico, estándar en CSS paginado, que no compite con
+   la restricción de arriba: el contenedor .inf en sí sigue en flujo normal.
+
+   Sistema visual "Industry" para informes imprimibles (ver informe.css /
+   informe-individual.html adjuntados por el usuario): tokens propios bajo
+   .inf (no en :root, para no filtrar nada al resto de la app) y su propia
+   paleta clara, porque el tema oscuro de la app es ilegible en papel/PDF. */
+.inf,
+.inf * {
+  box-sizing: border-box;
+}
+.inf {
+  --inf-bg: #f2f2f3;
+  --inf-text: #1d1f20;
+  --inf-accent: #5980a6;
+  --inf-accent-100: #eef6ff;
+  --inf-accent-200: #d6ebff;
+  --inf-accent-700: #416180;
+  --inf-accent-800: #2c455d;
+  --inf-accent-900: #1d2d3d;
+  --inf-divider: rgba(29, 31, 32, 0.16);
+  --inf-muted: rgba(29, 31, 32, 0.55);
+  --inf-muted-2: rgba(29, 31, 32, 0.4);
+
+  /* Barlow / Barlow Condensed ya están cargadas app-wide vía next/font
+     (ver layout.tsx) — se referencian por variable en vez de repetir el
+     @import de Google Fonts del archivo original (evita una carga doble). */
+  --inf-font-h: var(--font-barlow-condensed), system-ui, sans-serif;
+  --inf-font-b: var(--font-barlow), system-ui, sans-serif;
+
+  --inf-1: 3.4px;
+  --inf-2: 6.8px;
+  --inf-3: 10.2px;
+  --inf-4: 13.6px;
+  --inf-6: 20.4px;
+  --inf-8: 27.2px;
+
+  --inf-page-margin: 13mm;
+  --inf-header-h: 26px;
+  --inf-footer-h: 24px;
+
+  font-family: var(--inf-font-b);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--inf-text);
+  background: var(--inf-bg);
+  width: 210mm;
+  margin: 0 auto;
+  border-collapse: collapse;
+}
+.inf h1, .inf h2, .inf h3 {
+  font-family: var(--inf-font-h);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0;
+  text-transform: uppercase;
+}
+.inf p { margin: 0 0 var(--inf-3); text-wrap: pretty; }
+
+/* .inf es una <table> (no un <article>): thead/tfoot con
+   display:table-header-group/table-footer-group son el mecanismo estándar
+   de CSS para paginado — a diferencia de position:fixed, que en la
+   impresión de Chromium sólo reserva espacio en la primera página de un
+   elemento fragmentado y en las siguientes queda flotando encima del
+   contenido real (se verificó generando PDFs reales: el título de una
+   sección que arrancaba justo al tope de una hoja quedaba tapado por la
+   franja fija). thead/tfoot no tienen ese problema porque el motor de
+   paginado los trata igual que la fila de columnas de .inf-table (que ya
+   se repite así, más abajo). */
+.inf thead td,
+.inf tfoot td { padding: 0; }
+.inf tbody td { padding: var(--inf-4) var(--inf-page-margin); }
+
+.inf-runhead,
+.inf-runfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--inf-4);
+  font-family: var(--inf-font-h);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--inf-muted);
+  padding: 0 var(--inf-page-margin);
+}
+.inf-runhead {
+  height: var(--inf-header-h);
+  padding-bottom: var(--inf-2);
+  border-bottom: 1px solid var(--inf-divider);
+}
+.inf-runfoot {
+  height: var(--inf-footer-h);
+  padding-top: var(--inf-2);
+  border-top: 1px solid var(--inf-divider);
+  font-family: var(--inf-font-b);
+  font-size: 9.5px;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+.inf-runhead > *,
+.inf-runfoot > * { flex: none; white-space: nowrap; }
+.inf-runhead strong { font-weight: 600; color: var(--inf-text); }
+.inf-runhead strong span { color: var(--inf-muted-2); letter-spacing: 0.08em; font-weight: 400; }
+.inf-runfoot .inf-rev { font-family: var(--inf-font-h); letter-spacing: 0.12em; text-transform: uppercase; }
+
+.inf-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--inf-6);
+  margin: var(--inf-8) 0;
+  padding-bottom: var(--inf-4);
+  border-bottom: 2px solid var(--inf-text);
+}
+.inf-kicker {
+  font-family: var(--inf-font-h);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--inf-accent-700);
+  margin-bottom: var(--inf-2);
+}
+.inf-title { font-size: 44px; letter-spacing: -0.02em; }
+.inf-sub { font-size: 13px; color: rgba(29, 31, 32, 0.6); margin-top: var(--inf-1); }
+.inf-meta {
+  text-align: right;
+  font-family: var(--inf-font-h);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.8;
+  white-space: nowrap;
+  color: var(--inf-muted);
+}
+.inf-meta b { display: block; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; color: var(--inf-text); }
+.inf-meta .inf-meta-gap { margin-top: var(--inf-2); }
+
+.bp { position: relative; border: 1px solid var(--inf-divider); border-radius: 0; }
+.bp > i {
+  position: absolute; width: 11px; height: 11px;
+  color: var(--inf-muted);
+}
+.bp > i::before, .bp > i::after { content: ""; position: absolute; background: currentColor; }
+.bp > i::before { left: 5px; top: 0; width: 1px; height: 100%; }
+.bp > i::after  { top: 5px; left: 0; width: 100%; height: 1px; }
+.bp > i.tl { top: -6px; left: -6px; }
+.bp > i.tr { top: -6px; right: -6px; }
+.bp > i.bl { bottom: -6px; left: -6px; }
+.bp > i.br { bottom: -6px; right: -6px; }
+.bp--solid { background: var(--inf-accent-900); border-color: var(--inf-accent-900); }
+.bp--solid > i { color: rgba(242, 242, 243, 0.55); }
+
+.inf-plate {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: var(--inf-6);
+  align-items: start;
+  margin-bottom: var(--inf-8);
+  break-inside: avoid;
+}
+.inf-photo {
+  margin: 0; height: 150px; display: grid; place-items: center;
+  background: repeating-linear-gradient(45deg, transparent 0 7px, rgba(89, 128, 166, 0.12) 7px 8px);
+  overflow: hidden;
+}
+.inf-photo span {
+  font-family: var(--inf-font-h); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--inf-accent-800);
+  background: var(--inf-bg); padding: 3px 7px;
+}
+.inf-photo img { width: 100%; height: 100%; object-fit: cover; }
+.inf-name { font-size: 32px; letter-spacing: -0.01em; margin-bottom: var(--inf-4); }
+.inf-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-top: 1px solid var(--inf-divider); }
+.inf-fields > div { padding: var(--inf-2) var(--inf-3) var(--inf-2) 0; border-bottom: 1px solid var(--inf-divider); }
+.inf-fields > div:nth-child(even) { padding: var(--inf-2) 0 var(--inf-2) var(--inf-3); border-left: 1px solid var(--inf-divider); }
+.inf-fl {
+  font-family: var(--inf-font-h); font-size: 9.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: rgba(29, 31, 32, 0.5);
+}
+.inf-fv { font-size: 14px; font-variant-numeric: tabular-nums; }
+.inf-fv--empty { color: var(--inf-muted-2); font-variant-numeric: normal; }
+
+.inf-kpis { display: grid; gap: var(--inf-4); margin-bottom: var(--inf-8); }
+.inf-kpis--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--inf-6); }
+.inf-kpis--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.inf-kpi { padding: var(--inf-4); break-inside: avoid; min-width: 0; overflow-wrap: anywhere; }
+.inf-kpi-l {
+  font-family: var(--inf-font-h); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--inf-accent-700);
+}
+.inf-kpi-n {
+  font-family: var(--inf-font-h); font-weight: 600; font-size: 56px; line-height: 1;
+  letter-spacing: -0.03em; margin-top: var(--inf-2); font-variant-numeric: tabular-nums;
+}
+.inf-kpi-s { font-size: 10.5px; color: var(--inf-muted); margin-top: var(--inf-1); }
+.inf-kpi.bp--solid .inf-kpi-l { color: rgba(242, 242, 243, 0.7); }
+.inf-kpi.bp--solid .inf-kpi-n { color: #f2f2f3; }
+.inf-kpi.bp--solid .inf-kpi-s { color: rgba(242, 242, 243, 0.6); }
+
+.inf-sec { margin-bottom: var(--inf-8); }
+.inf-sech { display: flex; align-items: baseline; gap: var(--inf-3); margin-bottom: var(--inf-4); }
+.inf-sech h3 { flex: none; white-space: nowrap; font-size: 20px; letter-spacing: 0.02em; }
+.inf-sech .inf-line { flex: 1; min-width: 0; height: 1px; background: var(--inf-divider); }
+.inf-sech .inf-flag {
+  flex: none; white-space: nowrap; font-family: var(--inf-font-h); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgba(29, 31, 32, 0.5);
+}
+
+.inf-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.inf-table thead th {
+  text-align: left; font-weight: 400; font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(29, 31, 32, 0.6);
+  padding: var(--inf-2); border-bottom: 1px solid var(--inf-divider);
+}
+.inf-table td { padding: var(--inf-2); border-bottom: 1px solid rgba(29, 31, 32, 0.08); }
+.inf-table tbody { font-variant-numeric: tabular-nums; }
+.inf-table tr { break-inside: avoid; }
+.inf-table .num { text-align: right; }
+.inf-table .txt { font-variant-numeric: normal; }
+.inf-table .idx { text-align: right; color: var(--inf-muted-2); }
+.inf-table .inf-tag { white-space: nowrap; }
+
+.inf-total {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: var(--inf-3); padding-top: var(--inf-2);
+  border-top: 2px solid var(--inf-text);
+  font-family: var(--inf-font-h); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.inf-total > * { flex: none; white-space: nowrap; }
+
+.inf-tag {
+  display: inline-flex; align-items: center; font-size: 11px; letter-spacing: 0.02em;
+  padding: 3px 10px; border-radius: 0;
+  background: var(--inf-accent-100); color: var(--inf-accent-800);
+}
+.inf-tag--outline { background: transparent; border: 1px solid var(--inf-divider); color: var(--inf-text); }
+
+.inf-meter { height: 7px; background: var(--inf-accent-200); position: relative; }
+.inf-meter > span { position: absolute; left: 0; top: 0; bottom: 0; background: var(--inf-accent); }
+
+.inf-chart { padding: var(--inf-6) var(--inf-4) var(--inf-3); break-inside: avoid; }
+.inf-chart-plot {
+  display: grid; align-items: end; gap: var(--inf-4);
+  height: 150px; border-bottom: 1px solid var(--inf-text);
+}
+.inf-col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; }
+.inf-col b { font-family: var(--inf-font-h); font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
+.inf-col i { display: block; width: 100%; background: var(--inf-accent); }
+.inf-col--peak i { background: var(--inf-accent-900); }
+.inf-chart-axis { display: grid; gap: var(--inf-4); margin-top: var(--inf-2); }
+.inf-chart-axis span {
+  text-align: center; font-family: var(--inf-font-h); font-size: 9.5px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgba(29, 31, 32, 0.5);
+}
+
+.inf-donut {
+  width: 74px; height: 74px; border-radius: 50%; flex: none;
+  background: conic-gradient(var(--inf-accent) 0 var(--inf-pct, 100%), var(--inf-accent-200) 0);
+  display: grid; place-items: center;
+}
+.inf-donut b {
+  width: 50px; height: 50px; border-radius: 50%; background: var(--inf-bg);
+  display: grid; place-items: center;
+  font-family: var(--inf-font-h); font-weight: 600; font-size: 22px; line-height: 1;
+}
+
+.inf-notes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--inf-6); font-size: 11.5px; color: rgba(29, 31, 32, 0.7); }
+.inf-notes > div { border-left: 1px solid var(--inf-divider); padding-left: var(--inf-3); break-inside: avoid; }
+.inf-notes .inf-fl { margin-bottom: var(--inf-1); }
+.inf-notes p { margin: 0; }
+.inf-fineprint { font-size: 10.5px; color: rgba(29, 31, 32, 0.45); margin-top: var(--inf-3); }
+
 .print-informe {
   display: none;
+}
+@page print-informe {
+  size: A4;
+  margin: 13mm;
 }
 @media print {
   body * {
@@ -563,10 +810,55 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   .print-informe * {
     visibility: visible;
   }
+  /* visibility:hidden NO saca del flujo: el resto de la app (todo lo que
+     no sea el <div> insertado como primer hijo de body, ver
+     EstadisticasLicencias.tsx) sigue reservando su alto real aunque sea
+     invisible, y ese alto se traduce en 1+ hojas en blanco DESPUÉS del
+     informe al imprimir. display:none sí saca del flujo — colapsa a 0 lo
+     que no contenga .print-informe. El selector va condicionado a
+     "body:has(.print-informe)" (no un simple "body > *:not(:has(...))"
+     suelto) para que quede inerte cuando NO se está imprimiendo el informe
+     — si no, con .print-informe ausente del DOM (imprimiendo nómina u
+     organigrama) esta regla matchearía TODOS los hijos de body, incluido
+     .print-nomina/.print-organigrama, y los taparía. Verificado contando
+     páginas de un PDF generado con Chromium: sin esta regla el alto extra
+     generaba varias hojas en blanco después del informe; con ella, sólo las
+     hojas que ocupa el contenido real — y sin ningún efecto cuando
+     .print-informe no está montado. */
+  body:has(.print-informe) > *:not(:has(.print-informe)) {
+    display: none !important;
+  }
   .print-informe {
-    display: block;
-    background: #fff;
-    color: #0f172a;
+    display: table;
+    page: print-informe;
+    width: 100%;
+    margin: 0;
+  }
+  .print-informe thead { display: table-header-group; }
+  .print-informe tfoot { display: table-footer-group; }
+  .print-informe .inf-plate,
+  .print-informe .inf-kpi,
+  .print-informe .inf-chart { break-inside: avoid; }
+  /* .inf-sec (la sección completa) NO lleva break-inside:avoid: si el
+     título más una tabla larga no entran en lo que resta de la hoja,
+     "avoid" mandaría la sección ENTERA a la página siguiente, dejando un
+     hueco enorme en la anterior. Tampoco lleva break-after:avoid el título
+     (.inf-sech): en el diálogo real de impresión de Chrome (a diferencia del
+     PDF generado por CDP/Playwright, que no reproduce esto) esa regla hacía
+     que la sección 02 completa saltara entera a la hoja 2 aunque sobrara
+     espacio real en la 1 — el motor de paginado, al intentar no "cortar justo
+     después" del título, sobreestimaba cuánto necesitaba reservar y de paso
+     empujaba TODO el bloque. Se prefiere aceptar el riesgo (poco frecuente)
+     de que el título quede como última línea de una hoja antes que perder
+     media hoja en blanco. La fila de columnas de la tabla se sigue repitiendo
+     sola en cada hoja vía table-header-group más abajo. */
+  .print-informe .inf-table thead { display: table-header-group; }
+  .print-informe p,
+  .print-informe li { orphans: 3; widows: 3; }
+  .print-informe,
+  .print-informe * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
 

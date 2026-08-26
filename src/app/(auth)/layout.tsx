@@ -4,7 +4,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-full flex items-center justify-center overflow-hidden bg-slate-800 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="relative h-dvh flex [align-items:safe_center] justify-center overflow-y-auto bg-slate-800 py-4 px-4 sm:px-6 sm:py-8 lg:px-8 lg:py-6">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         {/* blob-a: en mobile se centra detrás del logo (más chico y más
             cerca) porque ahí es donde está la atención; en desktop vuelve a

@@ -83,7 +83,25 @@ function LegajoSkeleton() {
   );
 }
 
+// Evita montar el globo 3D (WebGL + el chunk de Three.js) en mobile: ahí el
+// estado vacío queda apretado debajo de la lista y el motion decorativo no
+// vale el costo. Ocultarlo solo por CSS (display:none) no alcanza — el
+// componente igual se montaría y crearía el contexto WebGL — así que se
+// decide antes de montarlo.
+function useEsDesktop(breakpointPx = 1024): boolean {
+  const [esDesktop, setEsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${breakpointPx}px)`);
+    setEsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setEsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [breakpointPx]);
+  return esDesktop;
+}
+
 function EmptyState({ fitViewport }: { fitViewport: boolean }) {
+  const esDesktop = useEsDesktop();
   return (
     <div
       // min-h-[420px] siempre: red de seguridad para que la tarjeta se vea
@@ -94,9 +112,11 @@ function EmptyState({ fitViewport }: { fitViewport: boolean }) {
         fitViewport ? "h-full" : "py-20"
       }`}
     >
-      <div className="absolute inset-0 opacity-70 pointer-events-none">
-        <GloboDecorativo />
-      </div>
+      {esDesktop && (
+        <div className="absolute inset-0 opacity-70 pointer-events-none">
+          <GloboDecorativo />
+        </div>
+      )}
       <p className="relative text-[var(--c-text-secondary)] font-semibold">Seleccioná un agente</p>
       <p className="relative text-sm text-[var(--c-text-faint)] mt-1">
         Elegí un agente de la lista para ver su legajo completo.
@@ -379,13 +399,17 @@ export default function PersonalMasterShell({
             </div>
           </aside>
 
-          {/* Antes se ocultaba en mobile sin selección con "hidden lg:block"
-              para no hacer scrollear al usuario 210 agentes hasta llegar a la
-              tarjeta vacía — pero terminaba sin pintar nada, ni el fondo ni
-              el borde de la tarjeta, en ningún tamaño de pantalla. Se muestra
-              siempre: en mobile queda debajo de la lista, que es un costo
-              menor comparado con el panel quedando completamente vacío. */}
-          <div className={`min-w-0 ${fitViewport ? "lg:h-full" : ""}`}>{contenido}</div>
+          {/* Maestro-detalle real en mobile: este panel solo se muestra ahí
+              cuando hay un agente elegido (aside, arriba, se oculta en ese
+              caso) — si no, quedaba siempre debajo de la lista completa,
+              aplastando el listado de resultados a 1-2 filas visibles apenas
+              se aplicaba un filtro. (Antes esto se había revertido pensando
+              que "hidden lg:block" era la causa de un panel en blanco, pero
+              esa vez la causa real era el bug de "children" ya corregido más
+              arriba — hoy es seguro volver a ocultarlo.) */}
+          <div className={`min-w-0 ${fitViewport ? "lg:h-full" : ""} ${hadSelection ? "block" : "hidden lg:block"}`}>
+            {contenido}
+          </div>
         </div>
       </div>
     </PersonalNavContext.Provider>

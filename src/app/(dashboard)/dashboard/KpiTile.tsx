@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useCountUp } from "@/lib/useCountUp";
 
 export default function KpiTile({
   label,
@@ -10,6 +11,7 @@ export default function KpiTile({
   icon,
   badgeClass,
   href,
+  delayMs = 0,
 }: {
   label: string;
   value: number;
@@ -19,8 +21,11 @@ export default function KpiTile({
   badgeClass: string;
   /** Si se pasa, doble click lleva a /personal con el filtro correspondiente. */
   href?: string;
+  /** Delay para escalonar el conteo cuando se muestran varios tiles juntos. */
+  delayMs?: number;
 }) {
   const router = useRouter();
+  const valorAnimado = useCountUp(value, delayMs);
 
   return (
     <div
@@ -36,7 +41,7 @@ export default function KpiTile({
           {icon}
         </span>
       </div>
-      <div className="text-[27px] font-semibold tracking-tight text-[var(--c-text)] tabular-nums">{value}</div>
+      <div className="text-[27px] font-semibold tracking-tight text-[var(--c-text)] tabular-nums">{valorAnimado}</div>
       <div className={`text-[11.5px] ${subClass ?? "text-[var(--c-text-faint)]"}`}>{sub}</div>
     </div>
   );

@@ -60,6 +60,7 @@ export default async function DashboardPage() {
             icon="⇄"
             badgeClass="bg-[var(--c-blue)]/10 text-[var(--c-blue-soft)]"
             href={stats.kpi.enPase > 0 ? "/personal?estado=PASE" : undefined}
+            delayMs={0}
           />
           <KpiTile
             label="En baja"
@@ -68,6 +69,7 @@ export default async function DashboardPage() {
             icon="−"
             badgeClass="bg-[var(--c-bg-elev-2)] text-[var(--c-text-faint)]"
             href={stats.kpi.enBaja > 0 ? "/personal?estado=BAJA" : undefined}
+            delayMs={90}
           />
           <KpiTile
             label="Legajos pendientes"
@@ -77,6 +79,7 @@ export default async function DashboardPage() {
             icon="✓"
             badgeClass="bg-[var(--c-green)]/10 text-[var(--c-green)]"
             href={stats.kpi.legajosPendientes > 0 ? "/personal?estado=PENDIENTE" : undefined}
+            delayMs={180}
           />
           <KpiTile
             label="Licencias activas hoy"
@@ -89,6 +92,7 @@ export default async function DashboardPage() {
                 ? `/personal?${buildQueryString({ ids: stats.kpi.licenciasActivasHoyIds.join(",") })}`
                 : undefined
             }
+            delayMs={270}
           />
         </div>
       )}

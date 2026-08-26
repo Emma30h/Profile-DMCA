@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { vincularPorCuil } from "@/app/actions/legajo";
 
 // Recién a partir de acá se muestra el texto "Buscando..." con los puntos
-// animados — antes de eso alcanza con el spinner (ver LoginForm.tsx).
+// animados — antes de eso alcanza con el spinner (ver AuthScreen.tsx).
 const MS_ANTES_DE_AVISAR_DEMORA = 15000;
 
 export default function VincularPorCuilForm({

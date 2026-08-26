@@ -9,7 +9,6 @@ import {
   TIPO_LICENCIA_LABELS,
   type CategoriaLicencia,
 } from "@/types";
-import AgenteAvatar from "@/components/AgenteAvatar";
 import type { LicenciaEntry } from "./LegajoTabs";
 
 const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -105,13 +104,31 @@ function hoyLargoAR() {
   return new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
 }
 
+function hoyCortoAR() {
+  return new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+// Foto del agente para el informe: a diferencia de AgenteAvatar (pensado para
+// la app en tema oscuro), acá el fallback ante link roto/sin foto es el
+// placeholder claro del propio marco .inf-photo, no el ícono de silueta.
+function InformeFoto({ fotoUrl }: { fotoUrl: string | null }) {
+  const [error, setError] = useState(false);
+  if (fotoUrl && !error) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={fotoUrl} alt="" onError={() => setError(true)} />;
+  }
+  return <span>Sin foto</span>;
+}
+
 // Vista de solo impresión: el tema oscuro de la app es ilegible en papel, así
-// que trae su propia paleta clara en vez de reusar los bloques de arriba.
-// Se oculta en pantalla (.print-informe en globals.css) y solo se revela
-// dentro de @media print cuando el botón dispara window.print().
+// que trae su propia paleta clara (sistema visual "Industry", ver .inf-* en
+// globals.css) en vez de reusar los bloques de arriba. Se oculta en pantalla
+// (.print-informe en globals.css) y solo se revela dentro de @media print
+// cuando el botón dispara window.print().
 function InformeImprimible({
   agente,
   tituloPeriodo,
+  nroDocumento,
   totalDias,
   porCategoria,
   porTipo,
@@ -121,6 +138,7 @@ function InformeImprimible({
 }: {
   agente: AgenteInfoInforme;
   tituloPeriodo: string;
+  nroDocumento: string;
   totalDias: number;
   porCategoria: { categoria: CategoriaLicencia; dias: number; info: { label: string } }[];
   porTipo: { tipo: string; cantidad: number; label: string }[];
@@ -128,6 +146,22 @@ function InformeImprimible({
   slicesDonut: { tipo: string; label: string; cantidad: number; porcentaje: number; path: string }[];
   totalLicencias: number;
 }) {
+  const promedioLabel =
+    totalLicencias > 0
+      ? (totalDias / totalLicencias).toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      : "—";
+
+  const categoriaLider = porCategoria[0];
+  const pctCategoriaLider = categoriaLider && totalDias > 0 ? Math.round((categoriaLider.dias / totalDias) * 100) : 0;
+
+  const tipoLider = porTipo[0];
+  const tipoCaption =
+    porTipo.length === 0
+      ? "Sin licencias registradas en el período."
+      : porTipo.length === 1
+        ? `${tipoLider.label} concentra la totalidad de los registros.`
+        : `${tipoLider.label} concentra el ${Math.round((tipoLider.cantidad / totalLicencias) * 100)}% de los registros, seguido por ${porTipo.length - 1} tipo${porTipo.length - 1 === 1 ? "" : "s"} más.`;
+
   // El nodo se crea acá (durante el render, sin efecto secundario visible
   // hasta que se inserte en el documento) para no necesitar un setState
   // dentro del useEffect de abajo.
@@ -136,15 +170,12 @@ function InformeImprimible({
   );
 
   // Se inserta como primer hijo de <body> (no al final, como un portal
-  // normal) para que el informe arranque siempre en la página 1 al
-  // imprimir: .print-informe ya no usa position:fixed (ver globals.css)
-  // porque un motivo largo en el detalle cronológico puede empujar el
-  // informe a más de una página, y position:fixed no pagina — recorta todo
-  // lo que sobra de la página 1 en vez de pasarlo a la 2. En flujo normal
-  // eso ya funciona, pero entonces cualquier otra cosa de /personal que
-  // esté antes en el DOM seguiría reservando su alto real (aunque invisible
-  // por el print) y empujaría el informe a páginas en blanco — insertarlo
-  // primero evita eso. Mismo mecanismo ya probado en NominaBuilderBtn.tsx.
+  // normal): cualquier otra cosa de /personal que esté antes en el DOM
+  // seguiría reservando su alto real durante el print (aunque invisible),
+  // empujando el informe a páginas en blanco — insertarlo primero evita eso
+  // (la regla que colapsa el resto de la app en globals.css es la que se
+  // encarga de las páginas en blanco DESPUÉS del informe; esto es lo que
+  // evita las de ANTES). Mismo mecanismo ya probado en NominaBuilderBtn.tsx.
   useEffect(() => {
     if (!contenedor) return;
     document.body.insertBefore(contenedor, document.body.firstChild);
@@ -156,122 +187,205 @@ function InformeImprimible({
   if (!contenedor) return null;
 
   return createPortal(
-    <div className="print-informe px-10 py-8 text-[var(--c-bg-elev)]">
-      <div className="flex items-start justify-between border-b-2 border-[var(--c-bg-elev-2)] pb-3">
+    // <table> con thead/tfoot en vez de <article> con position:fixed: es el
+    // mecanismo estándar de CSS para que un encabezado/pie se repita en
+    // cada hoja de un documento paginado (mismo truco que ya usa
+    // .inf-table thead más abajo para repetir la fila de columnas). Ver el
+    // comentario en globals.css sobre por qué position:fixed no alcanzaba.
+    <table className="inf print-informe">
+      <thead>
+        <tr>
+          <td>
+            <div className="inf-runhead">
+              <strong>D.M.C.A<span> · Monitoreo Cordobeses en Alerta</span></strong>
+              <span>Informe de ausentismo</span>
+            </div>
+          </td>
+        </tr>
+      </thead>
+      <tfoot>
+        <tr>
+          <td>
+            <div className="inf-runfoot">
+              <span>Documento de uso interno — Área de Personal</span>
+              <span className="inf-rev">Rev. {hoyCortoAR()}</span>
+            </div>
+          </td>
+        </tr>
+      </tfoot>
+      <tbody>
+        <tr>
+          <td>
+
+      <header className="inf-head">
         <div>
-          <h1 className="text-xl font-bold">Informe de ausentismo</h1>
-          <p className="text-sm text-[var(--c-line-strong)]">{tituloPeriodo}</p>
+          <div className="inf-kicker">Legajo · Ausentismo</div>
+          <h1 className="inf-title">Informe de ausentismo</h1>
+          <div className="inf-sub">{tituloPeriodo}</div>
         </div>
-        <p className="text-xs text-[var(--c-text-faint)]">Generado el {hoyLargoAR()}</p>
-      </div>
-
-      <div className="flex items-center gap-4 mt-4 mb-6">
-        <AgenteAvatar fotoUrl={agente.fotoUrl} sexo={agente.sexo} sizeClassName="h-16 w-16 rounded-lg shrink-0" />
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-          <p><span className="text-[var(--c-text-faint)]">Personal:</span> {agente.nombreCompleto}</p>
-          <p><span className="text-[var(--c-text-faint)]">CUIL:</span> {agente.cuil}</p>
-          <p><span className="text-[var(--c-text-faint)]">Rango:</span> {agente.rango ?? "—"}</p>
-          <p><span className="text-[var(--c-text-faint)]">Sector:</span> {agente.sector ?? "—"}</p>
+        <div className="inf-meta">
+          <div>Generado</div>
+          <b>{hoyLargoAR()}</b>
+          <div className="inf-meta-gap">Documento</div>
+          <b>{nroDocumento}</b>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="rounded-lg border border-[var(--c-text-secondary)] bg-[var(--c-text)] px-4 py-3">
-          <p className="text-xs text-[var(--c-text-faint)] uppercase tracking-wide">Total de días</p>
-          <p className="text-2xl font-bold">{totalDias}</p>
+      <section className="inf-plate">
+        <figure className="bp inf-photo">
+          <i className="tl" /><i className="tr" /><i className="bl" /><i className="br" />
+          <InformeFoto fotoUrl={agente.fotoUrl} />
+        </figure>
+        <div>
+          <div className="inf-kicker">Datos del personal</div>
+          <h2 className="inf-name">{agente.nombreCompleto}</h2>
+          <div className="inf-fields">
+            <div><div className="inf-fl">CUIL</div><div className="inf-fv">{agente.cuil}</div></div>
+            <div>
+              <div className="inf-fl">Rango</div>
+              <div className={agente.rango ? "inf-fv" : "inf-fv inf-fv--empty"}>{agente.rango ?? "Sin consignar"}</div>
+            </div>
+            <div>
+              <div className="inf-fl">Sector</div>
+              <div className={agente.sector ? "inf-fv" : "inf-fv inf-fv--empty"}>{agente.sector ?? "Sin consignar"}</div>
+            </div>
+            <div><div className="inf-fl">Período cubierto</div><div className="inf-fv">{tituloPeriodo}</div></div>
+          </div>
         </div>
-        <div className="rounded-lg border border-[var(--c-text-secondary)] bg-[var(--c-text)] px-4 py-3">
-          <p className="text-xs text-[var(--c-text-faint)] uppercase tracking-wide">Cantidad de licencias</p>
-          <p className="text-2xl font-bold">{totalLicencias}</p>
+      </section>
+
+      <section className="inf-kpis inf-kpis--3">
+        <div className="bp bp--solid inf-kpi">
+          <i className="tl" /><i className="tr" /><i className="bl" /><i className="br" />
+          <div className="inf-kpi-l">Total de días</div>
+          <div className="inf-kpi-n">{totalDias}</div>
+          <div className="inf-kpi-s">días de ausencia acumulados</div>
         </div>
-      </div>
+        <div className="bp inf-kpi">
+          <i className="tl" /><i className="tr" /><i className="bl" /><i className="br" />
+          <div className="inf-kpi-l">Cantidad de licencias</div>
+          <div className="inf-kpi-n">{totalLicencias}</div>
+          <div className="inf-kpi-s">registros individuales</div>
+        </div>
+        <div className="bp inf-kpi">
+          <i className="tl" /><i className="tr" /><i className="bl" /><i className="br" />
+          <div className="inf-kpi-l">Promedio por licencia</div>
+          <div className="inf-kpi-n">{promedioLabel}</div>
+          <div className="inf-kpi-s">días por registro</div>
+        </div>
+      </section>
 
-      <h2 className="text-sm font-semibold mb-2">Días por categoría</h2>
-      <table className="w-full text-sm mb-6 border-collapse">
-        <thead>
-          <tr className="border-b border-[var(--c-text-secondary)] text-left text-[var(--c-text-faint)]">
-            <th className="py-1 font-medium">Categoría</th>
-            <th className="py-1 font-medium text-right">Días</th>
-          </tr>
-        </thead>
-        <tbody>
-          {porCategoria.length === 0 ? (
-            <tr><td colSpan={2} className="py-2 text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</td></tr>
-          ) : porCategoria.map((c) => (
-            <tr key={c.categoria} className="border-b border-[var(--c-text)]">
-              <td className="py-1">{c.info.label}</td>
-              <td className="py-1 text-right">{c.dias}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <section className="inf-sec">
+        <div className="inf-sech">
+          <h3>01 — Composición</h3>
+          <span className="inf-line" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "var(--inf-8)" }}>
+          <div>
+            <div className="inf-fl" style={{ marginBottom: "var(--inf-2)" }}>Días por categoría</div>
+            <table className="inf-table">
+              <thead><tr><th>Categoría</th><th className="num" style={{ width: 64 }}>Días</th></tr></thead>
+              <tbody>
+                {porCategoria.length === 0 ? (
+                  <tr><td colSpan={2} className="txt">Sin licencias en el período.</td></tr>
+                ) : porCategoria.map((c) => (
+                  <tr key={c.categoria}>
+                    <td className="txt">{c.info.label}</td>
+                    <td className="num">{c.dias}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {categoriaLider && (
+              <>
+                <div className="inf-meter" style={{ marginTop: "var(--inf-3)" }}>
+                  <span style={{ width: `${pctCategoriaLider}%` }} />
+                </div>
+                <div className="inf-total" style={{ borderTop: "none", marginTop: "var(--inf-1)", paddingTop: 0, fontSize: 10 }}>
+                  <span>{categoriaLider.info.label}</span>
+                  <span>{pctCategoriaLider} %</span>
+                </div>
+              </>
+            )}
+          </div>
+          <div>
+            <div className="inf-fl" style={{ marginBottom: "var(--inf-2)" }}>Cantidad por tipo</div>
+            <table className="inf-table">
+              <thead><tr><th>Tipo</th><th className="num" style={{ width: 74 }}>Cantidad</th><th className="num" style={{ width: 52 }}>%</th></tr></thead>
+              <tbody>
+                {porTipo.length === 0 ? (
+                  <tr><td colSpan={3} className="txt">Sin licencias en el período.</td></tr>
+                ) : porTipo.map((t) => (
+                  <tr key={t.tipo}>
+                    <td className="txt">{t.label}</td>
+                    <td className="num">{t.cantidad}</td>
+                    <td className="num">{Math.round((t.cantidad / totalLicencias) * 100)} %</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {porTipo.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--inf-4)", marginTop: "var(--inf-3)" }}>
+                <svg viewBox="0 0 100 100" style={{ width: 74, height: 74, flex: "none" }} role="img" aria-label="Distribución porcentual por tipo de licencia">
+                  {slicesDonut.map((s) => (
+                    <path key={s.tipo} d={s.path} fill={categoriaColor(s.tipo)} stroke="#fff" strokeWidth={1.5} strokeLinejoin="round" />
+                  ))}
+                  <text x="50" y="47" textAnchor="middle" style={{ fontSize: 20, fontWeight: 600, fill: "var(--inf-text)" }}>
+                    {totalLicencias}
+                  </text>
+                  <text x="50" y="60" textAnchor="middle" style={{ fontSize: 8, fill: "var(--inf-muted)" }}>
+                    {totalLicencias === 1 ? "licencia" : "licencias"}
+                  </text>
+                </svg>
+                <div style={{ fontSize: 12, color: "var(--inf-muted)", maxWidth: "20ch" }}>{tipoCaption}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
-      <h2 className="text-sm font-semibold mb-2">Cantidad por tipo</h2>
-      <div className="flex items-center gap-6 mb-6">
-        {porTipo.length > 0 && (
-          <svg viewBox="0 0 100 100" className="w-24 h-24 shrink-0" role="img" aria-label="Distribución porcentual por tipo de licencia">
-            {slicesDonut.map((s) => (
-              <path key={s.tipo} d={s.path} fill={categoriaColor(s.tipo)} stroke="#fff" strokeWidth={1.5} strokeLinejoin="round" />
-            ))}
-            <text x="50" y="47" textAnchor="middle" style={{ fontSize: 20, fontWeight: 600, fill: "#0f172a" }}>
-              {totalLicencias}
-            </text>
-            <text x="50" y="60" textAnchor="middle" style={{ fontSize: 8, fill: "#475569" }}>
-              {totalLicencias === 1 ? "licencia" : "licencias"}
-            </text>
-          </svg>
-        )}
-        <table className="w-full text-sm border-collapse">
+      <section className="inf-sec">
+        <div className="inf-sech">
+          <h3>02 — Detalle cronológico</h3>
+          <span className="inf-line" />
+          <span className="inf-flag">{totalLicencias} registros</span>
+        </div>
+        <table className="inf-table">
           <thead>
-            <tr className="border-b border-[var(--c-text-secondary)] text-left text-[var(--c-text-faint)]">
-              <th className="py-1 font-medium">Tipo</th>
-              <th className="py-1 font-medium text-right">Cantidad</th>
-              <th className="py-1 font-medium text-right">%</th>
+            <tr>
+              <th className="num" style={{ width: 26 }}>#</th>
+              <th style={{ width: 116 }}>Tipo</th>
+              <th style={{ width: 78 }}>Desde</th>
+              <th style={{ width: 78 }}>Hasta</th>
+              <th className="num" style={{ width: 44 }}>Días</th>
+              <th>Motivo</th>
             </tr>
           </thead>
           <tbody>
-            {porTipo.length === 0 ? (
-              <tr><td colSpan={3} className="py-2 text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</td></tr>
-            ) : porTipo.map((t) => (
-              <tr key={t.tipo} className="border-b border-[var(--c-text)]">
-                <td className="py-1 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full shrink-0 inline-block" style={{ backgroundColor: categoriaColor(t.tipo) }} />
-                  {t.label}
-                </td>
-                <td className="py-1 text-right">{t.cantidad}</td>
-                <td className="py-1 text-right text-[var(--c-text-faint)]">{Math.round((t.cantidad / totalLicencias) * 100)}%</td>
+            {licenciasFiltradas.length === 0 ? (
+              <tr><td colSpan={6} className="txt">Sin licencias en el período.</td></tr>
+            ) : licenciasFiltradas.map((l, i) => (
+              <tr key={l.id}>
+                <td className="idx">{String(i + 1).padStart(2, "0")}</td>
+                <td><span className="inf-tag">{TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}</span></td>
+                <td>{fmt(l.fechaInicio)}</td>
+                <td>{fmt(l.fechaFin)}</td>
+                <td className="num">{l.diasHabiles}</td>
+                <td className="txt">{l.motivo || "—"}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+        <div className="inf-total">
+          <span>Total</span>
+          <span>{totalDias} días · {totalLicencias} registros</span>
+        </div>
+      </section>
 
-      <h2 className="text-sm font-semibold mb-2">Detalle cronológico</h2>
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="border-b border-[var(--c-text-secondary)] text-left text-[var(--c-text-faint)]">
-            <th className="py-1 font-medium w-28">Tipo</th>
-            <th className="py-1 font-medium w-20">Desde</th>
-            <th className="py-1 font-medium w-20">Hasta</th>
-            <th className="py-1 font-medium text-right w-12">Días</th>
-            <th className="py-1 font-medium pl-3">Motivo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {licenciasFiltradas.length === 0 ? (
-            <tr><td colSpan={5} className="py-2 text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</td></tr>
-          ) : licenciasFiltradas.map((l) => (
-            <tr key={l.id} className="border-b border-[var(--c-text)] align-top">
-              <td className="py-1.5">{TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}</td>
-              <td className="py-1.5">{fmt(l.fechaInicio)}</td>
-              <td className="py-1.5">{fmt(l.fechaFin)}</td>
-              <td className="py-1.5 text-right">{l.diasHabiles}</td>
-              <td className="py-1.5 pl-3 text-[var(--c-line-strong)] break-words">{l.motivo || "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>,
+          </td>
+        </tr>
+      </tbody>
+    </table>,
     contenedor
   );
 }
@@ -287,7 +401,11 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
   const [anio, setAnio] = useState<number | null>(anios[0] ?? null);
   const anioActivo = anio ?? anios[0] ?? new Date().getUTCFullYear();
 
-  const [modo, setModo] = useState<ModoPeriodo>("anio");
+  // Arranca en "Todo" (no en el último año con datos): tanto la vista como
+  // el informe impreso deben mostrar el historial completo por defecto, para
+  // no imprimir de forma silenciosa solo el año más reciente si el usuario
+  // no toca el selector antes de imprimir.
+  const [modo, setModo] = useState<ModoPeriodo>("todo");
   const [rangoDesde, setRangoDesde] = useState("");
   const [rangoHasta, setRangoHasta] = useState("");
 
@@ -336,6 +454,16 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
       : modo === "rango"
         ? (rangoDesde && rangoHasta ? `Del ${fmt(rangoDesde)} al ${fmt(rangoHasta)}` : "Seleccioná un período")
         : `Año ${anioActivo}`;
+
+  // Identificador del documento impreso: no hay una numeración formal de
+  // informes en la app, así que se arma uno legible/estable a partir del
+  // período elegido y los últimos dígitos del CUIL (alcanza para diferenciar
+  // informes de distintos agentes o períodos sin persistir nada nuevo).
+  const nroDocumento = useMemo(() => {
+    const cuilCorto = agente.cuil.replace(/\D/g, "").slice(-4) || "0000";
+    const periodo = modo === "todo" ? "HIST" : modo === "rango" ? "PER" : String(anioActivo);
+    return `AUS-${periodo}-${cuilCorto}`;
+  }, [agente.cuil, modo, anioActivo]);
 
   // Rango de meses a graficar en la línea de tiempo: Ene-Dic del año activo
   // en modo "anio", o el tramo real cubierto por las licencias filtradas en
@@ -416,6 +544,7 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
           <button
             type="button"
             onClick={() => window.print()}
+            title='Antes de imprimir, desmarcá "Encabezados y pies de página" en el diálogo del navegador para un resultado prolijo.'
             className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] hover:text-[var(--c-text)]"
           >
             🖨️ Imprimir informe
@@ -431,6 +560,13 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
             <option value="todo">Todo</option>
             <option value="rango">Seleccionar período…</option>
           </select>
+          {/* El doble encabezado/pie que se ve en el PDF/impresión (fecha,
+              URL, número de página) no lo agrega nuestro diseño — lo agrega
+              el propio navegador y solo se puede sacar desde su diálogo de
+              impresión, no hay forma de hacerlo desde CSS/JS. */}
+          <p className="basis-full text-right text-[11px] text-[var(--c-text-faint)]">
+            Antes de imprimir, desmarcá &quot;Encabezados y pies de página&quot; en el diálogo del navegador.
+          </p>
         </div>
       </div>
 
@@ -533,6 +669,7 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
       <InformeImprimible
         agente={agente}
         tituloPeriodo={tituloPeriodo}
+        nroDocumento={nroDocumento}
         totalDias={totalDias}
         porCategoria={porCategoria}
         porTipo={porTipo}
