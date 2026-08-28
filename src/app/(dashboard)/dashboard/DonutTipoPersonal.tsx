@@ -6,6 +6,8 @@ import type { TipoPersonal } from "@/types";
 import type { TipoPersonalStats } from "./stats";
 import { useCountUp } from "@/lib/useCountUp";
 import { useEntrada } from "@/lib/useEntrada";
+import { TEMA_INSTITUCIONAL, type ChartTheme } from "@/lib/chartThemes";
+import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
 const R = 70;
 const CIRCUNFERENCIA = 2 * Math.PI * R;
@@ -25,6 +27,27 @@ const COLORES: Record<TipoPersonal, string> = {
   CIVIL_POLICIAL: "#a67c00",
 };
 
+// Color de cada tipo para un tema de descarga dado. El donut tiene 4
+// porciones en un orden que depende de los datos (cualquier par puede
+// terminar siendo vecino en el anillo) — eso exige validar con --pairs all,
+// un chequeo más estricto que el "vecinos adyacentes" que alcanza para
+// barras apiladas. Ningún subconjunto de 4 del array categórico de 8 pasa
+// ese chequeo (confirmado exhaustivamente), así que cada tema trae su
+// propia combinación de 4 ya validada para este caso puntual — no se puede
+// derivar mecánicamente de categorico[i], por eso `tema.donut` existe
+// aparte. El tema institucional mantiene el mapeo bespoke de COLORES de
+// arriba (cero cambios respecto del look actual del dashboard).
+function colorDeTipo(tipo: TipoPersonal, tema: ChartTheme): string {
+  if (tema.id === "institucional") return COLORES[tipo];
+  const mapa: Record<TipoPersonal, string> = {
+    SEGURIDAD: tema.donut.seguridad,
+    TECNICO: tema.donut.tecnico,
+    CIVIL_BECARIO: tema.donut.civilBecario,
+    CIVIL_POLICIAL: tema.donut.civilPolicial,
+  };
+  return mapa[tipo];
+}
+
 const LABELS: Record<TipoPersonal, string> = {
   SEGURIDAD: "Seguridad",
   TECNICO: "Técnico",
@@ -37,15 +60,19 @@ interface Props {
   total: number;
   /** Escalona esta tarjeta respecto de otras en la misma pantalla al montar. */
   delayMs?: number;
+  tema?: ChartTheme;
+  modoExport?: boolean;
 }
 
-export default function DonutTipoPersonal({ data, total, delayMs = 0 }: Props) {
+export default function DonutTipoPersonal({ data, total, delayMs = 0, tema = TEMA_INSTITUCIONAL, modoExport = false }: Props) {
   const router = useRouter();
   const [hover, setHover] = useState<TipoPersonal | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; tipo: TipoPersonal } | null>(null);
   const [comoTabla, setComoTabla] = useState(false);
-  const listo = useEntrada(delayMs);
-  const totalAnimado = useCountUp(total, delayMs);
+  // En modoExport la vista previa tiene que salir ya "crecida" (ver
+  // GraficoDescargable.tsx), nunca a mitad de animación.
+  const listo = useEntrada(delayMs) || modoExport;
+  const totalAnimado = useCountUp(total, delayMs, modoExport ? 0 : 1600);
 
   function irAPersonalFiltrado(tipo: TipoPersonal) {
     // El donut cuenta solo activos — sin este filtro, /personal muestra el
@@ -72,13 +99,20 @@ export default function DonutTipoPersonal({ data, total, delayMs = 0 }: Props) {
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 flex flex-col h-full">
       <div className="flex items-baseline justify-between mb-3.5">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Activos por tipo de personal</h3>
-        <button
-          type="button"
-          onClick={() => setComoTabla((v) => !v)}
-          className="text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
-        >
-          {comoTabla ? "Ver como gráfico" : "Ver como tabla"}
-        </button>
+        {!modoExport && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setComoTabla((v) => !v)}
+              className="text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
+            >
+              {comoTabla ? "Ver como gráfico" : "Ver como tabla"}
+            </button>
+            <GraficoDescargable nombreArchivo="activos-por-tipo-de-personal">
+              {(t) => <DonutTipoPersonal data={data} total={total} modoExport tema={t} />}
+            </GraficoDescargable>
+          </div>
+        )}
       </div>
 
       <div className="overflow-hidden flex-1">
@@ -94,7 +128,7 @@ export default function DonutTipoPersonal({ data, total, delayMs = 0 }: Props) {
                     cy="100"
                     r={R}
                     fill="none"
-                    stroke={COLORES[s.tipo]}
+                    stroke={colorDeTipo(s.tipo, tema)}
                     strokeWidth={hover === s.tipo ? 36 : 32}
                     strokeDasharray={`${listo ? s.largo : 0} ${CIRCUNFERENCIA}`}
                     strokeDashoffset={s.offset}
@@ -132,7 +166,7 @@ export default function DonutTipoPersonal({ data, total, delayMs = 0 }: Props) {
                     hover === d.tipo ? "bg-[var(--c-bg-elev-2)]/70 border-[var(--c-line)]" : "border-transparent"
                   }`}
                 >
-                  <span className="w-2.5 h-2.5 rounded-[3.5px]" style={{ background: COLORES[d.tipo] }} />
+                  <span className="w-2.5 h-2.5 rounded-[3.5px]" style={{ background: colorDeTipo(d.tipo, tema) }} />
                   <span className="text-[12.5px] font-medium text-[var(--c-text)]">{LABELS[d.tipo]}</span>
                   <span className="text-[13px] font-semibold text-[var(--c-text)] tabular-nums">{d.count}</span>
                   <span className="text-[11.5px] text-[var(--c-text-faint)] w-8 text-right tabular-nums">{d.pct}%</span>
@@ -141,6 +175,7 @@ export default function DonutTipoPersonal({ data, total, delayMs = 0 }: Props) {
             </div>
           </div>
 
+          {!modoExport && (
           <div className="dashboard-slide-pane">
             <table className="w-full text-[12.5px] border-collapse">
               <thead>
@@ -165,7 +200,7 @@ export default function DonutTipoPersonal({ data, total, delayMs = 0 }: Props) {
                   >
                     <td className="py-2.5 border-b border-[var(--c-bg-elev-2)] text-[var(--c-text)]">
                       <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: COLORES[d.tipo] }} />
+                        <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: colorDeTipo(d.tipo, tema) }} />
                         {LABELS[d.tipo]}
                       </span>
                     </td>
@@ -176,6 +211,7 @@ export default function DonutTipoPersonal({ data, total, delayMs = 0 }: Props) {
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
 

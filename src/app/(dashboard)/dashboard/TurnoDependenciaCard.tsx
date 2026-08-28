@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import type { ConteoLabel, ConteoConIds } from "./stats";
 import { buildQueryString } from "../personal/queryString";
 import { useEntrada } from "@/lib/useEntrada";
+import { TEMA_INSTITUCIONAL, type ChartTheme } from "@/lib/chartThemes";
+import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
 const LETRA_TURNO = /^[A-F]$/;
 // Bucket sintético (ver stats.ts): no es un valor real de turno, así que no
@@ -35,14 +37,26 @@ interface Props {
   totalActivos: number;
   /** Escalona esta tarjeta respecto de otras en la misma pantalla al montar. */
   delayMs?: number;
+  tema?: ChartTheme;
+  modoExport?: boolean;
 }
 
-export default function TurnoDependenciaCard({ turno, dependencia, origenInstitucional, totalActivos, delayMs = 0 }: Props) {
+export default function TurnoDependenciaCard({
+  turno,
+  dependencia,
+  origenInstitucional,
+  totalActivos,
+  delayMs = 0,
+  tema = TEMA_INSTITUCIONAL,
+  modoExport = false,
+}: Props) {
   const router = useRouter();
   const [vista, setVista] = useState<Vista>("turno");
   const maxTurno = Math.max(1, ...turno.map((t) => t.count));
   const indiceVista = VISTAS.indexOf(vista);
-  const listo = useEntrada(delayMs);
+  // En modoExport la vista previa tiene que salir ya "crecida" (ver
+  // GraficoDescargable.tsx), nunca a mitad de animación.
+  const listo = useEntrada(delayMs) || modoExport;
 
   return (
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 flex flex-col h-full">
@@ -51,24 +65,62 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
           Activos por {VISTA_LABEL[vista]}
         </h3>
         <span className="text-[11px] text-[var(--c-text-faint)] tabular-nums">{totalActivos} agentes activos</span>
-        <div className="flex items-center gap-1 shrink-0 ml-auto">
-          {VISTAS.map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setVista(v)}
-              className={`text-[11px] font-semibold rounded-md px-2.5 py-1 border transition-colors ${
-                vista === v
-                  ? "bg-[var(--c-blue)] text-white border-[var(--c-blue)]"
-                  : "text-[var(--c-text-muted)] border-[var(--c-line)] hover:text-[var(--c-text)] hover:border-[var(--c-line-strong)]"
-              }`}
-            >
-              {VISTA_LABEL_CORTO[v]}
-            </button>
-          ))}
-        </div>
+        {!modoExport && (
+          <div className="flex items-center gap-1 shrink-0 ml-auto">
+            {VISTAS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setVista(v)}
+                className={`text-[11px] font-semibold rounded-md px-2.5 py-1 border transition-colors ${
+                  vista === v
+                    ? "bg-[var(--c-blue)] text-white border-[var(--c-blue)]"
+                    : "text-[var(--c-text-muted)] border-[var(--c-line)] hover:text-[var(--c-text)] hover:border-[var(--c-line-strong)]"
+                }`}
+              >
+                {VISTA_LABEL_CORTO[v]}
+              </button>
+            ))}
+            <GraficoDescargable nombreArchivo="activos-por-turno">
+              {(t) => (
+                <TurnoDependenciaCard
+                  turno={turno}
+                  dependencia={dependencia}
+                  origenInstitucional={origenInstitucional}
+                  totalActivos={totalActivos}
+                  modoExport
+                  tema={t}
+                />
+              )}
+            </GraficoDescargable>
+          </div>
+        )}
       </div>
 
+      {/* En modoExport siempre se exporta la vista "turno" (la que arranca
+          por defecto): los otros dos paneles del carrusel dependen de
+          controles que ya están ocultos, y no vale la pena confiar en que
+          el recorte por transform+overflow-hidden salga bien al rasterizar
+          (mismo criterio que el resto de las tarjetas con overflow). */}
+      {modoExport ? (
+        <div className="flex flex-col gap-2.5">
+          {turno.map((t) => (
+            <div key={t.label} className="grid grid-cols-[132px_1fr_34px] items-center gap-2.5 px-1.5 py-0.5">
+              <span className="text-[10px] font-medium text-[var(--c-text-muted)] whitespace-nowrap">{t.label}</span>
+              <div className="h-2.5 rounded-none bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] overflow-hidden">
+                <div
+                  className="h-full rounded-none"
+                  style={{
+                    width: `${listo ? (t.count / maxTurno) * 100 : 0}%`,
+                    background: LETRA_TURNO.test(t.label) ? tema.accent : "var(--c-line-strong)",
+                  }}
+                />
+              </div>
+              <span className="text-xs font-semibold text-[var(--c-text)] text-right tabular-nums">{t.count}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
       <div className="overflow-hidden flex-1">
         <div
           className="flex h-full transition-transform duration-[420ms] ease-[cubic-bezier(.65,0,.35,1)]"
@@ -164,6 +216,7 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

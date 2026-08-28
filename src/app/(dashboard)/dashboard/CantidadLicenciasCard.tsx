@@ -6,6 +6,9 @@ import { MESES_CORTOS, MESES_LARGOS, type LicenciaAusentismoRow } from "@/lib/au
 import { buildQueryString } from "../personal/queryString";
 import { useEntrada } from "@/lib/useEntrada";
 import { useCountUp } from "@/lib/useCountUp";
+import { useReplayOnChange } from "@/lib/useReplayOnChange";
+import { TEMA_INSTITUCIONAL, type ChartTheme } from "@/lib/chartThemes";
+import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
 type Granularidad = "dia" | "semana" | "mes";
 type Rango = "30d" | "3m" | "6m" | "1a" | "todo";
@@ -27,7 +30,6 @@ interface Tooltip {
 const ALTURA = 200;
 const SEGMENTOS_GRILLA = 4; // 5 líneas de referencia (0, 25, 50, 75, 100% de escalaMax)
 const VBW = 1000; // ancho virtual del viewBox — se escala solo vía CSS al ancho real del contenedor, sin scroll horizontal ni pitch fijo por punto (a diferencia del gráfico de barras de causas, acá tiene sentido que la línea siempre ocupe el ancho completo de la tarjeta)
-const COLOR_LINEA = "var(--c-blue)";
 
 function claveDia(f: Date): string {
   return f.toISOString().slice(0, 10);
@@ -160,9 +162,20 @@ const RANGO_LABEL: Record<Rango, string> = { "30d": "30D", "3m": "3M", "6m": "6M
 // siempre muestra un solo punto).
 const RANGO_POR_DEFECTO: Record<Granularidad, Rango> = { dia: "30d", semana: "6m", mes: "todo" };
 
-export default function CantidadLicenciasCard({ licencias, hoy }: { licencias: LicenciaAusentismoRow[]; hoy: string }) {
+export default function CantidadLicenciasCard({
+  licencias,
+  hoy,
+  tema = TEMA_INSTITUCIONAL,
+  modoExport = false,
+}: {
+  licencias: LicenciaAusentismoRow[];
+  hoy: string;
+  tema?: ChartTheme;
+  modoExport?: boolean;
+}) {
   const router = useRouter();
   const gradienteId = useId();
+  const colorLinea = tema.accent;
   const hoyDate = useMemo(() => new Date(hoy), [hoy]);
 
   const [granularidad, setGranularidad] = useState<Granularidad>("mes");
@@ -183,11 +196,17 @@ export default function CantidadLicenciasCard({ licencias, hoy }: { licencias: L
   );
 
   // Solo se monta cuando RevealOnScroll lo revela: no hace falta delayMs, el
-  // propio montaje ya es el disparador de "empezar a tomar vida".
-  const listo = useEntrada();
+  // propio montaje ya es el disparador de "empezar a tomar vida". En
+  // modoExport la vista previa tiene que salir ya "crecida" (ver
+  // GraficoDescargable.tsx), nunca a mitad de animación. replayListo hace
+  // que cambiar de rango/granularidad reactive la misma transición de
+  // "crecer desde 0" en vez de que la línea salte directo a la forma nueva.
+  const entrada = useEntrada();
+  const replayListo = useReplayOnChange(buckets);
+  const listo = modoExport || (entrada && replayListo);
 
   const totalCantidad = buckets.reduce((acc, b) => acc + b.cantidad, 0);
-  const totalCantidadAnimado = useCountUp(totalCantidad);
+  const totalCantidadAnimado = useCountUp(totalCantidad, 0, modoExport ? 0 : 1600);
   const picoValor = Math.max(1, ...buckets.map((b) => b.cantidad));
   const escalaMax = Math.max(5, Math.ceil(picoValor / 5) * 5);
 
@@ -236,42 +255,47 @@ export default function CantidadLicenciasCard({ licencias, hoy }: { licencias: L
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
       <div className="flex items-center justify-between mb-1 gap-2.5 flex-wrap">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Cantidad de licencias</h3>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
-            {(["30d", "3m", "6m", "1a", "todo"] as const).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRango(r)}
-                aria-pressed={rango === r}
-                className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
-                  rango === r
-                    ? "bg-[var(--c-blue)] text-white"
-                    : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
-                }`}
-              >
-                {RANGO_LABEL[r]}
-              </button>
-            ))}
+        {!modoExport && (
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
+              {(["30d", "3m", "6m", "1a", "todo"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRango(r)}
+                  aria-pressed={rango === r}
+                  className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
+                    rango === r
+                      ? "bg-[var(--c-blue)] text-white"
+                      : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
+                  }`}
+                >
+                  {RANGO_LABEL[r]}
+                </button>
+              ))}
+            </div>
+            <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
+              {(["dia", "semana", "mes"] as const).map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => elegirGranularidad(g)}
+                  aria-pressed={granularidad === g}
+                  className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
+                    granularidad === g
+                      ? "bg-[var(--c-blue)] text-white"
+                      : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
+                  }`}
+                >
+                  {GRANULARIDAD_LABEL[g]}
+                </button>
+              ))}
+            </div>
+            <GraficoDescargable nombreArchivo="cantidad-de-licencias">
+              {(t) => <CantidadLicenciasCard licencias={licencias} hoy={hoy} modoExport tema={t} />}
+            </GraficoDescargable>
           </div>
-          <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
-            {(["dia", "semana", "mes"] as const).map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => elegirGranularidad(g)}
-                aria-pressed={granularidad === g}
-                className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
-                  granularidad === g
-                    ? "bg-[var(--c-blue)] text-white"
-                    : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
-                }`}
-              >
-                {GRANULARIDAD_LABEL[g]}
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
       <p className="text-[11px] text-[var(--c-text-faint)] mb-3.5">
         Cantidad de licencias por {GRANULARIDAD_LABEL[granularidad].toLowerCase()}, sin licencia ordinaria (vacaciones) — <b className="text-[var(--c-text-muted)] tabular-nums">{totalCantidadAnimado}</b> en total.
@@ -318,8 +342,8 @@ export default function CantidadLicenciasCard({ licencias, hoy }: { licencias: L
               <svg viewBox={`0 0 ${VBW} ${ALTURA}`} preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
                 <defs>
                   <linearGradient id={gradienteId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" style={{ stopColor: COLOR_LINEA, stopOpacity: 0.3 }} />
-                    <stop offset="100%" style={{ stopColor: COLOR_LINEA, stopOpacity: 0 }} />
+                    <stop offset="0%" style={{ stopColor: colorLinea, stopOpacity: 0.3 }} />
+                    <stop offset="100%" style={{ stopColor: colorLinea, stopOpacity: 0 }} />
                   </linearGradient>
                 </defs>
                 <g
@@ -330,7 +354,7 @@ export default function CantidadLicenciasCard({ licencias, hoy }: { licencias: L
                   }}
                 >
                   <path d={areaPath} fill={`url(#${gradienteId})`} />
-                  <path d={lineaPath} fill="none" stroke={COLOR_LINEA} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+                  <path d={lineaPath} fill="none" stroke={colorLinea} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
                 </g>
 
                 {/* Picos destacados sin depender del hover — mismo criterio que Ausentismo por causa.
@@ -360,7 +384,7 @@ export default function CantidadLicenciasCard({ licencias, hoy }: { licencias: L
                       y1={0} y2={ALTURA}
                       stroke="var(--c-line-strong)" strokeWidth={1.5} vectorEffect="non-scaling-stroke"
                     />
-                    <circle cx={puntos[hoverIndex].x} cy={puntos[hoverIndex].y} r={4.5} fill={COLOR_LINEA} stroke="var(--c-bg-elev)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+                    <circle cx={puntos[hoverIndex].x} cy={puntos[hoverIndex].y} r={4.5} fill={colorLinea} stroke="var(--c-bg-elev)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
                   </>
                 )}
               </svg>

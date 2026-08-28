@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   calcularAusentismoMensual,
-  CAUSA_COLOR,
+  colorDeCausa,
   labelDeCausa,
   type AusentismoMensual,
   type CausaAusentismo,
@@ -15,6 +15,9 @@ import InformeAusentismo from "./InformeAusentismo";
 import { ButtonSpinner } from "@/components/ui/Spinner";
 import { useEntrada } from "@/lib/useEntrada";
 import { useCountUp } from "@/lib/useCountUp";
+import { useReplayOnChange } from "@/lib/useReplayOnChange";
+import { TEMA_INSTITUCIONAL, type ChartTheme } from "@/lib/chartThemes";
+import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
 interface Tooltip {
   x: number;
@@ -67,7 +70,17 @@ function descargarBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function AusentismoCard({ licencias, hoy }: { licencias: LicenciaAusentismoRow[]; hoy: string }) {
+export default function AusentismoCard({
+  licencias,
+  hoy,
+  tema = TEMA_INSTITUCIONAL,
+  modoExport = false,
+}: {
+  licencias: LicenciaAusentismoRow[];
+  hoy: string;
+  tema?: ChartTheme;
+  modoExport?: boolean;
+}) {
   const router = useRouter();
   // "hoy" viene del servidor (mismo snapshot que usó el resto del dashboard
   // para armar las stats), no de un `new Date()` acá — evita que el rango
@@ -156,9 +169,15 @@ export default function AusentismoCard({ licencias, hoy }: { licencias: Licencia
 
   const { meses, escalaMax, causasPresentes, totalCantidad } = ausentismo;
   // Solo se monta cuando RevealOnScroll lo revela: no hace falta delayMs,
-  // el propio montaje ya es el disparador de "empezar a tomar vida".
-  const listo = useEntrada();
-  const totalCantidadAnimado = useCountUp(totalCantidad);
+  // el propio montaje ya es el disparador de "empezar a tomar vida". En
+  // modoExport la vista previa tiene que salir ya "crecida" (ver
+  // GraficoDescargable.tsx), nunca a mitad de animación. replayListo hace
+  // que cambiar de período (el selector de arriba) reactive la misma
+  // transición de "crecer desde 0" en vez de saltar directo al valor nuevo.
+  const entrada = useEntrada();
+  const replayListo = useReplayOnChange(ausentismo);
+  const listo = modoExport || (entrada && replayListo);
+  const totalCantidadAnimado = useCountUp(totalCantidad, 0, modoExport ? 0 : 1600);
 
   const totalPorCausa = new Map<CausaAusentismo, number>();
   for (const m of meses) {
@@ -257,100 +276,105 @@ export default function AusentismoCard({ licencias, hoy }: { licencias: Licencia
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
       <div className="flex items-center justify-between mb-1 gap-2.5 flex-wrap">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Ausentismo por causa</h3>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <div className="relative">
-            <select
-              value={modo === "anio" ? String(anioActivo) : modo}
-              onChange={(e) => elegirPeriodo(e.target.value)}
-              className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
-            >
-              <option value="todo">Todo el historial</option>
-              {anios.map((a) => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-              <option value="rango">Seleccionar período…</option>
-            </select>
-            {modo === "rango" && (
-              <div className="absolute left-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
-                <input
-                  type="date"
-                  value={rangoDesde}
-                  onChange={(e) => setRangoDesde(e.target.value)}
-                  className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                />
-                <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
-                <input
-                  type="date"
-                  value={rangoHasta}
-                  onChange={(e) => setRangoHasta(e.target.value)}
-                  className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                />
-              </div>
+        {!modoExport && (
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <div className="relative">
+              <select
+                value={modo === "anio" ? String(anioActivo) : modo}
+                onChange={(e) => elegirPeriodo(e.target.value)}
+                className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
+              >
+                <option value="todo">Todo el historial</option>
+                {anios.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+                <option value="rango">Seleccionar período…</option>
+              </select>
+              {modo === "rango" && (
+                <div className="absolute left-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
+                  <input
+                    type="date"
+                    value={rangoDesde}
+                    onChange={(e) => setRangoDesde(e.target.value)}
+                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
+                  />
+                  <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
+                  <input
+                    type="date"
+                    value={rangoHasta}
+                    onChange={(e) => setRangoHasta(e.target.value)}
+                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
+                  />
+                </div>
+              )}
+            </div>
+            {!comoTabla && (
+              <button
+                type="button"
+                onClick={() => setMostrarTendencia((v) => !v)}
+                aria-pressed={mostrarTendencia}
+                className={`text-[11px] font-semibold rounded-md px-2.5 py-1 border transition-colors ${
+                  mostrarTendencia
+                    ? "bg-[var(--c-blue)] text-white border-[var(--c-blue)]"
+                    : "text-[var(--c-text-muted)] border-[var(--c-line)] hover:text-[var(--c-text)] hover:border-[var(--c-line-strong)]"
+                }`}
+              >
+                Tendencia
+              </button>
             )}
-          </div>
-          {!comoTabla && (
             <button
               type="button"
-              onClick={() => setMostrarTendencia((v) => !v)}
-              aria-pressed={mostrarTendencia}
-              className={`text-[11px] font-semibold rounded-md px-2.5 py-1 border transition-colors ${
-                mostrarTendencia
-                  ? "bg-[var(--c-blue)] text-white border-[var(--c-blue)]"
-                  : "text-[var(--c-text-muted)] border-[var(--c-line)] hover:text-[var(--c-text)] hover:border-[var(--c-line-strong)]"
-              }`}
+              onClick={() => setComoTabla((v) => !v)}
+              className="text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
             >
-              Tendencia
+              {comoTabla ? "Ver como gráfico" : "Ver como tabla"}
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setComoTabla((v) => !v)}
-            className="text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
-          >
-            {comoTabla ? "Ver como gráfico" : "Ver como tabla"}
-          </button>
-          <div className="relative" ref={exportMenuRef}>
-            <button
-              type="button"
-              onClick={() => setExportAbierto((v) => !v)}
-              disabled={descargandoExcel}
-              aria-expanded={exportAbierto}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors disabled:opacity-50"
-            >
-              {descargandoExcel && <ButtonSpinner />}
-              Exportar
-              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-            {exportAbierto && (
-              <div className="absolute right-0 top-full mt-1 z-30 w-44 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] py-1 shadow-lg shadow-black/40">
-                <button
-                  type="button"
-                  onClick={imprimir}
-                  title='Antes de imprimir, desmarcá "Encabezados y pies de página" en el diálogo del navegador. Para PDF, elegí "Guardar como PDF" como destino.'
-                  className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
-                >
-                  🖨️ Imprimir / PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={descargarCsv}
-                  className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
-                >
-                  Descargar CSV
-                </button>
-                <button
-                  type="button"
-                  onClick={descargarExcel}
-                  className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
-                >
-                  Descargar Excel
-                </button>
-              </div>
-            )}
+            <div className="relative" ref={exportMenuRef}>
+              <button
+                type="button"
+                onClick={() => setExportAbierto((v) => !v)}
+                disabled={descargandoExcel}
+                aria-expanded={exportAbierto}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors disabled:opacity-50"
+              >
+                {descargandoExcel && <ButtonSpinner />}
+                Exportar
+                <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              {exportAbierto && (
+                <div className="absolute right-0 top-full mt-1 z-30 w-44 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] py-1 shadow-lg shadow-black/40">
+                  <button
+                    type="button"
+                    onClick={imprimir}
+                    title='Antes de imprimir, desmarcá "Encabezados y pies de página" en el diálogo del navegador. Para PDF, elegí "Guardar como PDF" como destino.'
+                    className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
+                  >
+                    🖨️ Imprimir / PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={descargarCsv}
+                    className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
+                  >
+                    Descargar CSV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={descargarExcel}
+                    className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
+                  >
+                    Descargar Excel
+                  </button>
+                </div>
+              )}
+            </div>
+            <GraficoDescargable nombreArchivo="ausentismo-por-causa">
+              {(t) => <AusentismoCard licencias={licencias} hoy={hoy} modoExport tema={t} />}
+            </GraficoDescargable>
           </div>
-        </div>
+        )}
       </div>
       {errorExport && (
         <div className="mb-3.5 rounded-lg bg-[var(--c-coral)]/10 border border-[var(--c-coral)]/30 px-3 py-2 text-[11.5px] text-[var(--c-coral)]">
@@ -371,14 +395,14 @@ export default function AusentismoCard({ licencias, hoy }: { licencias: Licencia
             key={c}
             className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full"
           >
-            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: CAUSA_COLOR[c] }} />
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: colorDeCausa(c, tema) }} />
             {labelDeCausa(c)}
             <b className="text-[var(--c-text)] font-bold tabular-nums">{totalPorCausa.get(c) ?? 0}</b>
           </span>
         ))}
       </div>
 
-      <div className="overflow-hidden" style={{ height: 260 }}>
+      <div className={modoExport ? "" : "overflow-hidden"} style={modoExport ? undefined : { height: 260 }}>
         <div className={`dashboard-slide-track h-full ${comoTabla ? "mostrar-detalle" : ""}`}>
           <div className="dashboard-slide-pane">
             <div className="flex items-start gap-2.5">
@@ -400,7 +424,7 @@ export default function AusentismoCard({ licencias, hoy }: { licencias: Licencia
                 ))}
               </div>
 
-              <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar">
+              <div className={`flex-1 min-w-0 ${modoExport ? "" : "overflow-x-auto no-scrollbar"}`}>
                 <div className="relative" style={{ width: "max-content", height: ALTURA_BARRAS }}>
                 <div
                   className="absolute left-0 top-0 pointer-events-none"
@@ -454,7 +478,7 @@ export default function AusentismoCard({ licencias, hoy }: { licencias: Licencia
                                 className="w-full"
                                 style={{
                                   height: listo ? `${(cantidad / escalaMax) * ALTURA_BARRAS}px` : 0,
-                                  background: CAUSA_COLOR[c],
+                                  background: colorDeCausa(c, tema),
                                   filter: hoverKey === m.key ? "brightness(1.2)" : undefined,
                                   transition: `filter 150ms, height 550ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 24) * 20}ms`,
                                 }}
@@ -466,42 +490,43 @@ export default function AusentismoCard({ licencias, hoy }: { licencias: Licencia
                     );
                   })}
                 </div>
-                {mostrarTendencia && (
-                  <svg
-                    className="absolute left-0 top-0 pointer-events-none"
-                    width={meses.length * PITCH_COL}
-                    height={ALTURA_BARRAS}
-                    style={{ overflow: "visible" }}
-                  >
-                    <polyline
-                      points={promedioMovil
-                        .map((v, i) => `${i * PITCH_COL + ANCHO_COL / 2},${ALTURA_BARRAS - (v / escalaMax) * ALTURA_BARRAS}`)
-                        .join(" ")}
-                      fill="none"
-                      stroke="var(--c-text)"
-                      strokeWidth={2}
-                      strokeDasharray="4 3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                {/* Siempre montado (nunca condicionado a mostrarTendencia): así el
+                    toggle "Tendencia" hace un fade in/out fluido en vez de
+                    aparecer/desaparecer de golpe. */}
+                <svg
+                  className="absolute left-0 top-0 pointer-events-none"
+                  width={meses.length * PITCH_COL}
+                  height={ALTURA_BARRAS}
+                  style={{ overflow: "visible", opacity: mostrarTendencia ? 1 : 0, transition: "opacity 300ms ease" }}
+                >
+                  <polyline
+                    points={promedioMovil
+                      .map((v, i) => `${i * PITCH_COL + ANCHO_COL / 2},${ALTURA_BARRAS - (v / escalaMax) * ALTURA_BARRAS}`)
+                      .join(" ")}
+                    fill="none"
+                    stroke="var(--c-text)"
+                    strokeWidth={2}
+                    strokeDasharray="4 3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {promedioMovil.map((v, i) => (
+                    <circle
+                      key={meses[i].key}
+                      cx={i * PITCH_COL + ANCHO_COL / 2}
+                      cy={ALTURA_BARRAS - (v / escalaMax) * ALTURA_BARRAS}
+                      r={2.5}
+                      fill="var(--c-text)"
                     />
-                    {promedioMovil.map((v, i) => (
-                      <circle
-                        key={meses[i].key}
-                        cx={i * PITCH_COL + ANCHO_COL / 2}
-                        cy={ALTURA_BARRAS - (v / escalaMax) * ALTURA_BARRAS}
-                        r={2.5}
-                        fill="var(--c-text)"
-                      />
-                    ))}
-                  </svg>
-                )}
+                  ))}
+                </svg>
                 </div>
               </div>
             </div>
 
             <div className="flex items-start gap-2.5 mt-1.5">
               <div className="shrink-0 w-7" />
-              <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar">
+              <div className={`flex-1 min-w-0 ${modoExport ? "" : "overflow-x-auto no-scrollbar"}`}>
                 <div className="flex gap-0.5" style={{ width: "max-content" }}>
                   {meses.map((m) => (
                     <span
@@ -517,6 +542,7 @@ export default function AusentismoCard({ licencias, hoy }: { licencias: Licencia
             </div>
           </div>
 
+          {!modoExport && (
           <div className="dashboard-slide-pane h-full overflow-y-auto pr-3">
             <table className="w-full text-[12.5px] border-collapse">
               <thead>
@@ -563,6 +589,7 @@ export default function AusentismoCard({ licencias, hoy }: { licencias: Licencia
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
 
@@ -577,7 +604,7 @@ export default function AusentismoCard({ licencias, hoy }: { licencias: Licencia
             if (cantidad <= 0) return null;
             return (
               <div key={c} className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: CAUSA_COLOR[c] }} />
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: colorDeCausa(c, tema) }} />
                 <span className="font-bold tabular-nums">{cantidad}</span>
                 <span className="text-[var(--c-text-faint)]">{labelDeCausa(c)}</span>
               </div>
@@ -596,15 +623,17 @@ export default function AusentismoCard({ licencias, hoy }: { licencias: Licencia
         </div>
       )}
 
-      <InformeAusentismo
-        meses={meses}
-        causasPresentes={causasPresentes}
-        totalPorCausa={totalPorCausa}
-        totalCantidad={totalCantidad}
-        picoIndex={picoIndex}
-        escalaMax={escalaMax}
-        labelDeCausa={labelDeCausa}
-      />
+      {!modoExport && (
+        <InformeAusentismo
+          meses={meses}
+          causasPresentes={causasPresentes}
+          totalPorCausa={totalPorCausa}
+          totalCantidad={totalCantidad}
+          picoIndex={picoIndex}
+          escalaMax={escalaMax}
+          labelDeCausa={labelDeCausa}
+        />
+      )}
         </>
       )}
     </div>

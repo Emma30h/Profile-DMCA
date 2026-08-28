@@ -6,6 +6,7 @@ import type { FlujoMensual, FlujoPersonalStats } from "./stats";
 import { buildQueryString } from "../personal/queryString";
 import { useCountUp } from "@/lib/useCountUp";
 import { useEntrada } from "@/lib/useEntrada";
+import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
 type Rango = "3m" | "6m" | "1a" | "todo";
 
@@ -24,16 +25,26 @@ interface Tooltip {
   mes: FlujoMensual;
 }
 
-export default function FlujoPersonalCard({ flujo, delayMs = 0 }: { flujo: FlujoPersonalStats; delayMs?: number }) {
+export default function FlujoPersonalCard({
+  flujo,
+  delayMs = 0,
+  modoExport = false,
+}: {
+  flujo: FlujoPersonalStats;
+  delayMs?: number;
+  modoExport?: boolean;
+}) {
   const router = useRouter();
   const [rango, setRango] = useState<Rango>("1a");
   const [comoTabla, setComoTabla] = useState(false);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
-  const listo = useEntrada(delayMs);
-  const totalAltasAnimado = useCountUp(flujo.totalAltas, delayMs);
-  const totalBajasAnimado = useCountUp(flujo.totalBajas, delayMs + 120);
-  const totalNetoAnimado = useCountUp(Math.abs(flujo.totalNeto), delayMs + 240);
+  // En modoExport la vista previa tiene que salir ya "crecida" (ver
+  // GraficoDescargable.tsx), nunca a mitad de animación.
+  const listo = useEntrada(delayMs) || modoExport;
+  const totalAltasAnimado = useCountUp(flujo.totalAltas, delayMs, modoExport ? 0 : 1600);
+  const totalBajasAnimado = useCountUp(flujo.totalBajas, delayMs + 120, modoExport ? 0 : 1600);
+  const totalNetoAnimado = useCountUp(Math.abs(flujo.totalNeto), delayMs + 240, modoExport ? 0 : 1600);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const colsRef = useRef<HTMLDivElement>(null);
@@ -139,33 +150,42 @@ export default function FlujoPersonalCard({ flujo, delayMs = 0 }: { flujo: Flujo
       <div className="flex items-center justify-between mb-3.5 gap-2.5 flex-wrap">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Ingresos y bajas de personal</h3>
         <div className="flex items-center gap-2.5">
-          <span className="text-[11px] text-[var(--c-text-faint)]">{RANGO_LABEL[rango]}</span>
-          <button
-            type="button"
-            onClick={() => setComoTabla((v) => !v)}
-            className="text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
-          >
-            {comoTabla ? "Ver como gráfico" : "Ver como tabla"}
-          </button>
+          {!modoExport && (
+            <>
+              <span className="text-[11px] text-[var(--c-text-faint)]">{RANGO_LABEL[rango]}</span>
+              <button
+                type="button"
+                onClick={() => setComoTabla((v) => !v)}
+                className="text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
+              >
+                {comoTabla ? "Ver como gráfico" : "Ver como tabla"}
+              </button>
+              <GraficoDescargable nombreArchivo="ingresos-y-bajas-de-personal" sinPaletas>
+                {() => <FlujoPersonalCard flujo={flujo} modoExport />}
+              </GraficoDescargable>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 mb-4">
-        {RANGOS.map((r) => (
-          <button
-            key={r}
-            type="button"
-            onClick={() => aplicarRango(r)}
-            className={`text-[11px] font-semibold rounded-md px-2.5 py-1 border transition-colors ${
-              rango === r
-                ? "bg-[var(--c-blue)] text-white border-[var(--c-blue)]"
-                : "text-[var(--c-text-muted)] border-[var(--c-line)] hover:text-[var(--c-text)] hover:border-[var(--c-line-strong)]"
-            }`}
-          >
-            {r === "todo" ? "Todo" : r.toUpperCase()}
-          </button>
-        ))}
-      </div>
+      {!modoExport && (
+        <div className="flex items-center gap-1.5 mb-4">
+          {RANGOS.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => aplicarRango(r)}
+              className={`text-[11px] font-semibold rounded-md px-2.5 py-1 border transition-colors ${
+                rango === r
+                  ? "bg-[var(--c-blue)] text-white border-[var(--c-blue)]"
+                  : "text-[var(--c-text-muted)] border-[var(--c-line)] hover:text-[var(--c-text)] hover:border-[var(--c-line-strong)]"
+              }`}
+            >
+              {r === "todo" ? "Todo" : r.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center gap-2.5 flex-wrap mb-4">
         <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full">
@@ -186,6 +206,46 @@ export default function FlujoPersonalCard({ flujo, delayMs = 0 }: { flujo: Flujo
         </span>
       </div>
 
+      {modoExport ? (
+        // En modoExport se muestra el historial completo, sin recortar por
+        // scroll (mismo criterio que AusentismoCard): nada de brush ni de
+        // paneo, todos los meses uno al lado del otro con ancho fijo.
+        <div className="flex items-start gap-2.5">
+          <div className="flex flex-col justify-between shrink-0 w-5 text-right text-[10px] text-[var(--c-text-faint)]" style={{ height: 201 }}>
+            <span>{escalaMax}</span>
+            <span>0</span>
+            <span>{escalaMax}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex gap-0.5" style={{ width: "max-content" }}>
+              {meses.map((m, i) => (
+                <div key={m.key} className="flex flex-col items-center rounded-lg py-0.5" style={{ flex: `0 0 ${RANGO_COL_WIDTH["1a"]}px`, width: RANGO_COL_WIDTH["1a"] }}>
+                  <div className="w-full flex flex-col items-center justify-end" style={{ height: 100 }}>
+                    {i === indiceMaxAltas && m.altas > 0 && (
+                      <span className="text-[10px] font-bold text-[var(--c-text)] mb-1 whitespace-nowrap">+{m.altas}</span>
+                    )}
+                    <div
+                      className="rounded-t-[4px] bg-[var(--c-green)]"
+                      style={{ height: `${listo ? (m.altas / escalaMax) * 100 : 0}px`, width: 24 }}
+                    />
+                  </div>
+                  <div className="h-px w-full bg-[var(--c-bg-elev-2)]" />
+                  <div className="w-full flex flex-col items-center justify-start" style={{ height: 100 }}>
+                    <div
+                      className="rounded-b-[4px] bg-[var(--c-coral)]"
+                      style={{ height: `${listo ? (m.bajas / escalaMax) * 100 : 0}px`, width: 24 }}
+                    />
+                    {i === indiceMaxBajas && m.bajas > 0 && (
+                      <span className="text-[10px] font-bold text-[var(--c-text)] mt-1 whitespace-nowrap">−{m.bajas}</span>
+                    )}
+                  </div>
+                  <span className="text-[10.5px] text-[var(--c-text-faint)] mt-2 whitespace-nowrap">{m.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="overflow-hidden" style={{ height: 300 }}>
         <div className={`dashboard-slide-track h-full ${comoTabla ? "mostrar-detalle" : ""}`}>
           <div className="dashboard-slide-pane">
@@ -229,7 +289,14 @@ export default function FlujoPersonalCard({ flujo, delayMs = 0 }: { flujo: Flujo
                   <div
                     key={m.key}
                     className={`flex flex-col items-center rounded-lg py-0.5 transition-colors ${hoverKey === m.key ? "bg-[var(--c-bg-elev-2)]/70" : ""} ${clickable ? "cursor-pointer" : ""}`}
-                    style={{ flex: "0 0 var(--col-w, 70px)", width: "var(--col-w, 70px)" }}
+                    style={{
+                      flex: "0 0 var(--col-w, 70px)",
+                      width: "var(--col-w, 70px)",
+                      // Sin esto, cambiar de rango (que solo pisa --col-w vía
+                      // ref, no re-renderiza con un valor de React distinto)
+                      // resize todas las columnas de golpe.
+                      transition: "flex-basis 400ms cubic-bezier(.22,1,.36,1), width 400ms cubic-bezier(.22,1,.36,1)",
+                    }}
                     onPointerMove={(e) => {
                       if (panState.current.panning && panState.current.moved) return;
                       setHoverKey(m.key);
@@ -365,6 +432,7 @@ export default function FlujoPersonalCard({ flujo, delayMs = 0 }: { flujo: Flujo
           </div>
         </div>
       </div>
+      )}
 
       {tooltip && (
         <div

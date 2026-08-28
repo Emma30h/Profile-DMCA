@@ -38,6 +38,42 @@
   --c-coral-strong: #cf2e3a;
 }
 
+/* Duplica los valores de :root (oscuro) bajo un selector explícito. Hace
+   falta para poder FORZAR oscuro en un nodo puntual sin importar el tema
+   ambiente de la app — a diferencia de [data-theme="light"], que ya se usa
+   para eso, acá no hay ningún selector que un data-theme="dark" explícito
+   pueda apuntar (el oscuro vive solo en el :root "por defecto"), así que
+   GraficoDescargable.tsx no podría forzar un tema oscuro en su vista previa
+   si el usuario tiene la app en modo claro sin este bloque. */
+[data-theme="dark"] {
+  --background: #0d1526;
+  --foreground: #e6edf7;
+  color-scheme: dark;
+
+  --c-bg: #0d1526;
+  --c-bg-elev: #111c31;
+  --c-bg-elev-2: #17223a;
+  --c-line: #2b3550;
+  --c-line-strong: #3c4864;
+  --c-text: #e6edf7;
+  --c-text-secondary: #b3bcc9;
+  --c-text-muted: #8891a3;
+  --c-text-faint: #5c6576;
+  --c-on-accent: #ffffff;
+
+  --c-blue: #2f7cf6;
+  --c-blue-strong: #204d9c;
+  --c-blue-text: #5c9dff;
+  --c-blue-soft: #8fbcff;
+
+  --c-green: #34d399;
+  --c-green-strong: #1aa377;
+  --c-amber: #f0b429;
+  --c-amber-strong: #b5820f;
+  --c-coral: #ef5f6b;
+  --c-coral-strong: #cf2e3a;
+}
+
 [data-theme="light"] {
   --background: #f2f2f3;
   --foreground: #1d1f20;

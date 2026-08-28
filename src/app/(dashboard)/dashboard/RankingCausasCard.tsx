@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CAUSAS_AUSENTISMO,
-  CAUSA_COLOR,
   causaDeLicencia,
+  colorDeCausa,
   labelDeCausa,
   type CausaAusentismo,
   type LicenciaAusentismoRow,
@@ -13,6 +13,9 @@ import {
 import { buildQueryString } from "../personal/queryString";
 import { useEntrada } from "@/lib/useEntrada";
 import { useCountUp } from "@/lib/useCountUp";
+import { useReplayOnChange } from "@/lib/useReplayOnChange";
+import { TEMA_INSTITUCIONAL, type ChartTheme } from "@/lib/chartThemes";
+import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
 type ModoPeriodo = "todo" | "anio" | "rango";
 
@@ -32,7 +35,17 @@ const ALTURA_BARRA = 26;
 const GAP_FILAS = 10;
 const SEGMENTOS_GRILLA = 4; // 5 líneas de referencia (0, 25, 50, 75, 100% de escalaMax)
 
-export default function RankingCausasCard({ licencias, hoy }: { licencias: LicenciaAusentismoRow[]; hoy: string }) {
+export default function RankingCausasCard({
+  licencias,
+  hoy,
+  tema = TEMA_INSTITUCIONAL,
+  modoExport = false,
+}: {
+  licencias: LicenciaAusentismoRow[];
+  hoy: string;
+  tema?: ChartTheme;
+  modoExport?: boolean;
+}) {
   const router = useRouter();
   const hoyDate = useMemo(() => new Date(hoy), [hoy]);
 
@@ -100,11 +113,17 @@ export default function RankingCausasCard({ licencias, hoy }: { licencias: Licen
   }, [licenciasPeriodo]);
 
   // Solo se monta cuando RevealOnScroll lo revela: no hace falta delayMs, el
-  // propio montaje ya es el disparador de "empezar a tomar vida".
-  const listo = useEntrada();
+  // propio montaje ya es el disparador de "empezar a tomar vida". En
+  // modoExport la vista previa tiene que salir ya "crecida" (ver
+  // GraficoDescargable.tsx), nunca a mitad de animación. replayListo hace
+  // que cambiar de período reactive la misma transición de "crecer desde 0"
+  // en vez de que las barras salten directo al valor nuevo.
+  const entrada = useEntrada();
+  const replayListo = useReplayOnChange(filas);
+  const listo = modoExport || (entrada && replayListo);
 
   const totalCantidad = filas.reduce((acc, f) => acc + f.cantidad, 0);
-  const totalCantidadAnimado = useCountUp(totalCantidad);
+  const totalCantidadAnimado = useCountUp(totalCantidad, 0, modoExport ? 0 : 1600);
   const picoValor = Math.max(1, ...filas.map((f) => f.cantidad));
   const escalaMax = Math.max(5, Math.ceil(picoValor / 5) * 5);
 
@@ -133,36 +152,43 @@ export default function RankingCausasCard({ licencias, hoy }: { licencias: Licen
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
       <div className="flex items-center justify-between mb-1 gap-2.5 flex-wrap">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Causas más frecuentes</h3>
-        <div className="relative">
-          <select
-            value={modo === "anio" ? String(anioActivo) : modo}
-            onChange={(e) => elegirPeriodo(e.target.value)}
-            className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
-          >
-            <option value="todo">Todo el historial</option>
-            {anios.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-            <option value="rango">Seleccionar período…</option>
-          </select>
-          {modo === "rango" && (
-            <div className="absolute right-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
-              <input
-                type="date"
-                value={rangoDesde}
-                onChange={(e) => setRangoDesde(e.target.value)}
-                className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-              />
-              <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
-              <input
-                type="date"
-                value={rangoHasta}
-                onChange={(e) => setRangoHasta(e.target.value)}
-                className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-              />
+        {!modoExport && (
+          <div className="flex items-center gap-1">
+            <div className="relative">
+              <select
+                value={modo === "anio" ? String(anioActivo) : modo}
+                onChange={(e) => elegirPeriodo(e.target.value)}
+                className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
+              >
+                <option value="todo">Todo el historial</option>
+                {anios.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+                <option value="rango">Seleccionar período…</option>
+              </select>
+              {modo === "rango" && (
+                <div className="absolute right-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
+                  <input
+                    type="date"
+                    value={rangoDesde}
+                    onChange={(e) => setRangoDesde(e.target.value)}
+                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
+                  />
+                  <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
+                  <input
+                    type="date"
+                    value={rangoHasta}
+                    onChange={(e) => setRangoHasta(e.target.value)}
+                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
+                  />
+                </div>
+              )}
             </div>
-          )}
-        </div>
+            <GraficoDescargable nombreArchivo="causas-mas-frecuentes">
+              {(t) => <RankingCausasCard licencias={licencias} hoy={hoy} modoExport tema={t} />}
+            </GraficoDescargable>
+          </div>
+        )}
       </div>
       <p className="text-[11px] text-[var(--c-text-faint)] mb-4">
         Cantidad de licencias por causa, sin licencia ordinaria (vacaciones) — <b className="text-[var(--c-text-muted)] tabular-nums">{totalCantidadAnimado}</b> en total.
@@ -218,7 +244,7 @@ export default function RankingCausasCard({ licencias, hoy }: { licencias: Licen
                         className="h-full rounded-r-[3px]"
                         style={{
                           width: listo ? `${Math.max(f.cantidad > 0 ? 1.5 : 0, (f.cantidad / escalaMax) * 100)}%` : 0,
-                          background: CAUSA_COLOR[f.causa],
+                          background: colorDeCausa(f.causa, tema),
                           filter: hoverCausa === f.causa ? "brightness(1.15)" : undefined,
                           transition: `filter 150ms, width 550ms cubic-bezier(.22,1,.36,1) ${i * 35}ms`,
                         }}
@@ -255,7 +281,7 @@ export default function RankingCausasCard({ licencias, hoy }: { licencias: Licen
           style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}
         >
           <div className="flex items-center gap-1.5 font-bold mb-1">
-            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: CAUSA_COLOR[tooltip.causa] }} />
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: colorDeCausa(tooltip.causa, tema) }} />
             {labelDeCausa(tooltip.causa)}
           </div>
           <div>

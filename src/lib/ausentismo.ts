@@ -1,4 +1,5 @@
 import { TIPO_LICENCIA_LABELS, type TipoLicencia } from "@/types";
+import type { ChartTheme } from "./chartThemes";
 
 // Módulo puro (sin imports de servidor) a propósito: stats.ts llama a
 // calcularAusentismoMensual() para el cálculo por defecto en el dashboard,
@@ -67,6 +68,36 @@ export const CAUSA_COLOR: Record<CausaAusentismo, string> = {
   FALLECIMIENTO_FAMILIAR: "#c98500",
   OTROS: "#7c8aa8",
 };
+
+// Posición de cada causa dentro de ChartTheme.categorico PARA TEMAS NUEVOS
+// (no institucional) — coincide índice a índice con CAUSAS_AUSENTISMO_PRINCIPALES,
+// que es a la vez el orden real en que quedan apiladas/vecinas en la barra
+// (CARPETA_MEDICA-MEDICA-ASISTENCIA-MATERNIDAD-PATERNIDAD-FALLECIMIENTO), así
+// que la validación "vecinos adyacentes" de cada tema (ver chartThemes.ts)
+// ya cubre exactamente esta adyacencia real, sin tener que revalidar nada.
+// OTROS nunca entra acá — se pliega siempre al gris fijo.
+const INDICE_CATEGORICO_CAUSA: Partial<Record<CausaAusentismo, number>> = {
+  CARPETA_MEDICA: 0,
+  MEDICA: 1,
+  ASISTENCIA_FAMILIAR_ENFERMO: 2,
+  MATERNIDAD: 3,
+  PATERNIDAD_ADOPCION: 4,
+  FALLECIMIENTO_FAMILIAR: 5,
+};
+
+// Color de una causa para un tema de descarga dado. El tema institucional
+// mantiene el mapeo bespoke de CAUSA_COLOR de arriba (cero cambios respecto
+// del look actual del dashboard, incluida la excepción de CARPETA_MEDICA en
+// verde) — los temas nuevos usan el mapeo secuencial de arriba, donde SÍ
+// varía color por color (si no, cambiar de paleta "no se nota", que fue
+// justo el problema reportado). OTROS siempre queda en el gris fijo, en
+// todos los temas: no es identidad de serie.
+export function colorDeCausa(causa: CausaAusentismo, tema: ChartTheme): string {
+  if (causa === "OTROS") return CAUSA_COLOR.OTROS;
+  if (tema.id === "institucional") return CAUSA_COLOR[causa];
+  const i = INDICE_CATEGORICO_CAUSA[causa];
+  return i !== undefined ? tema.categorico[i] : CAUSA_COLOR[causa];
+}
 
 export const MESES_LARGOS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",

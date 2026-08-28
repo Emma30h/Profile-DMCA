@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import type { LicenciaAusentismoRow } from "@/lib/ausentismo";
 import { buildQueryString } from "../personal/queryString";
 import { useCountUp } from "@/lib/useCountUp";
+import { TEMA_INSTITUCIONAL, type ChartTheme } from "@/lib/chartThemes";
+import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
 type ModoPeriodo = "todo" | "anio" | "rango";
 
@@ -86,7 +88,17 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
 }
 
-export default function LicenciasPorTurnoCard({ licencias, hoy }: { licencias: LicenciaAusentismoRow[]; hoy: string }) {
+export default function LicenciasPorTurnoCard({
+  licencias,
+  hoy,
+  tema = TEMA_INSTITUCIONAL,
+  modoExport = false,
+}: {
+  licencias: LicenciaAusentismoRow[];
+  hoy: string;
+  tema?: ChartTheme;
+  modoExport?: boolean;
+}) {
   const router = useRouter();
   const hoyDate = useMemo(() => new Date(hoy), [hoy]);
 
@@ -150,7 +162,7 @@ export default function LicenciasPorTurnoCard({ licencias, hoy }: { licencias: L
   }, [licenciasPeriodo]);
 
   const totalCantidad = ejes.reduce((acc, e) => acc + e.cantidad, 0);
-  const totalCantidadAnimado = useCountUp(totalCantidad);
+  const totalCantidadAnimado = useCountUp(totalCantidad, 0, modoExport ? 0 : 1600);
   const picoValor = Math.max(1, ...ejes.map((e) => e.cantidad));
   const escalaMax = Math.max(5, Math.ceil(picoValor / 5) * 5);
   const anillos = Array.from({ length: SEGMENTOS_GRILLA }, (_, i) => (i + 1) / SEGMENTOS_GRILLA);
@@ -172,34 +184,60 @@ export default function LicenciasPorTurnoCard({ licencias, hoy }: { licencias: L
   // detecta la diferencia contra el objetivo real y dispara el mismo tween
   // que ya usa el gráfico al cambiar de período, dando el efecto de "el
   // polígono va tomando forma" también en la primera aparición.
-  const [radiosAnimados, setRadiosAnimados] = useState<number[]>(() => radiosObjetivo.map(() => 0));
+  // En modoExport arrancamos directo en el valor objetivo (no en 0): la
+  // vista previa de descarga se monta una sola vez y tiene que salir ya
+  // "crecida" — si se sembrara en 0 igual que la tarjeta normal, una
+  // captura tomada apenas se abre el modal podría agarrar el tween a mitad
+  // de camino.
+  const [radiosAnimados, setRadiosAnimados] = useState<number[]>(() => (modoExport ? radiosObjetivo : radiosObjetivo.map(() => 0)));
+  // Cantidad mostrada junto a cada vértice, interpolada en el mismo tween
+  // que el radio (mismo t/k por cuadro): sin esto, el polígono se mueve
+  // suave al cambiar de período pero el número de al lado salta de golpe al
+  // valor nuevo — justo lo que se ve "feo" en la captura que trajo el
+  // usuario. Los ejes son un array de orden fijo (TURNOS_RADAR, A a F, nunca
+  // se reordena por valor), así que interpolar por posición es seguro acá.
+  const [cantidadesAnimadas, setCantidadesAnimadas] = useState<number[]>(() =>
+    modoExport ? ejes.map((e) => e.cantidad) : ejes.map(() => 0)
+  );
   // Espejo del estado en un ref (sincronizado en un efecto, nunca durante el
   // render): lo lee el efecto de más abajo para saber desde dónde arrancar
-  // la interpolación, sin tener que declarar `radiosAnimados` en sus
-  // dependencias (eso reiniciaría el efecto en cada uno de los ~24 frames
-  // que la propia animación genera).
+  // la interpolación, sin tener que declarar `radiosAnimados`/`cantidadesAnimadas`
+  // en sus dependencias (eso reiniciaría el efecto en cada uno de los ~24
+  // frames que la propia animación genera).
   const radiosActualesRef = useRef(radiosAnimados);
   useEffect(() => {
     radiosActualesRef.current = radiosAnimados;
   });
+  const cantidadesActualesRef = useRef(cantidadesAnimadas);
+  useEffect(() => {
+    cantidadesActualesRef.current = cantidadesAnimadas;
+  });
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const inicio = radiosActualesRef.current;
-    const destino = radiosObjetivo;
-    if (inicio.length === destino.length && inicio.every((v, i) => v === destino[i])) return;
+    const radiosInicio = radiosActualesRef.current;
+    const radiosDestino = radiosObjetivo;
+    const cantidadesInicio = cantidadesActualesRef.current;
+    const cantidadesDestino = ejes.map((e) => e.cantidad);
+    const sinCambios =
+      radiosInicio.length === radiosDestino.length &&
+      radiosInicio.every((v, i) => v === radiosDestino[i]) &&
+      cantidadesInicio.length === cantidadesDestino.length &&
+      cantidadesInicio.every((v, i) => v === cantidadesDestino[i]);
+    if (sinCambios) return;
     const t0 = performance.now();
     function paso(ahora: number) {
       const t = Math.min(1, (ahora - t0) / DURACION_ANIM);
       const k = easeOutCubic(t);
-      setRadiosAnimados(inicio.map((v, i) => v + (destino[i] - v) * k));
+      setRadiosAnimados(radiosInicio.map((v, i) => v + (radiosDestino[i] - v) * k));
+      setCantidadesAnimadas(cantidadesInicio.map((v, i) => v + (cantidadesDestino[i] - v) * k));
       if (t < 1) rafRef.current = requestAnimationFrame(paso);
     }
     rafRef.current = requestAnimationFrame(paso);
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [radiosObjetivo]);
+  }, [radiosObjetivo, ejes]);
 
   const puntosPoligono = ejes
     .map((e, i) => {
@@ -228,36 +266,43 @@ export default function LicenciasPorTurnoCard({ licencias, hoy }: { licencias: L
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 flex flex-col h-full">
       <div className="flex items-center justify-between mb-1 gap-2.5 flex-wrap">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Licencias por turno</h3>
-        <div className="relative">
-          <select
-            value={modo === "anio" ? String(anioActivo) : modo}
-            onChange={(e) => elegirPeriodo(e.target.value)}
-            className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
-          >
-            <option value="todo">Todo el historial</option>
-            {anios.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-            <option value="rango">Seleccionar período…</option>
-          </select>
-          {modo === "rango" && (
-            <div className="absolute right-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
-              <input
-                type="date"
-                value={rangoDesde}
-                onChange={(e) => setRangoDesde(e.target.value)}
-                className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-              />
-              <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
-              <input
-                type="date"
-                value={rangoHasta}
-                onChange={(e) => setRangoHasta(e.target.value)}
-                className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-              />
+        {!modoExport && (
+          <div className="flex items-center gap-1">
+            <div className="relative">
+              <select
+                value={modo === "anio" ? String(anioActivo) : modo}
+                onChange={(e) => elegirPeriodo(e.target.value)}
+                className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
+              >
+                <option value="todo">Todo el historial</option>
+                {anios.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+                <option value="rango">Seleccionar período…</option>
+              </select>
+              {modo === "rango" && (
+                <div className="absolute right-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
+                  <input
+                    type="date"
+                    value={rangoDesde}
+                    onChange={(e) => setRangoDesde(e.target.value)}
+                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
+                  />
+                  <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
+                  <input
+                    type="date"
+                    value={rangoHasta}
+                    onChange={(e) => setRangoHasta(e.target.value)}
+                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
+                  />
+                </div>
+              )}
             </div>
-          )}
-        </div>
+            <GraficoDescargable nombreArchivo="licencias-por-turno">
+              {(t) => <LicenciasPorTurnoCard licencias={licencias} hoy={hoy} modoExport tema={t} />}
+            </GraficoDescargable>
+          </div>
+        )}
       </div>
       <p className="text-[11px] text-[var(--c-text-faint)] mb-3.5">
         Cantidad de licencias por turno, sin licencia ordinaria (vacaciones) — <b className="text-[var(--c-text-muted)] tabular-nums">{totalCantidadAnimado}</b> en total. Solo turnos rotativos (A a F); administrativos y otros turnos especiales quedan afuera de este gráfico.
@@ -267,7 +312,7 @@ export default function LicenciasPorTurnoCard({ licencias, hoy }: { licencias: L
       {totalCantidad === 0 ? (
         <p className="text-[12.5px] text-[var(--c-text-faint)] py-6 text-center">Sin licencias en el período elegido.</p>
       ) : (
-          <svg viewBox={`0 0 ${VB} ${VB}`} className="w-full max-w-[400px]">
+          <svg viewBox={`0 0 ${VB} ${VB}`} className="w-full h-full max-w-[440px] max-h-[440px]">
             {anillos.map((frac) => {
               const puntos = ejes.map((_, i) => { const { x, y } = puntoEje(i, RADIO * frac); return `${x},${y}`; }).join(" ");
               return (
@@ -296,9 +341,9 @@ export default function LicenciasPorTurnoCard({ licencias, hoy }: { licencias: L
 
             <polygon
               points={puntosPoligono}
-              fill="var(--c-blue)"
+              fill={tema.accent}
               fillOpacity={0.22}
-              stroke="var(--c-blue)"
+              stroke={tema.accent}
               strokeWidth={2}
               strokeLinejoin="round"
             />
@@ -329,7 +374,7 @@ export default function LicenciasPorTurnoCard({ licencias, hoy }: { licencias: L
                     cx={x}
                     cy={y}
                     r={hoverTurno === e.turno ? 5.5 : 4}
-                    fill="var(--c-blue)"
+                    fill={tema.accent}
                     stroke="var(--c-bg-elev)"
                     strokeWidth={1.5}
                     className="pointer-events-none transition-[r] duration-150"
@@ -340,7 +385,7 @@ export default function LicenciasPorTurnoCard({ licencias, hoy }: { licencias: L
 
             {ejes.map((e, i) => {
               const { x, y } = puntoEje(i, RADIO_LABEL);
-              const lineas = lineasEjeTurno(x, y, e.turno, e.cantidad);
+              const lineas = lineasEjeTurno(x, y, e.turno, Math.round(cantidadesAnimadas[i] ?? e.cantidad));
               return (
                 <g key={e.turno}>
                   {lineas.map((l, li) => (
@@ -352,11 +397,12 @@ export default function LicenciasPorTurnoCard({ licencias, hoy }: { licencias: L
                       dominantBaseline={anclaVertical(y)}
                       className={
                         l.esValor
-                          ? "fill-[var(--c-blue)] tabular-nums"
+                          ? "tabular-nums"
                           : `transition-[fill] duration-150 ${
                               hoverTurno === e.turno ? "fill-[var(--c-text)]" : "fill-[var(--c-text-muted)]"
                             }`
                       }
+                      style={l.esValor ? { fill: tema.accent } : undefined}
                       fontSize={l.esValor ? 11 : 13}
                       fontWeight={l.esValor ? 700 : 600}
                     >

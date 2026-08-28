@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation";
 import AgenteAvatar from "@/components/AgenteAvatar";
 import {
   CAUSAS_AUSENTISMO,
-  CAUSA_COLOR,
   causaDeLicencia,
+  colorDeCausa,
   labelDeCausa,
   type CausaAusentismo,
   type LicenciaAusentismoRow,
 } from "@/lib/ausentismo";
 import { useEntrada } from "@/lib/useEntrada";
 import { useCountUp } from "@/lib/useCountUp";
+import { useReplayOnChange } from "@/lib/useReplayOnChange";
+import { TEMA_INSTITUCIONAL, type ChartTheme } from "@/lib/chartThemes";
+import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
 type ModoPeriodo = "todo" | "anio" | "rango";
 type Metrica = "licencias" | "dias";
@@ -42,14 +45,23 @@ const PASO_MOSTRAR = 10;
 
 const METRICA_LABEL: Record<Metrica, string> = { licencias: "Licencias", dias: "Días" };
 const VISTA_LABEL: Record<Vista, string> = { general: "General", porTipo: "Por tipo" };
-// Color único para la vista "general" (no representa ninguna causa
-// puntual): mismo azul que ya usa el resto del dashboard para
-// acciones/selección, para que se lea como "total agregado" y no se
-// confunda con el color de alguna causa específica.
-const COLOR_GENERAL = "var(--c-blue)";
 
-export default function RankingPersonalCard({ licencias, hoy }: { licencias: LicenciaAusentismoRow[]; hoy: string }) {
+export default function RankingPersonalCard({
+  licencias,
+  hoy,
+  tema = TEMA_INSTITUCIONAL,
+  modoExport = false,
+}: {
+  licencias: LicenciaAusentismoRow[];
+  hoy: string;
+  tema?: ChartTheme;
+  modoExport?: boolean;
+}) {
   const router = useRouter();
+  // Color único para la vista "general" (no representa ninguna causa
+  // puntual): el accent del tema elegido, para que se lea como "total
+  // agregado" y no se confunda con el color de alguna causa específica.
+  const colorGeneral = tema.accent;
   const hoyDate = useMemo(() => new Date(hoy), [hoy]);
 
   const anios = useMemo(() => {
@@ -191,9 +203,15 @@ export default function RankingPersonalCard({ licencias, hoy }: { licencias: Lic
   const filasVisibles = filas.slice(0, cantidadMostrada);
 
   // Solo se monta cuando RevealOnScroll lo revela: no hace falta delayMs, el
-  // propio montaje ya es el disparador de "empezar a tomar vida".
-  const listo = useEntrada();
-  const cantidadAgentesAnimada = useCountUp(filas.length);
+  // propio montaje ya es el disparador de "empezar a tomar vida". En
+  // modoExport la vista previa tiene que salir ya "crecida" (ver
+  // GraficoDescargable.tsx), nunca a mitad de animación. replayListo hace
+  // que cambiar de período/métrica/causas reactive la misma transición de
+  // "crecer desde 0" en vez de que las barras salten directo al valor nuevo.
+  const entrada = useEntrada();
+  const replayListo = useReplayOnChange(filas);
+  const listo = modoExport || (entrada && replayListo);
+  const cantidadAgentesAnimada = useCountUp(filas.length, 0, modoExport ? 0 : 1600);
 
   const [hoverAgente, setHoverAgente] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
@@ -215,126 +233,131 @@ export default function RankingPersonalCard({ licencias, hoy }: { licencias: Lic
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
       <div className="flex items-center justify-between mb-1 gap-2.5 flex-wrap">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Personal con más licencias</h3>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <div className="relative">
-            <select
-              value={modo === "anio" ? String(anioActivo) : modo}
-              onChange={(e) => elegirPeriodo(e.target.value)}
-              className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
-            >
-              <option value="todo">Todo el historial</option>
-              {anios.map((a) => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-              <option value="rango">Seleccionar período…</option>
-            </select>
-            {modo === "rango" && (
-              <div className="absolute right-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
-                <input
-                  type="date"
-                  value={rangoDesde}
-                  onChange={(e) => setRangoDesde(e.target.value)}
-                  className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                />
-                <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
-                <input
-                  type="date"
-                  value={rangoHasta}
-                  onChange={(e) => setRangoHasta(e.target.value)}
-                  className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                />
-              </div>
-            )}
-          </div>
-          <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
-            {(["porTipo", "general"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setVista(v)}
-                aria-pressed={vista === v}
-                className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
-                  vista === v
-                    ? "bg-[var(--c-blue)] text-white"
-                    : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
-                }`}
+        {!modoExport && (
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <div className="relative">
+              <select
+                value={modo === "anio" ? String(anioActivo) : modo}
+                onChange={(e) => elegirPeriodo(e.target.value)}
+                className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
               >
-                {VISTA_LABEL[v]}
-              </button>
-            ))}
-          </div>
-          <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
-            {(["licencias", "dias"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMetrica(m)}
-                aria-pressed={metrica === m}
-                className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
-                  metrica === m
-                    ? "bg-[var(--c-blue)] text-white"
-                    : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
-                }`}
-              >
-                {METRICA_LABEL[m]}
-              </button>
-            ))}
-          </div>
-          <div className="relative" ref={filtroRef}>
-            <button
-              type="button"
-              onClick={() => setFiltroAbierto((v) => !v)}
-              aria-expanded={filtroAbierto}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
-            >
-              Causas{causasSeleccionadas.size < CAUSAS_AUSENTISMO.length ? ` (${causasSeleccionadas.size})` : ""}
-              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-            {filtroAbierto && (
-              <div className="absolute right-0 top-full mt-1 z-30 w-56 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-2 shadow-lg shadow-black/40">
-                <div className="flex items-center justify-between mb-1.5 px-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCantidadMostrada(PASO_MOSTRAR);
-                      setCausasSeleccionadas(new Set(CAUSAS_AUSENTISMO));
-                    }}
-                    className="text-[10.5px] font-semibold text-[var(--c-blue)] hover:underline"
-                  >
-                    Todas
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCantidadMostrada(PASO_MOSTRAR);
-                      setCausasSeleccionadas(new Set());
-                    }}
-                    className="text-[10.5px] font-semibold text-[var(--c-text-faint)] hover:underline"
-                  >
-                    Ninguna
-                  </button>
-                </div>
-                {CAUSAS_AUSENTISMO.map((c) => (
-                  <label
-                    key={c}
-                    className="flex items-center gap-2 px-1 py-1 rounded-md hover:bg-[var(--c-line)] cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={causasSeleccionadas.has(c)}
-                      onChange={() => alternarCausa(c)}
-                      className="accent-[var(--c-blue)]"
-                    />
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: CAUSA_COLOR[c] }} />
-                    <span className="text-[12px] text-[var(--c-text-secondary)]">{labelDeCausa(c)}</span>
-                  </label>
+                <option value="todo">Todo el historial</option>
+                {anios.map((a) => (
+                  <option key={a} value={a}>{a}</option>
                 ))}
-              </div>
-            )}
+                <option value="rango">Seleccionar período…</option>
+              </select>
+              {modo === "rango" && (
+                <div className="absolute right-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
+                  <input
+                    type="date"
+                    value={rangoDesde}
+                    onChange={(e) => setRangoDesde(e.target.value)}
+                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
+                  />
+                  <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
+                  <input
+                    type="date"
+                    value={rangoHasta}
+                    onChange={(e) => setRangoHasta(e.target.value)}
+                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
+                  />
+                </div>
+              )}
+            </div>
+            <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
+              {(["porTipo", "general"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setVista(v)}
+                  aria-pressed={vista === v}
+                  className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
+                    vista === v
+                      ? "bg-[var(--c-blue)] text-white"
+                      : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
+                  }`}
+                >
+                  {VISTA_LABEL[v]}
+                </button>
+              ))}
+            </div>
+            <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
+              {(["licencias", "dias"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMetrica(m)}
+                  aria-pressed={metrica === m}
+                  className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
+                    metrica === m
+                      ? "bg-[var(--c-blue)] text-white"
+                      : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
+                  }`}
+                >
+                  {METRICA_LABEL[m]}
+                </button>
+              ))}
+            </div>
+            <div className="relative" ref={filtroRef}>
+              <button
+                type="button"
+                onClick={() => setFiltroAbierto((v) => !v)}
+                aria-expanded={filtroAbierto}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
+              >
+                Causas{causasSeleccionadas.size < CAUSAS_AUSENTISMO.length ? ` (${causasSeleccionadas.size})` : ""}
+                <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              {filtroAbierto && (
+                <div className="absolute right-0 top-full mt-1 z-30 w-56 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-2 shadow-lg shadow-black/40">
+                  <div className="flex items-center justify-between mb-1.5 px-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCantidadMostrada(PASO_MOSTRAR);
+                        setCausasSeleccionadas(new Set(CAUSAS_AUSENTISMO));
+                      }}
+                      className="text-[10.5px] font-semibold text-[var(--c-blue)] hover:underline"
+                    >
+                      Todas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCantidadMostrada(PASO_MOSTRAR);
+                        setCausasSeleccionadas(new Set());
+                      }}
+                      className="text-[10.5px] font-semibold text-[var(--c-text-faint)] hover:underline"
+                    >
+                      Ninguna
+                    </button>
+                  </div>
+                  {CAUSAS_AUSENTISMO.map((c) => (
+                    <label
+                      key={c}
+                      className="flex items-center gap-2 px-1 py-1 rounded-md hover:bg-[var(--c-line)] cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={causasSeleccionadas.has(c)}
+                        onChange={() => alternarCausa(c)}
+                        className="accent-[var(--c-blue)]"
+                      />
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: colorDeCausa(c, tema) }} />
+                      <span className="text-[12px] text-[var(--c-text-secondary)]">{labelDeCausa(c)}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <GraficoDescargable nombreArchivo="personal-con-mas-licencias">
+              {(t) => <RankingPersonalCard licencias={licencias} hoy={hoy} modoExport tema={t} />}
+            </GraficoDescargable>
           </div>
-        </div>
+        )}
       </div>
       <p className="text-[11px] text-[var(--c-text-faint)] mb-3.5">
         Ranking por {metrica === "licencias" ? "cantidad de licencias" : "cantidad de días"}, sin licencia ordinaria (vacaciones) — <b className="text-[var(--c-text-muted)] tabular-nums">{cantidadAgentesAnimada}</b> {filas.length === 1 ? "agente" : "agentes"} con ausentismo en el período.
@@ -350,7 +373,7 @@ export default function RankingPersonalCard({ licencias, hoy }: { licencias: Lic
               key={c}
               className="inline-flex items-center gap-1.5 text-[11px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full"
             >
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: CAUSA_COLOR[c] }} />
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: colorDeCausa(c, tema) }} />
               {labelDeCausa(c)}
             </span>
           ))}
@@ -433,10 +456,10 @@ export default function RankingPersonalCard({ licencias, hoy }: { licencias: Lic
                             CAUSAS_AUSENTISMO.map((c) => {
                               const valor = porCausa[c];
                               if (valor <= 0) return null;
-                              return <div key={c} style={{ width: `${(valor / total) * 100}%`, background: CAUSA_COLOR[c] }} />;
+                              return <div key={c} style={{ width: `${(valor / total) * 100}%`, background: colorDeCausa(c, tema) }} />;
                             })
                           ) : (
-                            <div style={{ width: "100%", background: COLOR_GENERAL }} />
+                            <div style={{ width: "100%", background: colorGeneral }} />
                           )}
                         </div>
                         {total > 0 && (
@@ -464,7 +487,7 @@ export default function RankingPersonalCard({ licencias, hoy }: { licencias: Lic
             </div>
           </div>
 
-          {cantidadMostrada < filas.length && (
+          {!modoExport && cantidadMostrada < filas.length && (
             <button
               type="button"
               onClick={() => setCantidadMostrada((v) => v + PASO_MOSTRAR)}
@@ -488,7 +511,7 @@ export default function RankingPersonalCard({ licencias, hoy }: { licencias: Lic
               if (valor <= 0) return null;
               return (
                 <div key={c} className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: CAUSA_COLOR[c] }} />
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: colorDeCausa(c, tema) }} />
                   <span className="font-bold tabular-nums">{valor}</span>
                   <span className="text-[var(--c-text-faint)]">{labelDeCausa(c)}</span>
                 </div>

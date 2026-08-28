@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getDashboardStats } from "./stats";
-import RingCompare from "./RingCompare";
+import { SexoRingCard, PadresMadresRingCard } from "./RingCompareCards";
 import DonutTipoPersonal from "./DonutTipoPersonal";
 import TurnoDependenciaCard from "./TurnoDependenciaCard";
 import HijosACargoCard from "./HijosACargoCard";
@@ -18,16 +18,6 @@ import { buildQueryString } from "../personal/queryString";
 // hoy (turno, efemérides, cumpleaños) — no debe quedar servida desde ningún
 // caché de ruta entre requests, ni siquiera por unos minutos.
 export const dynamic = "force-dynamic";
-
-const MASC_COLOR = "#3987e5";
-const FEM_COLOR = "#d55181";
-const OTROS_COLOR = "#7c8aa8";
-
-const SEXO_LABEL: Record<string, string> = {
-  NO_BINARIO: "No binario",
-  PREFIERO_NO_DECIR: "Prefiero no decir",
-  OTRO: "Otro",
-};
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -121,84 +111,13 @@ export default async function DashboardPage() {
       )}
 
       <RevealOnScroll minHeight={220}>
-        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 mb-4">
-          <h3 className="text-sm font-semibold text-[var(--c-text)] mb-1">Activos por sexo</h3>
-          <RingCompare
-            iconSize={78}
-            left={{
-              value: stats.sexo.masculino.count,
-              label: "Masculino",
-              pct: stats.sexo.masculino.pct,
-              color: MASC_COLOR,
-              icon: <IconoMarte />,
-              href: "/personal?estado=ACTIVO&sexo=MASCULINO",
-            }}
-            right={{
-              value: stats.sexo.femenino.count,
-              label: "Femenino",
-              pct: stats.sexo.femenino.pct,
-              color: FEM_COLOR,
-              icon: <IconoVenus />,
-              href: "/personal?estado=ACTIVO&sexo=FEMENINO",
-            }}
-            delayMs={150}
-          />
-          <div className="flex items-center justify-center gap-2.5 flex-wrap mt-1">
-            {stats.sexo.otros.length > 0 ? (
-              stats.sexo.otros.map((o) => (
-                <span
-                  key={o.label}
-                  className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: OTROS_COLOR }} />
-                  {SEXO_LABEL[o.label] ?? o.label}
-                  <b className="text-[var(--c-text)] font-bold">{o.count}</b>
-                </span>
-              ))
-            ) : (
-              <span className="text-[11px] text-[var(--c-text-faint)] text-center">
-                Sin registros en No binario / Otro / Prefiero no decir entre el personal activo.
-              </span>
-            )}
-          </div>
-        </div>
+        <SexoRingCard sexo={stats.sexo} />
       </RevealOnScroll>
 
       <RevealOnScroll minHeight={320}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
           <HijosACargoCard hijos={stats.hijos} delayMs={300} />
-
-          <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
-            <div className="flex items-baseline justify-between mb-1">
-              <h3 className="text-sm font-semibold text-[var(--c-text)]">Padres y madres</h3>
-              <span className="text-[11px] text-[var(--c-text-faint)] tabular-nums">
-                {stats.padresMadres.totalConHijos} con hijos a cargo
-              </span>
-            </div>
-            <RingCompare
-              left={{
-                value: stats.padresMadres.padres.count,
-                label: "Padres",
-                pct: stats.padresMadres.padres.pct,
-                color: MASC_COLOR,
-                icon: <IconoPersona />,
-                href: stats.padresMadres.padresIds.length > 0
-                  ? `/personal?${buildQueryString({ ids: stats.padresMadres.padresIds.join(",") })}`
-                  : "/personal",
-              }}
-              right={{
-                value: stats.padresMadres.madres.count,
-                label: "Madres",
-                pct: stats.padresMadres.madres.pct,
-                color: FEM_COLOR,
-                icon: <IconoPersona />,
-                href: stats.padresMadres.madresIds.length > 0
-                  ? `/personal?${buildQueryString({ ids: stats.padresMadres.madresIds.join(",") })}`
-                  : "/personal",
-              }}
-              delayMs={300}
-            />
-          </div>
+          <PadresMadresRingCard padresMadres={stats.padresMadres} />
         </div>
       </RevealOnScroll>
 
@@ -208,34 +127,5 @@ export default async function DashboardPage() {
         </div>
       </RevealOnScroll>
     </div>
-  );
-}
-
-
-function IconoMarte() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
-      <circle cx="8" cy="12" r="5" />
-      <line x1="11.7" y1="8.3" x2="17" y2="3" />
-      <polyline points="11.5 3 17 3 17 8.5" />
-    </svg>
-  );
-}
-
-function IconoPersona() {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="w-full h-full">
-      <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
-    </svg>
-  );
-}
-
-function IconoVenus() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
-      <circle cx="10" cy="7" r="5" />
-      <line x1="10" y1="12" x2="10" y2="17.5" />
-      <line x1="6.5" y1="14.7" x2="13.5" y2="14.7" />
-    </svg>
   );
 }
