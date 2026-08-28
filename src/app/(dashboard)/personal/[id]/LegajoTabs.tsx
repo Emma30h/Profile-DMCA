@@ -662,7 +662,12 @@ const ORIGEN_LABEL: Record<OrigenInstitucional, string> = {
   OTRA_DEPENDENCIA: "Otra dependencia",
 };
 
-function TabLaboral({ a, esOperador = false }: { a: AgenteDetalle; esOperador?: boolean }) {
+const BAJA_PASE_ESTILO: Record<string, string> = {
+  BAJA: "bg-red-500/10 border-red-500/30 text-red-400",
+  PASE: "bg-[var(--c-amber)]/10 border-[var(--c-amber)]/30 text-[var(--c-amber)]",
+};
+
+function TabLaboral({ a, esOperador = false, historialEstados = [] }: { a: AgenteDetalle; esOperador?: boolean; historialEstados?: HistorialEstadoEntry[] }) {
   const esSeguridad = a.tipoPersonal === "SEGURIDAD";
   const esTecnico = a.tipoPersonal === "TECNICO";
   const tieneRango = esSeguridad || esTecnico;
@@ -679,8 +684,28 @@ function TabLaboral({ a, esOperador = false }: { a: AgenteDetalle; esOperador?: 
       ? `${ORIGEN_LABEL[origen]} (${a.origenInstitucionalDetalle})`
       : ORIGEN_LABEL[origen]
     : "—";
+  // Último registro de historial cuyo estadoNuevo coincide con el estado
+  // vigente (historialEstados viene ordenado desc por createdAt) — mismo
+  // criterio que el badge del encabezado en page.tsx.
+  const cambioBajaPase =
+    (a.estado === "BAJA" || a.estado === "PASE")
+      ? historialEstados.find((h) => h.estadoNuevo === a.estado) ?? null
+      : null;
   return (
     <div className="space-y-8">
+      {cambioBajaPase && (
+        <div className={`rounded-lg border px-4 py-3 text-sm ${BAJA_PASE_ESTILO[a.estado]}`}>
+          <span className="font-semibold">{estadoLabels[a.estado]}</span>
+          <span className="mx-1.5 opacity-50">·</span>
+          <span>{fmt(cambioBajaPase.createdAt)}</span>
+          {cambioBajaPase.motivo && (
+            <>
+              <span className="mx-1.5 opacity-50">·</span>
+              <span className="opacity-90">{cambioBajaPase.motivo}</span>
+            </>
+          )}
+        </div>
+      )}
       <Section title="Información laboral">
         <Field icon={<IconBadgeMini />} label="Tipo de personal" value={tipoLabels[a.tipoPersonal] ?? a.tipoPersonal} />
         <Field icon={<IconCheckCircle />} label="Estado" value={estadoLabels[a.estado] ?? a.estado} />
@@ -1895,7 +1920,7 @@ export default function LegajoTabs({
         {activeTab === "laboral" && (
           editando
             ? <EditTabLaboral form={formLaboral} setForm={setFormLaboral} agente={agente} rangos={rangos} sectores={sectores} />
-            : <TabLaboral a={agente} esOperador={esOperador} />
+            : <TabLaboral a={agente} esOperador={esOperador} historialEstados={historialEstados} />
         )}
         {activeTab === "historial" && (
           <TabHistorial

@@ -26,6 +26,7 @@ export default function AgenteAvatar({
   iconSizeClassName?: string;
 }) {
   const [error, setError] = useState(false);
+  const [cargada, setCargada] = useState(false);
 
   // Si cambia la foto (ej. se acaba de subir una nueva) hay que volver a
   // intentar cargarla en vez de seguir mostrando el ícono por el error
@@ -34,6 +35,7 @@ export default function AgenteAvatar({
   if (fotoUrl !== prevFotoUrl) {
     setPrevFotoUrl(fotoUrl);
     setError(false);
+    setCargada(false);
   }
 
   if (fotoUrl && !error) {
@@ -42,8 +44,17 @@ export default function AgenteAvatar({
       <img
         src={fotoUrl}
         alt=""
+        // loading="lazy": sin esto, una lista larga (ej. el ranking de
+        // personal, hasta 74 filas) dispara todas las descargas de foto de
+        // una sola vez apenas monta, compitiendo entre sí — al hacer scroll
+        // rápido las que todavía no llegaron se ven como un bache oscuro
+        // que después aparece de golpe. Con lazy, el navegador solo pide
+        // las que están por entrar en viewport.
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setCargada(true)}
         onError={() => setError(true)}
-        className={`${sizeClassName} object-cover border border-[var(--c-line)]`}
+        className={`${sizeClassName} object-cover border border-[var(--c-line)] transition-opacity duration-300 ${cargada ? "opacity-100" : "opacity-0"}`}
       />
     );
   }

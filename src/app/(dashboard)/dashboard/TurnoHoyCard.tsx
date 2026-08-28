@@ -5,6 +5,7 @@ import type { TurnoHoyInfo } from "@/app/actions/turnos";
 import type { CoberturaTurnoInfo, CoberturasSemana } from "@/app/actions/coberturas";
 import type { EventoCursoAscensoSemanaInfo } from "@/app/actions/eventosCursoAscenso";
 import { TIPO_EVENTO_BADGE, TIPO_EVENTO_LABEL } from "@/lib/eventoCursoAscensoLabels";
+import { calcularReloj } from "@/lib/relojCordoba";
 
 // Cada franja horaria la cubre una letra del grupo 1 y una del grupo 2 (ver
 // GRUPO_TURNO_LETRAS en types/index.ts para el agrupamiento A·C·E / B·D·F);
@@ -16,38 +17,9 @@ const BANDAS_TURNO: { horario: string; inicio: number; fin: number; letras: [str
   { horario: "23:00 Hrs a 07:00 Hrs", inicio: 23, fin: 7, letras: ["E", "F"] },
 ];
 
-// El servidor puede correr en cualquier huso horario (ej. UTC en Vercel);
-// las franjas están definidas en hora de Córdoba, así que se lee la hora
-// ahí explícitamente en vez de usar la hora local del proceso.
-function horaActualCordoba(): number {
-  const hora = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Argentina/Cordoba",
-    hour: "numeric",
-    hour12: false,
-  }).format(new Date());
-  return Number(hora) % 24; // Intl puede devolver "24" para la medianoche
-}
-
-// Misma razón que horaActualCordoba(): la fecha de hoy también se lee en
-// hora de Córdoba, no en la del proceso, para que coincida con las franjas.
-function fechaHoyCordoba(): string {
-  const partes = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Argentina/Cordoba",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).formatToParts(new Date());
-  const obtener = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? "";
-  return `${obtener("day")}/${obtener("month")}/${obtener("year")}`;
-}
-
 function enBandaVigente(hora: number, inicio: number, fin: number): boolean {
   // Franjas normales (inicio < fin) vs. la que cruza la medianoche (23 a 07).
   return inicio < fin ? hora >= inicio && hora < fin : hora >= inicio || hora < fin;
-}
-
-function calcularReloj() {
-  return { horaActual: horaActualCordoba(), fecha: fechaHoyCordoba() };
 }
 
 function fmtDiaCorto(iso: string): string {
@@ -129,10 +101,17 @@ const VISTA_LABEL: Record<Vista, string> = {
   ascensos: "Novedades de ascenso",
 };
 
-export default function TurnoHoyCard({ turnoHoy, semana, eventosAscenso }: {
+export default function TurnoHoyCard({ turnoHoy, semana, eventosAscenso, relojInicial }: {
   turnoHoy: TurnoHoyInfo;
   semana: CoberturasSemana;
   eventosAscenso: EventoCursoAscensoSemanaInfo[];
+  /** Calculado en el servidor (ver EventosAsideContent.tsx) y no en el
+   *  cliente al montar: si se recalculara acá, el servidor y el cliente
+   *  podrían computarlo en instantes distintos y caer en franjas distintas
+   *  (07:00/15:00/23:00 hora Córdoba) — un hydration mismatch real, no
+   *  hipotético (pasó en producción). Con el snapshot como prop, el primer
+   *  render del cliente coincide siempre con el HTML que mandó el servidor. */
+  relojInicial: { horaActual: number; fecha: string };
 }) {
   const grupo = turnoHoy.grupoTurno;
   const [vista, setVista] = useState<Vista>("hoy");
@@ -140,7 +119,7 @@ export default function TurnoHoyCard({ turnoHoy, semana, eventosAscenso }: {
   // mecanismo que ContadorPermiso en LegajoTabs.tsx) para que la tarjeta no
   // quede mostrando la franja/fecha de cuando se cargó la página si el
   // usuario la deja abierta y cruza una hora o la medianoche.
-  const [{ horaActual, fecha }, setReloj] = useState(calcularReloj);
+  const [{ horaActual, fecha }, setReloj] = useState(relojInicial);
   useEffect(() => {
     const interval = setInterval(() => setReloj(calcularReloj()), 60_000);
     return () => clearInterval(interval);

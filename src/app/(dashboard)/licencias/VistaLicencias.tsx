@@ -4,9 +4,11 @@ import { useState, useRef, useEffect, useLayoutEffect, useTransition } from "rea
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import GestorFeriados from "./GestorFeriados";
+import EstadisticasAusentismo from "./EstadisticasAusentismo";
 import { normalizarBusqueda } from "@/lib/personalLabels";
 import { TIPO_LICENCIA_LABELS, LICENCIA_CATEGORIA_DE_TIPO, CATEGORIA_LICENCIA_INFO } from "@/types";
 import { Spinner } from "@/components/ui/Spinner";
+import type { LicenciaAusentismoRow } from "@/lib/ausentismo";
 
 interface Feriado {
   id: string;
@@ -733,6 +735,8 @@ export default function VistaLicencias({
   esSupervisor,
   esAdmin,
   feriados,
+  ausentismoLicencias,
+  hoy: hoyAusentismo,
 }: {
   licencias: LicenciaRow[];
   sectores: SectorOption[];
@@ -740,8 +744,10 @@ export default function VistaLicencias({
   esSupervisor: boolean;
   esAdmin: boolean;
   feriados: Feriado[];
+  ausentismoLicencias: LicenciaAusentismoRow[];
+  hoy: string;
 }) {
-  const [mainTab, setMainTab] = useState<"licencias" | "feriados">("licencias");
+  const [mainTab, setMainTab] = useState<"licencias" | "feriados" | "estadisticas">("licencias");
   const [vista, setVista] = useState<"lista" | "calendario">("lista");
   const [targetVista, setTargetVista] = useState<"lista" | "calendario">("lista");
   const [vistaPending, startVistaTransition] = useTransition();
@@ -752,7 +758,7 @@ export default function VistaLicencias({
     startVistaTransition(() => setVista(v));
   }
 
-  const tabButtonRefs = useRef<Partial<Record<"licencias" | "feriados", HTMLButtonElement>>>({});
+  const tabButtonRefs = useRef<Partial<Record<"licencias" | "feriados" | "estadisticas", HTMLButtonElement>>>({});
   const [indicador, setIndicador] = useState<{ left: number; width: number } | null>(null);
 
   useEffect(() => {
@@ -1057,6 +1063,14 @@ export default function VistaLicencias({
               <span className="ml-2 inline-flex items-center rounded-full bg-[var(--c-bg-elev-2)] px-2 py-0.5 text-xs font-medium text-[var(--c-text-muted)]">{feriados.length}</span>
             </button>
           )}
+          <button
+            type="button"
+            ref={(el) => { tabButtonRefs.current.estadisticas = el ?? undefined; }}
+            onClick={() => setMainTab("estadisticas")}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 border-transparent transition-colors -mb-px ${mainTab === "estadisticas" ? "text-[var(--c-blue-text)]" : "text-[var(--c-text-muted)] hover:text-[var(--c-text-secondary)]"}`}
+          >
+            Estadísticas generales
+          </button>
           {indicador && (
             <span
               className="absolute bottom-0 h-0.5 bg-[var(--c-blue)] transition-all duration-300 ease-out"
@@ -1066,7 +1080,7 @@ export default function VistaLicencias({
         </div>
 
         {/* Toggle lista / calendario */}
-        {mainTab !== "feriados" && (
+        {mainTab === "licencias" && (
           <div className="flex items-center border border-[var(--c-line)] rounded-lg overflow-hidden">
             <button
               type="button"
@@ -1099,8 +1113,13 @@ export default function VistaLicencias({
         </div>
       )}
 
+      {/* Estadísticas generales */}
+      {mainTab === "estadisticas" && (
+        <EstadisticasAusentismo licencias={ausentismoLicencias} hoy={hoyAusentismo} />
+      )}
+
       {/* Filtros */}
-      {mainTab !== "feriados" && (
+      {mainTab === "licencias" && (
       <div className="flex flex-wrap gap-3">
         <input
           type="text"

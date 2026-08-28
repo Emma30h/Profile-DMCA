@@ -11,6 +11,7 @@ import FlujoPersonalCard from "./FlujoPersonalCard";
 import NovedadesDrawer from "./NovedadesDrawer";
 import EventosResumenMobile from "./EventosResumenMobile";
 import KpiTile from "./KpiTile";
+import RevealOnScroll from "@/components/RevealOnScroll";
 import { buildQueryString } from "../personal/queryString";
 
 // Fuerza SSR en cada request: esta página muestra contenido atado al día de
@@ -97,15 +98,18 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
-        <DonutTipoPersonal data={stats.tipoPersonal} total={stats.totalActivos} />
-        <TurnoDependenciaCard
-          turno={stats.turno}
-          dependencia={stats.dependencia}
-          origenInstitucional={stats.origenInstitucional}
-          totalActivos={stats.totalActivos}
-        />
-      </div>
+      <RevealOnScroll minHeight={360}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
+          <DonutTipoPersonal data={stats.tipoPersonal} total={stats.totalActivos} />
+          <TurnoDependenciaCard
+            turno={stats.turno}
+            dependencia={stats.dependencia}
+            origenInstitucional={stats.origenInstitucional}
+            totalActivos={stats.totalActivos}
+            delayMs={80}
+          />
+        </div>
+      </RevealOnScroll>
 
       {/* Mismo criterio que la fila de indicadores: licencias por vencer,
           licencia de conducir y chaleco son datos que un Operador no
@@ -116,85 +120,93 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 mb-4">
-        <h3 className="text-sm font-semibold text-[var(--c-text)] mb-1">Activos por sexo</h3>
-        <RingCompare
-          iconSize={78}
-          left={{
-            value: stats.sexo.masculino.count,
-            label: "Masculino",
-            pct: stats.sexo.masculino.pct,
-            color: MASC_COLOR,
-            icon: <IconoMarte />,
-            href: "/personal?estado=ACTIVO&sexo=MASCULINO",
-          }}
-          right={{
-            value: stats.sexo.femenino.count,
-            label: "Femenino",
-            pct: stats.sexo.femenino.pct,
-            color: FEM_COLOR,
-            icon: <IconoVenus />,
-            href: "/personal?estado=ACTIVO&sexo=FEMENINO",
-          }}
-        />
-        <div className="flex items-center justify-center gap-2.5 flex-wrap mt-1">
-          {stats.sexo.otros.length > 0 ? (
-            stats.sexo.otros.map((o) => (
-              <span
-                key={o.label}
-                className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full"
-              >
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: OTROS_COLOR }} />
-                {SEXO_LABEL[o.label] ?? o.label}
-                <b className="text-[var(--c-text)] font-bold">{o.count}</b>
-              </span>
-            ))
-          ) : (
-            <span className="text-[11px] text-[var(--c-text-faint)] text-center">
-              Sin registros en No binario / Otro / Prefiero no decir entre el personal activo.
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
-        <HijosACargoCard hijos={stats.hijos} />
-
-        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
-          <div className="flex items-baseline justify-between mb-1">
-            <h3 className="text-sm font-semibold text-[var(--c-text)]">Padres y madres</h3>
-            <span className="text-[11px] text-[var(--c-text-faint)] tabular-nums">
-              {stats.padresMadres.totalConHijos} con hijos a cargo
-            </span>
-          </div>
+      <RevealOnScroll minHeight={220}>
+        <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 mb-4">
+          <h3 className="text-sm font-semibold text-[var(--c-text)] mb-1">Activos por sexo</h3>
           <RingCompare
+            iconSize={78}
             left={{
-              value: stats.padresMadres.padres.count,
-              label: "Padres",
-              pct: stats.padresMadres.padres.pct,
+              value: stats.sexo.masculino.count,
+              label: "Masculino",
+              pct: stats.sexo.masculino.pct,
               color: MASC_COLOR,
-              icon: <IconoPersona />,
-              href: stats.padresMadres.padresIds.length > 0
-                ? `/personal?${buildQueryString({ ids: stats.padresMadres.padresIds.join(",") })}`
-                : "/personal",
+              icon: <IconoMarte />,
+              href: "/personal?estado=ACTIVO&sexo=MASCULINO",
             }}
             right={{
-              value: stats.padresMadres.madres.count,
-              label: "Madres",
-              pct: stats.padresMadres.madres.pct,
+              value: stats.sexo.femenino.count,
+              label: "Femenino",
+              pct: stats.sexo.femenino.pct,
               color: FEM_COLOR,
-              icon: <IconoPersona />,
-              href: stats.padresMadres.madresIds.length > 0
-                ? `/personal?${buildQueryString({ ids: stats.padresMadres.madresIds.join(",") })}`
-                : "/personal",
+              icon: <IconoVenus />,
+              href: "/personal?estado=ACTIVO&sexo=FEMENINO",
             }}
+            delayMs={150}
           />
+          <div className="flex items-center justify-center gap-2.5 flex-wrap mt-1">
+            {stats.sexo.otros.length > 0 ? (
+              stats.sexo.otros.map((o) => (
+                <span
+                  key={o.label}
+                  className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: OTROS_COLOR }} />
+                  {SEXO_LABEL[o.label] ?? o.label}
+                  <b className="text-[var(--c-text)] font-bold">{o.count}</b>
+                </span>
+              ))
+            ) : (
+              <span className="text-[11px] text-[var(--c-text-faint)] text-center">
+                Sin registros en No binario / Otro / Prefiero no decir entre el personal activo.
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      </RevealOnScroll>
 
-      <div>
-        <FlujoPersonalCard flujo={stats.flujoPersonal} />
-      </div>
+      <RevealOnScroll minHeight={320}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
+          <HijosACargoCard hijos={stats.hijos} delayMs={300} />
+
+          <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
+            <div className="flex items-baseline justify-between mb-1">
+              <h3 className="text-sm font-semibold text-[var(--c-text)]">Padres y madres</h3>
+              <span className="text-[11px] text-[var(--c-text-faint)] tabular-nums">
+                {stats.padresMadres.totalConHijos} con hijos a cargo
+              </span>
+            </div>
+            <RingCompare
+              left={{
+                value: stats.padresMadres.padres.count,
+                label: "Padres",
+                pct: stats.padresMadres.padres.pct,
+                color: MASC_COLOR,
+                icon: <IconoPersona />,
+                href: stats.padresMadres.padresIds.length > 0
+                  ? `/personal?${buildQueryString({ ids: stats.padresMadres.padresIds.join(",") })}`
+                  : "/personal",
+              }}
+              right={{
+                value: stats.padresMadres.madres.count,
+                label: "Madres",
+                pct: stats.padresMadres.madres.pct,
+                color: FEM_COLOR,
+                icon: <IconoPersona />,
+                href: stats.padresMadres.madresIds.length > 0
+                  ? `/personal?${buildQueryString({ ids: stats.padresMadres.madresIds.join(",") })}`
+                  : "/personal",
+              }}
+              delayMs={300}
+            />
+          </div>
+        </div>
+      </RevealOnScroll>
+
+      <RevealOnScroll minHeight={280}>
+        <div>
+          <FlujoPersonalCard flujo={stats.flujoPersonal} delayMs={450} />
+        </div>
+      </RevealOnScroll>
     </div>
   );
 }

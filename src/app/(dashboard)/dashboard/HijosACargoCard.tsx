@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import RingCompare from "./RingCompare";
 import type { HijosStats } from "./stats";
 import { buildQueryString } from "../personal/queryString";
+import { useEntrada } from "@/lib/useEntrada";
 
 function hrefIds(ids: string[]): string {
   return ids.length > 0 ? `/personal?${buildQueryString({ ids: ids.join(",") })}` : "/personal";
@@ -31,12 +32,15 @@ function IconoGuion() {
 
 interface Props {
   hijos: HijosStats;
+  /** Escalona esta tarjeta respecto de otras en la misma pantalla al montar. */
+  delayMs?: number;
 }
 
-export default function HijosACargoCard({ hijos }: Props) {
+export default function HijosACargoCard({ hijos, delayMs = 0 }: Props) {
   const router = useRouter();
   const [verDetalle, setVerDetalle] = useState(false);
   const max = Math.max(1, ...hijos.histograma.map((h) => h.count));
+  const listo = useEntrada(delayMs);
 
   return (
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
@@ -65,12 +69,13 @@ export default function HijosACargoCard({ hijos }: Props) {
                 icon: <IconoGuion />,
                 href: hrefIds(hijos.sinHijosIds),
               }}
+              delayMs={delayMs}
             />
           </div>
 
           <div className="dashboard-slide-pane pt-1">
             <div className="flex flex-col gap-2.5">
-              {hijos.histograma.map((h) => {
+              {hijos.histograma.map((h, i) => {
                 const dim = h.label === "0 hijos" || h.label === "+4 hijos";
                 const clickable = h.count > 0;
                 return (
@@ -86,10 +91,13 @@ export default function HijosACargoCard({ hijos }: Props) {
                     <span className="text-xs font-medium text-[var(--c-text-muted)] truncate">{h.label}</span>
                     <div className="h-2.5 rounded-none bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] overflow-hidden">
                       <div
-                        className={`h-full rounded-none transition-[filter] duration-150 ${dim ? "bg-[var(--c-line-strong)]" : "bg-[var(--c-blue)]"} ${
+                        className={`h-full rounded-none ${dim ? "bg-[var(--c-line-strong)]" : "bg-[var(--c-blue)]"} ${
                           clickable ? "group-hover:brightness-125" : ""
                         }`}
-                        style={{ width: `${(h.count / max) * 100}%` }}
+                        style={{
+                          width: `${listo ? (h.count / max) * 100 : 0}%`,
+                          transition: `filter 150ms, width 550ms cubic-bezier(.22,1,.36,1) ${i * 35}ms`,
+                        }}
                       />
                     </div>
                     <span className="text-xs font-semibold text-[var(--c-text)] text-right tabular-nums">{h.count}</span>

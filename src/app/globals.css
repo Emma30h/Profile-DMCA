@@ -330,6 +330,22 @@ textarea::placeholder {
   .auth-card-in { animation: none; }
 }
 
+/* Aparición de las tarjetas de gráficos del dashboard al entrar en
+   viewport (ver RevealOnScroll.tsx) — solo fundido, sin desplazamiento:
+   a diferencia de auth-card-in, acá se repite varias veces por sesión
+   (una vez por tarjeta, cada vez que el usuario scrollea hasta abajo), así
+   que se mantiene más sutil para no sentirse como una demora. */
+@keyframes reveal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.reveal-fade-in {
+  animation: reveal-fade-in 200ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-fade-in { animation: none; }
+}
+
 /* Ping de sonar alrededor del emblema del panel de marca — dos anillos con
    delay escalonado, más lento y suave que el animate-ping por defecto de
    Tailwind para no competir con el formulario. */
@@ -764,16 +780,29 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
 .inf-meter > span { position: absolute; left: 0; top: 0; bottom: 0; background: var(--inf-accent); }
 
 .inf-chart { padding: var(--inf-6) var(--inf-4) var(--inf-3); break-inside: avoid; }
+/* Flexbox, no grid: con una sola fila de alto fijo (150px) y columnas de
+   contenido muy dispar (una barra de 3px al lado de una de 150px), el
+   "track" implícito de un grid se ajusta al contenido más alto y las
+   columnas cortas terminan flotando por encima del piso real en vez de
+   apoyarse en el borde inferior del contenedor — se vio en un PDF real: la
+   línea de base quedaba por ENCIMA de las barras altas en vez de por
+   debajo de todas. align-items:flex-end en un flex container SÍ garantiza,
+   sin ambigüedad, que el borde inferior de cada columna coincida con el
+   borde inferior del contenedor sea cual sea su alto de contenido. */
 .inf-chart-plot {
-  display: grid; align-items: end; gap: var(--inf-4);
-  height: 150px; border-bottom: 1px solid var(--inf-text);
+  display: flex; align-items: flex-end; gap: var(--inf-4);
+  height: 150px;
 }
-.inf-col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; }
+.inf-col {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px;
+}
 .inf-col b { font-family: var(--inf-font-h); font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
 .inf-col i { display: block; width: 100%; background: var(--inf-accent); }
 .inf-col--peak i { background: var(--inf-accent-900); }
-.inf-chart-axis { display: grid; gap: var(--inf-4); margin-top: var(--inf-2); }
+.inf-chart-axis { display: flex; gap: var(--inf-4); margin-top: var(--inf-6); }
 .inf-chart-axis span {
+  flex: 1 1 0; min-width: 0;
   text-align: center; font-family: var(--inf-font-h); font-size: 9.5px;
   letter-spacing: 0.14em; text-transform: uppercase; color: rgba(29, 31, 32, 0.5);
 }

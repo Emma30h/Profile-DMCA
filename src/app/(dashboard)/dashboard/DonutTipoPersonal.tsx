@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { TipoPersonal } from "@/types";
 import type { TipoPersonalStats } from "./stats";
+import { useCountUp } from "@/lib/useCountUp";
+import { useEntrada } from "@/lib/useEntrada";
 
 const R = 70;
 const CIRCUNFERENCIA = 2 * Math.PI * R;
@@ -33,13 +35,17 @@ const LABELS: Record<TipoPersonal, string> = {
 interface Props {
   data: TipoPersonalStats[];
   total: number;
+  /** Escalona esta tarjeta respecto de otras en la misma pantalla al montar. */
+  delayMs?: number;
 }
 
-export default function DonutTipoPersonal({ data, total }: Props) {
+export default function DonutTipoPersonal({ data, total, delayMs = 0 }: Props) {
   const router = useRouter();
   const [hover, setHover] = useState<TipoPersonal | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; tipo: TipoPersonal } | null>(null);
   const [comoTabla, setComoTabla] = useState(false);
+  const listo = useEntrada(delayMs);
+  const totalAnimado = useCountUp(total, delayMs);
 
   function irAPersonalFiltrado(tipo: TipoPersonal) {
     // El donut cuenta solo activos — sin este filtro, /personal muestra el
@@ -81,7 +87,7 @@ export default function DonutTipoPersonal({ data, total }: Props) {
             <div className="relative w-[200px] h-[200px] shrink-0">
               <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90" aria-hidden="true">
                 <circle cx="100" cy="100" r={R} fill="none" stroke="#0b1220" strokeWidth="32" />
-                {segmentos.map((s) => (
+                {segmentos.map((s, i) => (
                   <circle
                     key={s.tipo}
                     cx="100"
@@ -90,10 +96,13 @@ export default function DonutTipoPersonal({ data, total }: Props) {
                     fill="none"
                     stroke={COLORES[s.tipo]}
                     strokeWidth={hover === s.tipo ? 36 : 32}
-                    strokeDasharray={`${s.largo} ${CIRCUNFERENCIA}`}
+                    strokeDasharray={`${listo ? s.largo : 0} ${CIRCUNFERENCIA}`}
                     strokeDashoffset={s.offset}
-                    className="cursor-pointer transition-[stroke-width] duration-150"
-                    style={{ filter: hover === s.tipo ? "brightness(1.12)" : undefined }}
+                    className="cursor-pointer"
+                    style={{
+                      filter: hover === s.tipo ? "brightness(1.12)" : undefined,
+                      transition: `stroke-width 150ms, stroke-dasharray 700ms cubic-bezier(.22,1,.36,1) ${i * 90}ms`,
+                    }}
                     onPointerMove={(e) => {
                       setHover(s.tipo);
                       setTooltip({ x: e.clientX, y: e.clientY, tipo: s.tipo });
@@ -107,7 +116,7 @@ export default function DonutTipoPersonal({ data, total }: Props) {
                 ))}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                <span className="text-3xl font-semibold tracking-tight text-[var(--c-text)] tabular-nums">{total}</span>
+                <span className="text-3xl font-semibold tracking-tight text-[var(--c-text)] tabular-nums">{totalAnimado}</span>
                 <span className="text-[10.5px] text-[var(--c-text-faint)] mt-1 max-w-[88px] leading-tight">personal activo</span>
               </div>
             </div>

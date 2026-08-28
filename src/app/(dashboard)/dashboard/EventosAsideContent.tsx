@@ -3,6 +3,7 @@ import { obtenerCoberturasSemana } from "@/app/actions/coberturas";
 import { obtenerEventosCursoAscensoSemana } from "@/app/actions/eventosCursoAscenso";
 import { obtenerEfemeridesHoy } from "@/lib/calendarioGarden";
 import { obtenerCumpleanosHoy } from "@/lib/cumpleanosPersonal";
+import { calcularReloj } from "@/lib/relojCordoba";
 import TurnoHoyCard from "./TurnoHoyCard";
 import EfemeridesHoyCard from "./EfemeridesHoyCard";
 import CumpleanosGardenCard from "./CumpleanosGardenCard";
@@ -21,7 +22,7 @@ export default async function EventosAsideContent() {
 
   return (
     <div className="flex h-full flex-col divide-y divide-[var(--c-line)]">
-      <TurnoHoyCard turnoHoy={turnoHoy} semana={semana} eventosAscenso={eventosAscenso} />
+      <TurnoHoyCard turnoHoy={turnoHoy} semana={semana} eventosAscenso={eventosAscenso} relojInicial={calcularReloj()} />
       <EfemeridesHoyCard eventos={efemerides} />
       {/* flex-1: absorbe el espacio sobrante cuando hay pocas novedades, así
           no queda un bloque de fondo vacío separado debajo de la última

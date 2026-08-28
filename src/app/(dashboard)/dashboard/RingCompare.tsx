@@ -6,6 +6,8 @@
 // y el doble click navega ahí (p. ej. a /personal ya filtrado).
 
 import { useRouter } from "next/navigation";
+import { useCountUp } from "@/lib/useCountUp";
+import { useEntrada } from "@/lib/useEntrada";
 
 const R = 58;
 const CIRCUNFERENCIA = 2 * Math.PI * R;
@@ -20,9 +22,11 @@ export interface RingSide {
   href?: string;
 }
 
-function Ring({ side, iconSize }: { side: RingSide; iconSize: number }) {
+function Ring({ side, iconSize, delayMs }: { side: RingSide; iconSize: number; delayMs: number }) {
   const router = useRouter();
-  const largo = (side.pct / 100) * CIRCUNFERENCIA;
+  const listo = useEntrada(delayMs);
+  const valorAnimado = useCountUp(side.value, delayMs);
+  const largo = listo ? (side.pct / 100) * CIRCUNFERENCIA : 0;
   const clickable = Boolean(side.href);
 
   return (
@@ -46,6 +50,7 @@ function Ring({ side, iconSize }: { side: RingSide; iconSize: number }) {
             strokeWidth="10"
             strokeLinecap="square"
             strokeDasharray={`${largo} ${CIRCUNFERENCIA}`}
+            style={{ transition: "stroke-dasharray 900ms cubic-bezier(.22,1,.36,1)" }}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
@@ -53,7 +58,7 @@ function Ring({ side, iconSize }: { side: RingSide; iconSize: number }) {
         </div>
       </div>
       <div className="text-center">
-        <div className="text-xl font-semibold tracking-tight text-[var(--c-text)] tabular-nums">{side.value}</div>
+        <div className="text-xl font-semibold tracking-tight text-[var(--c-text)] tabular-nums">{valorAnimado}</div>
         <div className="text-xs font-medium text-[var(--c-text-secondary)] mt-0.5">{side.label}</div>
         <div className="text-[11px] text-[var(--c-text-faint)] mt-px tabular-nums">{side.pct}%</div>
       </div>
@@ -65,14 +70,18 @@ export default function RingCompare({
   left,
   right,
   iconSize = 42,
+  delayMs = 0,
 }: {
   left: RingSide;
   right: RingSide;
   iconSize?: number;
+  /** Escalona esta comparación respecto de otras en la misma pantalla; el
+   *  lado derecho arranca un poco después del izquierdo (efecto dominó). */
+  delayMs?: number;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-center py-1.5">
-      <Ring side={left} iconSize={iconSize} />
+      <Ring side={left} iconSize={iconSize} delayMs={delayMs} />
       <div className="flex flex-col items-center gap-2.5 px-2 sm:px-5 self-stretch">
         <span className="w-px flex-1 bg-[var(--c-bg-elev-2)]" />
         <span className="w-8 h-8 rounded-full bg-[var(--c-bg)] border border-[var(--c-line)] flex items-center justify-center text-[10px] font-bold text-[var(--c-text-faint)] tracking-wide shrink-0">
@@ -80,7 +89,7 @@ export default function RingCompare({
         </span>
         <span className="w-px flex-1 bg-[var(--c-bg-elev-2)]" />
       </div>
-      <Ring side={right} iconSize={iconSize} />
+      <Ring side={right} iconSize={iconSize} delayMs={delayMs + 80} />
     </div>
   );
 }

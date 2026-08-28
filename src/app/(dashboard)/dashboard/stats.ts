@@ -3,6 +3,7 @@ import { getOrSet, CACHE_TTL } from "@/lib/redis";
 import type { TipoPersonal, TipoLicencia, OrigenInstitucional } from "@/types";
 import { TIPOS_PERSONAL, TIPOS_LICENCIA } from "@/types";
 import { compararTurnos } from "../personal/lib";
+import { MESES_CORTOS, MESES_LARGOS, claveMes, type LicenciaAusentismoRow } from "@/lib/ausentismo";
 
 // Mismo horizonte para "licencias que vencen pronto" (alerta) y "licencias
 // próximas a iniciar" (sub-línea del KPI) — confirmado con el usuario.
@@ -38,16 +39,6 @@ function sumarDias(fecha: Date, dias: number): Date {
 
 function pct(parte: number, total: number): number {
   return total > 0 ? Math.round((parte / total) * 100) : 0;
-}
-
-const MESES_LARGOS = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
-const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-
-function claveMes(fecha: Date): string {
-  return `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 export interface KpiStats {
@@ -144,6 +135,12 @@ export interface TnoStats {
 }
 
 export interface DashboardStats {
+  // Snapshot del "hoy" server-side usado para armar el resto de las stats —
+  // AusentismoCard.tsx lo reusa como límite superior del rango "Todo el
+  // historial" al recalcular el gráfico por período en el cliente, para que
+  // el primer render (SSR) y la hidratación arranquen del mismo punto en
+  // vez de que el cliente llame a su propio `new Date()`.
+  hoy: string;
   kpi: KpiStats;
   alertas: AlertaStats;
   tno: TnoStats;
@@ -157,6 +154,11 @@ export interface DashboardStats {
   hijos: HijosStats;
   padresMadres: PadresMadresStats;
   flujoPersonal: FlujoPersonalStats;
+  // Filas crudas (no pre-agrupadas por mes): a diferencia del resto de las
+  // stats, "Ausentismo por causa" ahora se recalcula en el cliente cuando
+  // el usuario cambia de período (ver AusentismoCard.tsx) — mismo criterio
+  // que ya usa EstadisticasLicencias.tsx para el informe por legajo.
+  ausentismoLicencias: LicenciaAusentismoRow[];
   novedades: NovedadTipoStats[];
 }
 
@@ -281,6 +283,7 @@ async function calcularStats(): Promise<DashboardStats> {
     agentesConIngreso,
     transicionesEstado,
     agentesPorOrigen,
+    ausentismoRows,
   ] = await Promise.all([
     prisma.agente.count({ where: { estado: "PASE" } }),
     prisma.agente.count({ where: { estado: "BAJA" } }),
@@ -354,6 +357,20 @@ async function calcularStats(): Promise<DashboardStats> {
     prisma.agente.findMany({
       where: { estado: "ACTIVO" },
       select: { id: true, origenInstitucional: true },
+    }),
+    // Ordinaria (vacaciones planificadas) queda afuera del gráfico de
+    // ausentismo desde la query — no tiene sentido traerla para descartarla
+    // después. Sin filtro por agente.estado, ver comentario en
+    // calcularAusentismoMensual.
+    prisma.licencia.findMany({
+      where: { estado: "APROBADA", tipo: { not: "ORDINARIA" } },
+      select: {
+        tipo: true,
+        fechaInicio: true,
+        agenteId: true,
+        diasHabiles: true,
+        agente: { select: { nombres: true, apellidos: true, fotoUrl: true, sexo: true, turno: true } },
+      },
     }),
   ]);
 
@@ -483,10 +500,24 @@ async function calcularStats(): Promise<DashboardStats> {
   const fechasIngreso = agentesConIngreso
     .filter((a): a is { id: string; fechaIngreso: Date } => a.fechaIngreso !== null);
   const flujoPersonal = calcularFlujoPersonal(hoy, fechasIngreso, transicionesEstado);
+  const ausentismoLicencias: LicenciaAusentismoRow[] = ausentismoRows.map((l) => ({
+    tipo: l.tipo,
+    fechaInicio: l.fechaInicio.toISOString(),
+    agenteId: l.agenteId,
+    diasHabiles: l.diasHabiles,
+    agente: {
+      nombres: l.agente.nombres,
+      apellidos: l.agente.apellidos,
+      fotoUrl: l.agente.fotoUrl,
+      sexo: l.agente.sexo,
+      turno: l.agente.turno,
+    },
+  }));
 
   const licenciasActivasHoyIds = licenciasActivasHoyRows.map((l) => l.agenteId);
 
   return {
+    hoy: hoy.toISOString(),
     kpi: {
       enPase,
       enBaja,
@@ -531,6 +562,7 @@ async function calcularStats(): Promise<DashboardStats> {
       totalConHijos,
     },
     flujoPersonal,
+    ausentismoLicencias,
     novedades,
   };
 }

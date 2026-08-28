@@ -162,13 +162,15 @@ function InformeImprimible({
         ? `${tipoLider.label} concentra la totalidad de los registros.`
         : `${tipoLider.label} concentra el ${Math.round((tipoLider.cantidad / totalLicencias) * 100)}% de los registros, seguido por ${porTipo.length - 1} tipo${porTipo.length - 1 === 1 ? "" : "s"} más.`;
 
-  // El nodo se crea acá (durante el render, sin efecto secundario visible
-  // hasta que se inserte en el documento) para no necesitar un setState
-  // dentro del useEffect de abajo.
-  const [contenedor] = useState<HTMLDivElement | null>(() =>
-    typeof document === "undefined" ? null : document.createElement("div")
-  );
-
+  // El nodo se crea recién en el efecto (no en el initializer de useState):
+  // un initializer que chequea `typeof document` devuelve `null` en el
+  // server y un div real en el primer render del cliente — esos son
+  // valores DISTINTOS ya en el render de hidratación, antes de que corra
+  // ningún efecto, y React lo detecta como mismatch de hidratación (mismo
+  // bug real, encontrado y corregido primero en InformeAusentismo.tsx).
+  // Arrancando en `null` en ambos lados y recién creando el div en el
+  // efecto, el primer render (servidor y cliente) coincide siempre.
+  //
   // Se inserta como primer hijo de <body> (no al final, como un portal
   // normal): cualquier otra cosa de /personal que esté antes en el DOM
   // seguiría reservando su alto real durante el print (aunque invisible),
@@ -176,13 +178,20 @@ function InformeImprimible({
   // (la regla que colapsa el resto de la app en globals.css es la que se
   // encarga de las páginas en blanco DESPUÉS del informe; esto es lo que
   // evita las de ANTES). Mismo mecanismo ya probado en NominaBuilderBtn.tsx.
+  const [contenedor, setContenedor] = useState<HTMLDivElement | null>(null);
+
   useEffect(() => {
-    if (!contenedor) return;
-    document.body.insertBefore(contenedor, document.body.firstChild);
+    const el = document.createElement("div");
+    document.body.insertBefore(el, document.body.firstChild);
+    // El setState no puede quedar síncrono en el cuerpo del efecto (lint
+    // set-state-in-effect de este repo, ver useCountUp.ts) — envolverlo en
+    // un rAF también sirve para separarlo del commit de montaje del efecto.
+    const raf = requestAnimationFrame(() => setContenedor(el));
     return () => {
-      contenedor.remove();
+      cancelAnimationFrame(raf);
+      el.remove();
     };
-  }, [contenedor]);
+  }, []);
 
   if (!contenedor) return null;
 

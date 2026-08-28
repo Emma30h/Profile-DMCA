@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ConteoLabel, ConteoConIds } from "./stats";
 import { buildQueryString } from "../personal/queryString";
+import { useEntrada } from "@/lib/useEntrada";
 
 const LETRA_TURNO = /^[A-F]$/;
 // Bucket sintético (ver stats.ts): no es un valor real de turno, así que no
@@ -32,13 +33,16 @@ interface Props {
   dependencia: ConteoConIds[];
   origenInstitucional: ConteoConIds[];
   totalActivos: number;
+  /** Escalona esta tarjeta respecto de otras en la misma pantalla al montar. */
+  delayMs?: number;
 }
 
-export default function TurnoDependenciaCard({ turno, dependencia, origenInstitucional, totalActivos }: Props) {
+export default function TurnoDependenciaCard({ turno, dependencia, origenInstitucional, totalActivos, delayMs = 0 }: Props) {
   const router = useRouter();
   const [vista, setVista] = useState<Vista>("turno");
   const maxTurno = Math.max(1, ...turno.map((t) => t.count));
   const indiceVista = VISTAS.indexOf(vista);
+  const listo = useEntrada(delayMs);
 
   return (
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 flex flex-col h-full">
@@ -72,7 +76,7 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
         >
           <div className="shrink-0 w-full">
             <div className="flex flex-col gap-2.5">
-              {turno.map((t) => {
+              {turno.map((t, i) => {
                 const clickable = t.label !== SIN_TURNO_LABEL;
                 return (
                   <div
@@ -87,10 +91,13 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
                     <span className="text-[10px] font-medium text-[var(--c-text-muted)] whitespace-nowrap">{t.label}</span>
                     <div className="h-2.5 rounded-none bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] overflow-hidden">
                       <div
-                        className={`h-full rounded-none transition-[filter] duration-150 ${
+                        className={`h-full rounded-none ${
                           LETRA_TURNO.test(t.label) ? "bg-[var(--c-blue)]" : "bg-[var(--c-line-strong)]"
                         } ${clickable ? "group-hover:brightness-125" : ""}`}
-                        style={{ width: `${(t.count / maxTurno) * 100}%` }}
+                        style={{
+                          width: `${listo ? (t.count / maxTurno) * 100 : 0}%`,
+                          transition: `filter 150ms, width 550ms cubic-bezier(.22,1,.36,1) ${i * 35}ms`,
+                        }}
                       />
                     </div>
                     <span className="text-xs font-semibold text-[var(--c-text)] text-right tabular-nums">{t.count}</span>
@@ -106,6 +113,11 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
                 <div
                   key={d.label}
                   className="flex items-center gap-2.5 py-2.5 border-b border-[var(--c-bg-elev-2)] last:border-b-0 -mx-1.5 px-1.5 rounded-lg transition-colors group cursor-pointer hover:bg-[var(--c-bg-elev-2)]/60"
+                  style={{
+                    opacity: listo ? 1 : 0,
+                    transform: listo ? "translateY(0)" : "translateY(4px)",
+                    transition: `opacity 400ms ease-out ${i * 30}ms, transform 400ms ease-out ${i * 30}ms, background-color 150ms`,
+                  }}
                   onClick={() => router.push(`/personal?${buildQueryString({ ids: d.ids.join(",") })}`)}
                 >
                   <span
@@ -129,6 +141,11 @@ export default function TurnoDependenciaCard({ turno, dependencia, origenInstitu
                 <div
                   key={o.label}
                   className="flex items-center gap-2.5 py-2.5 border-b border-[var(--c-bg-elev-2)] last:border-b-0 -mx-1.5 px-1.5 rounded-lg transition-colors group cursor-pointer hover:bg-[var(--c-bg-elev-2)]/60"
+                  style={{
+                    opacity: listo ? 1 : 0,
+                    transform: listo ? "translateY(0)" : "translateY(4px)",
+                    transition: `opacity 400ms ease-out ${i * 30}ms, transform 400ms ease-out ${i * 30}ms, background-color 150ms`,
+                  }}
                   onClick={() => router.push(`/personal?${buildQueryString({ ids: o.ids.join(",") })}`)}
                 >
                   <span

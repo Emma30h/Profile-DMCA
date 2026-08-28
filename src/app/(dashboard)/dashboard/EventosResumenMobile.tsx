@@ -3,6 +3,7 @@ import { obtenerCoberturasSemana } from "@/app/actions/coberturas";
 import { obtenerEventosCursoAscensoSemana } from "@/app/actions/eventosCursoAscenso";
 import { obtenerEfemeridesHoy } from "@/lib/calendarioGarden";
 import { obtenerCumpleanosHoy } from "@/lib/cumpleanosPersonal";
+import { calcularReloj } from "@/lib/relojCordoba";
 import TurnoHoyCard from "./TurnoHoyCard";
 import EfemeridesHoyCard from "./EfemeridesHoyCard";
 import CumpleanosGardenCard from "./CumpleanosGardenCard";
@@ -33,7 +34,7 @@ export default async function EventosResumenMobile() {
 
   return (
     <EventosResumenCollapsible resumenCerrado={resumenCerrado}>
-      <TurnoHoyCard turnoHoy={turnoHoy} semana={semana} eventosAscenso={eventosAscenso} />
+      <TurnoHoyCard turnoHoy={turnoHoy} semana={semana} eventosAscenso={eventosAscenso} relojInicial={calcularReloj()} />
       <EfemeridesHoyCard eventos={efemerides} />
       <CumpleanosGardenCard cumpleanos={cumpleanos} />
     </EventosResumenCollapsible>

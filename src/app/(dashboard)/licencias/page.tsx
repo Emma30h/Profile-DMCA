@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { getDashboardStats } from "../dashboard/stats";
 import VistaLicencias from "./VistaLicencias";
 
 const ROLES_PERMITIDOS = ["SUPERADMIN", "ADMIN", "SUPERVISOR"];
@@ -33,7 +34,7 @@ export default async function LicenciasPage() {
   // tener sentido operativo en este listado general.
   const filtroSector = { estado: "ACTIVO", ...(esSupervisor && sectorId ? { sectorId } : {}) };
 
-  const [licencias, sectores, feriados] = await Promise.all([
+  const [licencias, sectores, feriados, stats] = await Promise.all([
     prisma.licencia.findMany({
       where: { agente: filtroSector },
       orderBy: { fechaInicio: "desc" },
@@ -52,6 +53,10 @@ export default async function LicenciasPage() {
     esAdmin
       ? prisma.feriado.findMany({ orderBy: { fecha: "asc" } })
       : Promise.resolve([]),
+    // Misma fuente que las tarjetas de "Estadísticas generales" (antes en
+    // /dashboard) — getDashboardStats() ya está cacheada (Redis, 5 min), así
+    // que pedirla también acá es prácticamente gratis, no un query nuevo.
+    getDashboardStats(),
   ]);
 
   return (
@@ -84,6 +89,8 @@ export default async function LicenciasPage() {
         esSupervisor={esSupervisor}
         esAdmin={esAdmin}
         feriados={feriados}
+        ausentismoLicencias={stats.ausentismoLicencias}
+        hoy={stats.hoy}
       />
     </div>
   );

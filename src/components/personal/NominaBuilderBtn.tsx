@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { RolUsuario } from "@/types";
 import type { AgenteResumen } from "@/app/(dashboard)/personal/lib";
@@ -130,6 +130,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
   const [menuContextual, setMenuContextual] = useState<
     { tipo: "fila"; index: number; x: number; y: number } | { tipo: "columna"; id: string; x: number; y: number } | null
   >(null);
+  const menuContextualRef = useRef<HTMLDivElement>(null);
 
   const hayPreview = filasPreview !== null;
 
@@ -161,14 +162,22 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
 
   useEffect(() => {
     if (!menuContextual) return;
-    function cerrar() {
+    // Sin el chequeo de contención, el mousedown sobre el propio botón
+    // "Eliminar fila/columna" cerraba el menú (desmontando el botón) antes
+    // de que llegara a dispararse su click — mismo patrón ya resuelto en
+    // EstadoBadgeInfo.tsx.
+    function cerrar(e: MouseEvent) {
+      if (menuContextualRef.current?.contains(e.target as Node)) return;
+      setMenuContextual(null);
+    }
+    function cerrarSiempre() {
       setMenuContextual(null);
     }
     document.addEventListener("mousedown", cerrar);
-    document.addEventListener("scroll", cerrar, true);
+    document.addEventListener("scroll", cerrarSiempre, true);
     return () => {
       document.removeEventListener("mousedown", cerrar);
-      document.removeEventListener("scroll", cerrar, true);
+      document.removeEventListener("scroll", cerrarSiempre, true);
     };
   }, [menuContextual]);
 
@@ -501,6 +510,7 @@ export default function NominaBuilderBtn({ agentes, rol }: Props) {
 
       {menuContextual && createPortal(
         <div
+          ref={menuContextualRef}
           className="fixed z-[60] rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] py-1 shadow-lg shadow-black/40"
           style={{ left: menuContextual.x, top: menuContextual.y }}
         >

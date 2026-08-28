@@ -4,6 +4,8 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FlujoMensual, FlujoPersonalStats } from "./stats";
 import { buildQueryString } from "../personal/queryString";
+import { useCountUp } from "@/lib/useCountUp";
+import { useEntrada } from "@/lib/useEntrada";
 
 type Rango = "3m" | "6m" | "1a" | "todo";
 
@@ -22,12 +24,16 @@ interface Tooltip {
   mes: FlujoMensual;
 }
 
-export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats }) {
+export default function FlujoPersonalCard({ flujo, delayMs = 0 }: { flujo: FlujoPersonalStats; delayMs?: number }) {
   const router = useRouter();
   const [rango, setRango] = useState<Rango>("1a");
   const [comoTabla, setComoTabla] = useState(false);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
+  const listo = useEntrada(delayMs);
+  const totalAltasAnimado = useCountUp(flujo.totalAltas, delayMs);
+  const totalBajasAnimado = useCountUp(flujo.totalBajas, delayMs + 120);
+  const totalNetoAnimado = useCountUp(Math.abs(flujo.totalNeto), delayMs + 240);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const colsRef = useRef<HTMLDivElement>(null);
@@ -164,18 +170,18 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
       <div className="flex items-center gap-2.5 flex-wrap mb-4">
         <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--c-green)]" />
-          Ingresos <b className="text-[var(--c-text)] font-bold tabular-nums">{flujo.totalAltas}</b>
+          Ingresos <b className="text-[var(--c-text)] font-bold tabular-nums">{totalAltasAnimado}</b>
         </span>
         <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--c-coral)]" />
-          Bajas <b className="text-[var(--c-text)] font-bold tabular-nums">{flujo.totalBajas}</b>
+          Bajas <b className="text-[var(--c-text)] font-bold tabular-nums">{totalBajasAnimado}</b>
         </span>
         <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--c-text-faint)]" />
           Neto del período{" "}
           <b className={`font-bold tabular-nums ${flujo.totalNeto >= 0 ? "text-[var(--c-green)]" : "text-[var(--c-coral)]"}`}>
-            {flujo.totalNeto >= 0 ? "+" : ""}
-            {flujo.totalNeto}
+            {flujo.totalNeto >= 0 ? "+" : "−"}
+            {totalNetoAnimado}
           </b>
         </span>
       </div>
@@ -214,6 +220,11 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
                 {meses.map((m, i) => {
                   const idsDelMes = [...m.altasIds, ...m.bajasIds];
                   const clickable = idsDelMes.length > 0;
+                  // Escalonado desde el mes más reciente (el que ya está a
+                  // la vista tras el auto-scroll) hacia atrás, con un tope:
+                  // sin esto, un historial de varios años haría que las
+                  // columnas visibles tarden mucho en empezar a crecer.
+                  const delayBarra = Math.min(meses.length - 1 - i, 24) * 20;
                   return (
                   <div
                     key={m.key}
@@ -237,22 +248,24 @@ export default function FlujoPersonalCard({ flujo }: { flujo: FlujoPersonalStats
                         <span className="text-[10px] font-bold text-[var(--c-text)] mb-1 whitespace-nowrap">+{m.altas}</span>
                       )}
                       <div
-                        className="rounded-t-[4px] bg-[var(--c-green)] transition-[filter,width] duration-150"
+                        className="rounded-t-[4px] bg-[var(--c-green)]"
                         style={{
-                          height: `${(m.altas / escalaMax) * 100}px`,
+                          height: `${listo ? (m.altas / escalaMax) * 100 : 0}px`,
                           width: "min(24px, calc(var(--col-w, 70px) * .32))",
                           filter: hoverKey === m.key ? "brightness(1.2)" : undefined,
+                          transition: `filter 150ms, width 150ms, height 500ms cubic-bezier(.22,1,.36,1) ${delayBarra}ms`,
                         }}
                       />
                     </div>
                     <div className="h-px w-full bg-[var(--c-bg-elev-2)]" />
                     <div className="w-full flex flex-col items-center justify-start" style={{ height: 100 }}>
                       <div
-                        className="rounded-b-[4px] bg-[var(--c-coral)] transition-[filter,width] duration-150"
+                        className="rounded-b-[4px] bg-[var(--c-coral)]"
                         style={{
-                          height: `${(m.bajas / escalaMax) * 100}px`,
+                          height: `${listo ? (m.bajas / escalaMax) * 100 : 0}px`,
                           width: "min(24px, calc(var(--col-w, 70px) * .32))",
                           filter: hoverKey === m.key ? "brightness(1.2)" : undefined,
+                          transition: `filter 150ms, width 150ms, height 500ms cubic-bezier(.22,1,.36,1) ${delayBarra}ms`,
                         }}
                       />
                       {i === indiceMaxBajas && m.bajas > 0 && (
