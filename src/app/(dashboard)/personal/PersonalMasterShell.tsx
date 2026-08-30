@@ -376,6 +376,8 @@ export default function PersonalMasterShell({
               turnoValue={turnoValue}
               sectorValue={sectorValue}
               etacValue={etacValue}
+              idsValue={idsValue}
+              sexoValue={sexoValue}
               sectores={sectores}
               turnos={turnos}
               selectedId={selectedId}

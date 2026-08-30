@@ -91,6 +91,7 @@ export default async function LicenciasPage() {
         feriados={feriados}
         ausentismoLicencias={stats.ausentismoLicencias}
         hoy={stats.hoy}
+        flujoPersonal={stats.flujoPersonal}
       />
     </div>
   );

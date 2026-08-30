@@ -17,8 +17,6 @@ import { useReplayOnChange } from "@/lib/useReplayOnChange";
 import { TEMA_INSTITUCIONAL, type ChartTheme } from "@/lib/chartThemes";
 import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
-type ModoPeriodo = "todo" | "anio" | "rango";
-
 interface Fila {
   causa: CausaAusentismo;
   cantidad: number;
@@ -37,70 +35,20 @@ const SEGMENTOS_GRILLA = 4; // 5 líneas de referencia (0, 25, 50, 75, 100% de e
 
 export default function RankingCausasCard({
   licencias,
-  hoy,
   tema = TEMA_INSTITUCIONAL,
   modoExport = false,
 }: {
   licencias: LicenciaAusentismoRow[];
-  hoy: string;
   tema?: ChartTheme;
   modoExport?: boolean;
 }) {
   const router = useRouter();
-  const hoyDate = useMemo(() => new Date(hoy), [hoy]);
-
-  const anios = useMemo(() => {
-    const set = new Set(licencias.map((l) => new Date(l.fechaInicio).getUTCFullYear()));
-    return [...set].sort((a, b) => b - a);
-  }, [licencias]);
-
-  const [modo, setModo] = useState<ModoPeriodo>("todo");
-  const [anio, setAnio] = useState<number | null>(null);
-  const [rangoDesde, setRangoDesde] = useState("");
-  const [rangoHasta, setRangoHasta] = useState("");
-  const anioActivo = anio ?? anios[0] ?? hoyDate.getUTCFullYear();
-
-  function elegirPeriodo(valor: string) {
-    if (valor === "todo") {
-      setModo("todo");
-      return;
-    }
-    if (valor === "rango") {
-      setModo("rango");
-      if (!rangoDesde && !rangoHasta && licencias.length > 0) {
-        const fechas = licencias.map((l) => l.fechaInicio.slice(0, 10)).sort();
-        setRangoDesde(fechas[0]);
-        setRangoHasta(fechas[fechas.length - 1]);
-      }
-      return;
-    }
-    setModo("anio");
-    setAnio(Number(valor));
-  }
-
-  // A diferencia de "Ausentismo por causa" (que necesita un rango de MESES
-  // completo para poder dibujar la serie de tiempo), acá alcanza con
-  // filtrar las licencias crudas por fecha — este gráfico no tiene eje de
-  // tiempo, es un total por causa dentro del período elegido.
-  const licenciasPeriodo = useMemo(() => {
-    if (modo === "anio") {
-      return licencias.filter((l) => new Date(l.fechaInicio).getUTCFullYear() === anioActivo);
-    }
-    if (modo === "rango") {
-      if (!rangoDesde || !rangoHasta) return [];
-      return licencias.filter((l) => {
-        const f = l.fechaInicio.slice(0, 10);
-        return f >= rangoDesde && f <= rangoHasta;
-      });
-    }
-    return licencias;
-  }, [licencias, modo, anioActivo, rangoDesde, rangoHasta]);
 
   const filas: Fila[] = useMemo(() => {
     const porCausa = new Map<CausaAusentismo, { cantidad: number; ids: string[] }>(
       CAUSAS_AUSENTISMO.map((c) => [c, { cantidad: 0, ids: [] }])
     );
-    for (const l of licenciasPeriodo) {
+    for (const l of licencias) {
       const entrada = porCausa.get(causaDeLicencia(l.tipo))!;
       entrada.cantidad += 1;
       if (!entrada.ids.includes(l.agenteId)) entrada.ids.push(l.agenteId);
@@ -110,7 +58,7 @@ export default function RankingCausasCard({
     return [...porCausa.entries()]
       .map(([causa, v]) => ({ causa, cantidad: v.cantidad, ids: v.ids }))
       .sort((a, b) => b.cantidad - a.cantidad);
-  }, [licenciasPeriodo]);
+  }, [licencias]);
 
   // Solo se monta cuando RevealOnScroll lo revela: no hace falta delayMs, el
   // propio montaje ya es el disparador de "empezar a tomar vida". En
@@ -139,55 +87,14 @@ export default function RankingCausasCard({
     if (f.ids.length > 0) router.push(`/personal?${buildQueryString({ ids: f.ids.join(",") })}`);
   }
 
-  if (licencias.length === 0) {
-    return (
-      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
-        <h3 className="text-sm font-semibold text-[var(--c-text)] mb-1">Causas más frecuentes</h3>
-        <p className="text-[12.5px] text-[var(--c-text-faint)]">Todavía no hay licencias aprobadas cargadas.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
       <div className="flex items-center justify-between mb-1 gap-2.5 flex-wrap">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Causas más frecuentes</h3>
         {!modoExport && (
-          <div className="flex items-center gap-1">
-            <div className="relative">
-              <select
-                value={modo === "anio" ? String(anioActivo) : modo}
-                onChange={(e) => elegirPeriodo(e.target.value)}
-                className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
-              >
-                <option value="todo">Todo el historial</option>
-                {anios.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-                <option value="rango">Seleccionar período…</option>
-              </select>
-              {modo === "rango" && (
-                <div className="absolute right-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
-                  <input
-                    type="date"
-                    value={rangoDesde}
-                    onChange={(e) => setRangoDesde(e.target.value)}
-                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                  />
-                  <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
-                  <input
-                    type="date"
-                    value={rangoHasta}
-                    onChange={(e) => setRangoHasta(e.target.value)}
-                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                  />
-                </div>
-              )}
-            </div>
-            <GraficoDescargable nombreArchivo="causas-mas-frecuentes">
-              {(t) => <RankingCausasCard licencias={licencias} hoy={hoy} modoExport tema={t} />}
-            </GraficoDescargable>
-          </div>
+          <GraficoDescargable nombreArchivo="causas-mas-frecuentes">
+            {(t) => <RankingCausasCard licencias={licencias} modoExport tema={t} />}
+          </GraficoDescargable>
         )}
       </div>
       <p className="text-[11px] text-[var(--c-text-faint)] mb-4">

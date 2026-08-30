@@ -167,19 +167,27 @@ export default function CantidadLicenciasCard({
   hoy,
   tema = TEMA_INSTITUCIONAL,
   modoExport = false,
+  granularidadInicial = "mes",
+  rangoInicial = "todo",
 }: {
   licencias: LicenciaAusentismoRow[];
   hoy: string;
   tema?: ChartTheme;
   modoExport?: boolean;
+  // Solo se usan al abrir "Descargar como imagen": la vista exportada tiene
+  // que salir igual a lo que el usuario está viendo (rango/granularidad),
+  // no reiniciada a los valores por defecto — ver el self-render dentro de
+  // GraficoDescargable más abajo.
+  granularidadInicial?: Granularidad;
+  rangoInicial?: Rango;
 }) {
   const router = useRouter();
   const gradienteId = useId();
   const colorLinea = tema.accent;
   const hoyDate = useMemo(() => new Date(hoy), [hoy]);
 
-  const [granularidad, setGranularidad] = useState<Granularidad>("mes");
-  const [rango, setRango] = useState<Rango>("todo");
+  const [granularidad, setGranularidad] = useState<Granularidad>(granularidadInicial);
+  const [rango, setRango] = useState<Rango>(rangoInicial);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
@@ -292,7 +300,16 @@ export default function CantidadLicenciasCard({
               ))}
             </div>
             <GraficoDescargable nombreArchivo="cantidad-de-licencias">
-              {(t) => <CantidadLicenciasCard licencias={licencias} hoy={hoy} modoExport tema={t} />}
+              {(t) => (
+                <CantidadLicenciasCard
+                  licencias={licencias}
+                  hoy={hoy}
+                  modoExport
+                  tema={t}
+                  granularidadInicial={granularidad}
+                  rangoInicial={rango}
+                />
+              )}
             </GraficoDescargable>
           </div>
         )}

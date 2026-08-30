@@ -54,6 +54,10 @@ interface Props {
   turnoValue: string;
   sectorValue: string;
   etacValue: string;
+  /** Drill-down puntual (ids/sexo, ver queryString.ts): no tienen UI acá, pero
+   * hay que saber si están puestos para no pisarlos con el candado de abajo. */
+  idsValue: string;
+  sexoValue: string;
   sectores: SectorOption[];
   turnos: string[];
   /** Agente actualmente abierto (si hay uno): los filtros deben quedarse en su legajo en vez de mandar a la lista vacía. */
@@ -73,6 +77,8 @@ export default function FiltrosPersonal({
   turnoValue,
   sectorValue,
   etacValue,
+  idsValue,
+  sexoValue,
   sectores,
   turnos,
   selectedId,
@@ -99,13 +105,20 @@ export default function FiltrosPersonal({
       if (next.turno.length > 0) params.set("turno", next.turno.join(","));
       if (next.sector.length > 0) params.set("sector", next.sector.join(","));
       if (next.etac.length > 0) params.set("etac", next.etac.join(","));
+      // ids/sexo no se editan desde acá (son el drill-down puntual del
+      // dashboard), pero sí hay que arrastrarlos: si no, tocar cualquier
+      // filtro de esta barra mientras hay un recorte por ids activo lo
+      // pisaba y volvía a mostrar TODOS los agentes en vez de filtrar
+      // sólo dentro de ese recorte.
+      if (idsValue) params.set("ids", idsValue);
+      if (sexoValue) params.set("sexo", sexoValue);
       if (bloqueado) localStorage.setItem(VALUES_STORAGE_KEY, JSON.stringify(next));
       startTransition(() => {
         if (opts?.replace) router.replace(`${basePath}?${params.toString()}`);
         else router.push(`${basePath}?${params.toString()}`);
       });
     },
-    [router, bloqueado, startTransition, basePath]
+    [router, bloqueado, startTransition, basePath, idsValue, sexoValue]
   );
 
   // Al entrar "de cero" a /personal (ej. desde el link del sidebar, que no
@@ -115,7 +128,10 @@ export default function FiltrosPersonal({
     const estabaBloqueado = localStorage.getItem(LOCK_STORAGE_KEY) === "1";
     setBloqueado(estabaBloqueado);
     if (!estabaBloqueado) return;
-    if (qValue || tipoValue || estadoValue || turnoValue || sectorValue || etacValue) return;
+    // ids/sexo son drill-down puntual (desde un doble click en el dashboard,
+    // p. ej.) — si están puestos, no hay que pisarlos con los filtros
+    // guardados: el usuario vino a ver ESE recorte, no la última búsqueda.
+    if (qValue || tipoValue || estadoValue || turnoValue || sectorValue || etacValue || idsValue || sexoValue) return;
 
     const guardadosRaw = localStorage.getItem(VALUES_STORAGE_KEY);
     if (!guardadosRaw) return;

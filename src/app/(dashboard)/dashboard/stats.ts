@@ -181,10 +181,17 @@ export interface DashboardStats {
 // el ÚLTIMO estado al que llegó ese agente dentro del mes, no cada fila suelta
 // de HistorialEstado — si terminó de nuevo en ACTIVO, no fue una baja real
 // aunque haya pasado por BAJA/PASE en el medio.
+//
+// Pero además hace falta el PRIMER estadoAnterior del mes: un agente que ya
+// venía de PASE (se fue en un mes anterior) y en este mes solo tiene un
+// cambio interno PASE→BAJA no volvió a irse de la nómina activa — ya no
+// estaba. Sin este chequeo, esa transición se contaba como una baja nueva en
+// AMBOS meses (el mes real en que se fue y el mes del cambio de estado
+// posterior), duplicando a la misma persona en dos barras distintas.
 function calcularFlujoPersonal(
   hoy: Date,
   agentesConIngreso: { id: string; fechaIngreso: Date }[],
-  transicionesEstado: { agenteId: string; estadoNuevo: string; createdAt: Date }[]
+  transicionesEstado: { agenteId: string; estadoAnterior: string; estadoNuevo: string; createdAt: Date }[]
 ): FlujoPersonalStats {
   if (agentesConIngreso.length === 0) {
     return { meses: [], totalAltas: 0, totalBajas: 0, totalNeto: 0, escalaMax: 5 };
@@ -224,16 +231,25 @@ function calcularFlujoPersonal(
       meses[i].altasIds.push(a.id);
     }
   }
+  const primeraTransicionPorAgenteYMes = new Map<string, { estadoAnterior: string; createdAt: Date }>();
   const ultimaTransicionPorAgenteYMes = new Map<string, { agenteId: string; estadoNuevo: string; createdAt: Date }>();
   for (const t of transicionesEstado) {
     const clave = `${t.agenteId}|${claveMes(t.createdAt)}`;
-    const actual = ultimaTransicionPorAgenteYMes.get(clave);
-    if (!actual || t.createdAt > actual.createdAt) {
+    const primera = primeraTransicionPorAgenteYMes.get(clave);
+    if (!primera || t.createdAt < primera.createdAt) {
+      primeraTransicionPorAgenteYMes.set(clave, t);
+    }
+    const ultima = ultimaTransicionPorAgenteYMes.get(clave);
+    if (!ultima || t.createdAt > ultima.createdAt) {
       ultimaTransicionPorAgenteYMes.set(clave, t);
     }
   }
-  for (const t of ultimaTransicionPorAgenteYMes.values()) {
+  for (const [clave, t] of ultimaTransicionPorAgenteYMes) {
     if (t.estadoNuevo !== "BAJA" && t.estadoNuevo !== "PASE") continue;
+    // Sólo cuenta si, al entrar el mes, el agente todavía estaba activo —
+    // si ya venía de un PASE/BAJA anterior, esto es un cambio de estado
+    // interno, no una salida nueva de la nómina activa.
+    if (primeraTransicionPorAgenteYMes.get(clave)?.estadoAnterior !== "ACTIVO") continue;
     const i = indicePorClave.get(claveMes(t.createdAt));
     if (i !== undefined) {
       meses[i].bajas++;
@@ -352,7 +368,7 @@ async function calcularStats(): Promise<DashboardStats> {
     // necesita ver también los regresos a ACTIVO para saber cuál fue el último
     // estado real de cada agente dentro del mes.
     prisma.historialEstado.findMany({
-      select: { agenteId: true, estadoNuevo: true, createdAt: true },
+      select: { agenteId: true, estadoAnterior: true, estadoNuevo: true, createdAt: true },
     }),
     prisma.agente.findMany({
       where: { estado: "ACTIVO" },

@@ -9,6 +9,7 @@ import { normalizarBusqueda } from "@/lib/personalLabels";
 import { TIPO_LICENCIA_LABELS, LICENCIA_CATEGORIA_DE_TIPO, CATEGORIA_LICENCIA_INFO } from "@/types";
 import { Spinner } from "@/components/ui/Spinner";
 import type { LicenciaAusentismoRow } from "@/lib/ausentismo";
+import type { FlujoPersonalStats } from "../dashboard/stats";
 
 interface Feriado {
   id: string;
@@ -737,6 +738,7 @@ export default function VistaLicencias({
   feriados,
   ausentismoLicencias,
   hoy: hoyAusentismo,
+  flujoPersonal,
 }: {
   licencias: LicenciaRow[];
   sectores: SectorOption[];
@@ -746,6 +748,7 @@ export default function VistaLicencias({
   feriados: Feriado[];
   ausentismoLicencias: LicenciaAusentismoRow[];
   hoy: string;
+  flujoPersonal: FlujoPersonalStats;
 }) {
   const [mainTab, setMainTab] = useState<"licencias" | "feriados" | "estadisticas">("licencias");
   const [vista, setVista] = useState<"lista" | "calendario">("lista");
@@ -1115,7 +1118,7 @@ export default function VistaLicencias({
 
       {/* Estadísticas generales */}
       {mainTab === "estadisticas" && (
-        <EstadisticasAusentismo licencias={ausentismoLicencias} hoy={hoyAusentismo} />
+        <EstadisticasAusentismo licencias={ausentismoLicencias} hoy={hoyAusentismo} flujoPersonal={flujoPersonal} />
       )}
 
       {/* Filtros */}

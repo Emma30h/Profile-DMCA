@@ -157,6 +157,75 @@ export interface LicenciaAusentismoRow {
 // función. Las licencias que caen fuera de [desde, hasta] simplemente no
 // tienen bucket y se ignoran (no hace falta pre-filtrar el array de
 // licencias antes de llamarla).
+// Filtro de período compartido por las 6 tarjetas de "Estadísticas
+// generales" — antes vivía duplicado (con lógica idéntica) en cada tarjeta.
+export type ModoPeriodo = "todo" | "anio" | "rango";
+
+export function aniosDeLicencias(licencias: LicenciaAusentismoRow[]): number[] {
+  const set = new Set(licencias.map((l) => new Date(l.fechaInicio).getUTCFullYear()));
+  return [...set].sort((a, b) => b - a);
+}
+
+// Igual lógica que ya tenían RankingCausasCard/RankingPersonalCard/
+// CausasRadarCard/LicenciasPorTurnoCard: alcanza con filtrar las licencias
+// crudas por fecha, no hace falta un rango de meses continuo (a diferencia
+// de AusentismoCard, ver rangoMesesPeriodo).
+export function filtrarPorPeriodo(
+  licencias: LicenciaAusentismoRow[],
+  modo: ModoPeriodo,
+  anioActivo: number,
+  rangoDesde: string,
+  rangoHasta: string
+): LicenciaAusentismoRow[] {
+  if (modo === "anio") {
+    return licencias.filter((l) => new Date(l.fechaInicio).getUTCFullYear() === anioActivo);
+  }
+  if (modo === "rango") {
+    if (!rangoDesde || !rangoHasta) return [];
+    return licencias.filter((l) => {
+      const f = l.fechaInicio.slice(0, 10);
+      return f >= rangoDesde && f <= rangoHasta;
+    });
+  }
+  return licencias;
+}
+
+function primerDiaMes(fecha: Date): Date {
+  return new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), 1));
+}
+
+// Igual lógica que ya tenía AusentismoCard: a diferencia de filtrarPorPeriodo,
+// acá hace falta un rango [desde, hasta] continuo de MESES (no solo las
+// licencias que caen adentro), porque calcularAusentismoMensual arma una
+// línea de tiempo con un bucket por mes, incluidos los meses en 0.
+export function rangoMesesPeriodo(
+  modo: ModoPeriodo,
+  anioActivo: number,
+  rangoDesde: string,
+  rangoHasta: string,
+  licencias: LicenciaAusentismoRow[],
+  hoyDate: Date
+): { desde: Date; hasta: Date } {
+  if (modo === "anio") {
+    return { desde: new Date(Date.UTC(anioActivo, 0, 1)), hasta: new Date(Date.UTC(anioActivo, 11, 1)) };
+  }
+  if (modo === "rango") {
+    if (!rangoDesde || !rangoHasta) return { desde: new Date(1), hasta: new Date(0) };
+    return { desde: primerDiaMes(new Date(rangoDesde)), hasta: primerDiaMes(new Date(rangoHasta)) };
+  }
+  if (licencias.length === 0) return { desde: hoyDate, hasta: hoyDate };
+  const minFecha = licencias.reduce(
+    (min, l) => (l.fechaInicio < min ? l.fechaInicio : min),
+    licencias[0].fechaInicio
+  );
+  return { desde: primerDiaMes(new Date(minFecha)), hasta: primerDiaMes(hoyDate) };
+}
+
+// Turnos rotativos (A a F) — administrativo, full time, guardia larga,
+// superior de turno y personal ingresante no forman parte de la rotación
+// (ver Agente.turno en schema.prisma para la lista completa de valores).
+export const TURNOS_ROTATIVOS = ["A", "B", "C", "D", "E", "F"] as const;
+
 export function calcularAusentismoMensual(
   desde: Date,
   hasta: Date,
@@ -207,4 +276,111 @@ export function calcularAusentismoMensual(
   const causasPresentes = CAUSAS_AUSENTISMO.filter((c) => causasConDatos.has(c));
 
   return { meses, totalCantidad, causasPresentes, escalaMax };
+}
+
+// Ranking por agente — misma lógica que ya tenía RankingPersonalCard.tsx,
+// extraída acá para que el informe general (InformeLicenciasModal.tsx) la
+// pueda llamar con los mismos datos sin duplicar la agregación.
+export interface FilaPersonalRanking {
+  agenteId: string;
+  nombreCompleto: string;
+  fotoUrl: string | null;
+  sexo: string | null;
+  porCausaCantidad: Record<CausaAusentismo, number>;
+  porCausaDias: Record<CausaAusentismo, number>;
+  totalCantidad: number;
+  totalDias: number;
+}
+
+export function calcularRankingPersonal(
+  licencias: LicenciaAusentismoRow[],
+  metrica: "licencias" | "dias"
+): FilaPersonalRanking[] {
+  const porAgente = new Map<string, FilaPersonalRanking>();
+  for (const l of licencias) {
+    let fila = porAgente.get(l.agenteId);
+    if (!fila) {
+      fila = {
+        agenteId: l.agenteId,
+        nombreCompleto: `${l.agente.apellidos}, ${l.agente.nombres}`,
+        fotoUrl: l.agente.fotoUrl,
+        sexo: l.agente.sexo,
+        porCausaCantidad: Object.fromEntries(CAUSAS_AUSENTISMO.map((c) => [c, 0])) as Record<CausaAusentismo, number>,
+        porCausaDias: Object.fromEntries(CAUSAS_AUSENTISMO.map((c) => [c, 0])) as Record<CausaAusentismo, number>,
+        totalCantidad: 0,
+        totalDias: 0,
+      };
+      porAgente.set(l.agenteId, fila);
+    }
+    const causa = causaDeLicencia(l.tipo);
+    fila.porCausaCantidad[causa] += 1;
+    fila.porCausaDias[causa] += l.diasHabiles;
+    fila.totalCantidad += 1;
+    fila.totalDias += l.diasHabiles;
+  }
+  return [...porAgente.values()].sort((a, b) =>
+    metrica === "licencias" ? b.totalCantidad - a.totalCantidad : b.totalDias - a.totalDias
+  );
+}
+
+// Ranking por turno — misma lógica que ya tenía LicenciasPorTurnoCard.tsx.
+export interface EjeTurno {
+  turno: (typeof TURNOS_ROTATIVOS)[number];
+  cantidad: number;
+  ids: string[];
+}
+
+export function calcularPorTurno(licencias: LicenciaAusentismoRow[]): EjeTurno[] {
+  const porTurno = new Map<(typeof TURNOS_ROTATIVOS)[number], { cantidad: number; ids: string[] }>(
+    TURNOS_ROTATIVOS.map((t) => [t, { cantidad: 0, ids: [] }])
+  );
+  for (const l of licencias) {
+    const t = l.agente.turno;
+    if (!t || !(TURNOS_ROTATIVOS as readonly string[]).includes(t)) continue;
+    const entrada = porTurno.get(t as (typeof TURNOS_ROTATIVOS)[number])!;
+    entrada.cantidad += 1;
+    if (!entrada.ids.includes(l.agenteId)) entrada.ids.push(l.agenteId);
+  }
+  return TURNOS_ROTATIVOS.map((t) => ({ turno: t, ...porTurno.get(t)! }));
+}
+
+// Ausentismo normalizado por dotación — "licencias por cada 100 agentes
+// activos", para poder ver si el crecimiento de licencias es solo reflejo
+// del crecimiento de personal o si hay algo más. flujoMeses acepta la forma
+// estructural de FlujoMensual (dashboard/stats.ts) en vez de importar ese
+// tipo — ese archivo ya importa de acá, y un import en el otro sentido
+// crearía un ciclo.
+export interface FilaAusentismoDotacion {
+  key: string;
+  label: string;
+  mesLargo: string;
+  cantidad: number;
+  dotacion: number;
+  tasaPor100: number;
+}
+
+export function calcularAusentismoPorDotacion(
+  meses: AusentismoMensual[],
+  flujoMeses: { key: string; neto: number }[]
+): FilaAusentismoDotacion[] {
+  // Dotación acumulada mes a mes (altas - bajas desde el primer ingreso
+  // registrado): no hay dato de "cuánta gente había" en un momento dado,
+  // solo el flujo de entradas/salidas, así que se reconstruye sumando.
+  const dotacionPorClave = new Map<string, number>();
+  let acumulado = 0;
+  for (const m of flujoMeses) {
+    acumulado += m.neto;
+    dotacionPorClave.set(m.key, acumulado);
+  }
+  return meses.map((m) => {
+    const dotacion = dotacionPorClave.get(m.key) ?? 0;
+    return {
+      key: m.key,
+      label: m.label,
+      mesLargo: m.mesLargo,
+      cantidad: m.cantidad,
+      dotacion,
+      tasaPor100: dotacion > 0 ? (m.cantidad / dotacion) * 100 : 0,
+    };
+  });
 }

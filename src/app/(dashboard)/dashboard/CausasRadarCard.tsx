@@ -14,14 +14,6 @@ import { useCountUp } from "@/lib/useCountUp";
 import { TEMA_INSTITUCIONAL, type ChartTheme } from "@/lib/chartThemes";
 import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
-type ModoPeriodo = "todo" | "anio" | "rango";
-
-// Mismos turnos rotativos que en LicenciasPorTurnoCard.tsx (A a F) — acá
-// como filtro en vez de eje, para responder "de estos tipos de licencia,
-// cuál es el más frecuente DENTRO de tal turno" en vez de "en total".
-const TURNOS_FILTRO = ["A", "B", "C", "D", "E", "F"] as const;
-type TurnoFiltro = (typeof TURNOS_FILTRO)[number] | "todos";
-
 interface Eje {
   causa: CausaAusentismo;
   cantidad: number;
@@ -136,78 +128,26 @@ function easeOutCubic(t: number): number {
 
 export default function CausasRadarCard({
   licencias,
-  hoy,
   tema = TEMA_INSTITUCIONAL,
   modoExport = false,
 }: {
   licencias: LicenciaAusentismoRow[];
-  hoy: string;
   tema?: ChartTheme;
   modoExport?: boolean;
 }) {
   const router = useRouter();
-  const hoyDate = useMemo(() => new Date(hoy), [hoy]);
-
-  const anios = useMemo(() => {
-    const set = new Set(licencias.map((l) => new Date(l.fechaInicio).getUTCFullYear()));
-    return [...set].sort((a, b) => b - a);
-  }, [licencias]);
-
-  const [modo, setModo] = useState<ModoPeriodo>("todo");
-  const [anio, setAnio] = useState<number | null>(null);
-  const [rangoDesde, setRangoDesde] = useState("");
-  const [rangoHasta, setRangoHasta] = useState("");
-  const [turnoFiltro, setTurnoFiltro] = useState<TurnoFiltro>("todos");
-  const anioActivo = anio ?? anios[0] ?? hoyDate.getUTCFullYear();
-
-  function elegirPeriodo(valor: string) {
-    if (valor === "todo") {
-      setModo("todo");
-      return;
-    }
-    if (valor === "rango") {
-      setModo("rango");
-      if (!rangoDesde && !rangoHasta && licencias.length > 0) {
-        const fechas = licencias.map((l) => l.fechaInicio.slice(0, 10)).sort();
-        setRangoDesde(fechas[0]);
-        setRangoHasta(fechas[fechas.length - 1]);
-      }
-      return;
-    }
-    setModo("anio");
-    setAnio(Number(valor));
-  }
-
-  const licenciasPeriodo = useMemo(() => {
-    if (modo === "anio") {
-      return licencias.filter((l) => new Date(l.fechaInicio).getUTCFullYear() === anioActivo);
-    }
-    if (modo === "rango") {
-      if (!rangoDesde || !rangoHasta) return [];
-      return licencias.filter((l) => {
-        const f = l.fechaInicio.slice(0, 10);
-        return f >= rangoDesde && f <= rangoHasta;
-      });
-    }
-    return licencias;
-  }, [licencias, modo, anioActivo, rangoDesde, rangoHasta]);
-
-  const licenciasFiltradas = useMemo(
-    () => (turnoFiltro === "todos" ? licenciasPeriodo : licenciasPeriodo.filter((l) => l.agente.turno === turnoFiltro)),
-    [licenciasPeriodo, turnoFiltro]
-  );
 
   const ejes: Eje[] = useMemo(() => {
     const porCausa = new Map<CausaAusentismo, { cantidad: number; ids: string[] }>(
       CAUSAS_AUSENTISMO.map((c) => [c, { cantidad: 0, ids: [] }])
     );
-    for (const l of licenciasFiltradas) {
+    for (const l of licencias) {
       const entrada = porCausa.get(causaDeLicencia(l.tipo))!;
       entrada.cantidad += 1;
       if (!entrada.ids.includes(l.agenteId)) entrada.ids.push(l.agenteId);
     }
     return CAUSAS_AUSENTISMO.map((c) => ({ causa: c, ...porCausa.get(c)! }));
-  }, [licenciasFiltradas]);
+  }, [licencias]);
 
   const totalCantidad = ejes.reduce((acc, e) => acc + e.cantidad, 0);
   const totalCantidadAnimado = useCountUp(totalCantidad, 0, modoExport ? 0 : 1600);
@@ -287,69 +227,18 @@ export default function CausasRadarCard({
     if (e.ids.length > 0) router.push(`/personal?${buildQueryString({ ids: e.ids.join(",") })}`);
   }
 
-  if (licencias.length === 0) {
-    return (
-      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
-        <h3 className="text-sm font-semibold text-[var(--c-text)] mb-1">Tipos de licencia más frecuentes</h3>
-        <p className="text-[12.5px] text-[var(--c-text-faint)]">Todavía no hay licencias aprobadas cargadas.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5 flex flex-col h-full">
       <div className="flex items-center justify-between mb-1 gap-2.5 flex-wrap">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Tipos de licencia más frecuentes</h3>
         {!modoExport && (
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <div className="relative">
-              <select
-                value={modo === "anio" ? String(anioActivo) : modo}
-                onChange={(e) => elegirPeriodo(e.target.value)}
-                className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
-              >
-                <option value="todo">Todo el historial</option>
-                {anios.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-                <option value="rango">Seleccionar período…</option>
-              </select>
-              {modo === "rango" && (
-                <div className="absolute right-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
-                  <input
-                    type="date"
-                    value={rangoDesde}
-                    onChange={(e) => setRangoDesde(e.target.value)}
-                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                  />
-                  <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
-                  <input
-                    type="date"
-                    value={rangoHasta}
-                    onChange={(e) => setRangoHasta(e.target.value)}
-                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                  />
-                </div>
-              )}
-            </div>
-            <select
-              value={turnoFiltro}
-              onChange={(e) => setTurnoFiltro(e.target.value as TurnoFiltro)}
-              className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
-            >
-              <option value="todos">Todos los turnos</option>
-              {TURNOS_FILTRO.map((t) => (
-                <option key={t} value={t}>Turno {t}</option>
-              ))}
-            </select>
-            <GraficoDescargable nombreArchivo="tipos-de-licencia-mas-frecuentes">
-              {(t) => <CausasRadarCard licencias={licencias} hoy={hoy} modoExport tema={t} />}
-            </GraficoDescargable>
-          </div>
+          <GraficoDescargable nombreArchivo="tipos-de-licencia-mas-frecuentes">
+            {(t) => <CausasRadarCard licencias={licencias} modoExport tema={t} />}
+          </GraficoDescargable>
         )}
       </div>
       <p className="text-[11px] text-[var(--c-text-faint)] mb-3.5">
-        Cantidad de licencias por tipo, sin licencia ordinaria (vacaciones) — <b className="text-[var(--c-text-muted)] tabular-nums">{totalCantidadAnimado}</b> en total{turnoFiltro !== "todos" && <> del turno <b className="text-[var(--c-text-muted)]">{turnoFiltro}</b></>}.
+        Cantidad de licencias por tipo, sin licencia ordinaria (vacaciones) — <b className="text-[var(--c-text-muted)] tabular-nums">{totalCantidadAnimado}</b> en total.
       </p>
 
       <div className="flex-1 flex items-center justify-center">

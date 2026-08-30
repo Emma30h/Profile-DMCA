@@ -11,7 +11,6 @@ import {
   type LicenciaAusentismoRow,
 } from "@/lib/ausentismo";
 import { buildQueryString } from "../personal/queryString";
-import InformeAusentismo from "./InformeAusentismo";
 import { ButtonSpinner } from "@/components/ui/Spinner";
 import { useEntrada } from "@/lib/useEntrada";
 import { useCountUp } from "@/lib/useCountUp";
@@ -32,12 +31,6 @@ const GAP_COL = 2; // gap-0.5 entre columnas
 const PITCH_COL = ANCHO_COL + GAP_COL;
 const VENTANA_TENDENCIA = 3; // promedio móvil de 3 meses
 const SEGMENTOS_GRILLA = 4; // 5 líneas de referencia (0, 25, 50, 75, 100% de escalaMax)
-
-type ModoPeriodo = "todo" | "anio" | "rango";
-
-function primerDiaMes(fecha: Date): Date {
-  return new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), 1));
-}
 
 // Promedio móvil de ventana fija sobre el total mensual (no por causa):
 // sigue de cerca los últimos meses en vez de una recta de regresión sobre
@@ -72,72 +65,25 @@ function descargarBlob(blob: Blob, filename: string) {
 
 export default function AusentismoCard({
   licencias,
-  hoy,
+  desde,
+  hasta,
   tema = TEMA_INSTITUCIONAL,
   modoExport = false,
+  mostrarTendenciaInicial = false,
 }: {
   licencias: LicenciaAusentismoRow[];
-  hoy: string;
+  // Resueltas por EstadisticasAusentismo.tsx (rangoMesesPeriodo): acá hace falta un rango de meses continuo, no alcanza con recibir `licencias` ya recortadas.
+  desde: Date;
+  hasta: Date;
   tema?: ChartTheme;
   modoExport?: boolean;
+  // Solo se usa al abrir "Descargar como imagen": la vista exportada tiene
+  // que salir igual a lo que el usuario está viendo (con o sin la línea de
+  // tendencia), no reiniciada — ver el self-render dentro de
+  // GraficoDescargable más abajo.
+  mostrarTendenciaInicial?: boolean;
 }) {
   const router = useRouter();
-  // "hoy" viene del servidor (mismo snapshot que usó el resto del dashboard
-  // para armar las stats), no de un `new Date()` acá — evita que el rango
-  // "Todo el historial" difiera entre el render de servidor y la
-  // hidratación si el reloj cruza medianoche justo en el medio.
-  const hoyDate = useMemo(() => new Date(hoy), [hoy]);
-
-  const anios = useMemo(() => {
-    const set = new Set(licencias.map((l) => new Date(l.fechaInicio).getUTCFullYear()));
-    return [...set].sort((a, b) => b - a);
-  }, [licencias]);
-
-  const [modo, setModo] = useState<ModoPeriodo>("todo");
-  const [anio, setAnio] = useState<number | null>(null);
-  const [rangoDesde, setRangoDesde] = useState("");
-  const [rangoHasta, setRangoHasta] = useState("");
-  const anioActivo = anio ?? anios[0] ?? hoyDate.getUTCFullYear();
-
-  function elegirPeriodo(valor: string) {
-    if (valor === "todo") {
-      setModo("todo");
-      return;
-    }
-    if (valor === "rango") {
-      setModo("rango");
-      // Precarga el rango con el historial completo, para no arrancar con
-      // los dos campos vacíos (y el gráfico vacío) hasta que el usuario
-      // toque algo — mismo criterio que EstadisticasLicencias.tsx.
-      if (!rangoDesde && !rangoHasta && licencias.length > 0) {
-        const fechas = licencias.map((l) => l.fechaInicio.slice(0, 10)).sort();
-        setRangoDesde(fechas[0]);
-        setRangoHasta(fechas[fechas.length - 1]);
-      }
-      return;
-    }
-    setModo("anio");
-    setAnio(Number(valor));
-  }
-
-  const { desde, hasta } = useMemo(() => {
-    if (modo === "anio") {
-      return { desde: new Date(Date.UTC(anioActivo, 0, 1)), hasta: new Date(Date.UTC(anioActivo, 11, 1)) };
-    }
-    if (modo === "rango") {
-      // Rango incompleto (los dos campos todavía vacíos): desde > hasta a
-      // propósito, calcularAusentismoMensual lo resuelve como "sin meses".
-      if (!rangoDesde || !rangoHasta) return { desde: new Date(1), hasta: new Date(0) };
-      return { desde: primerDiaMes(new Date(rangoDesde)), hasta: primerDiaMes(new Date(rangoHasta)) };
-    }
-    // "todo": desde el mes de la licencia más antigua hasta el mes de hoy.
-    if (licencias.length === 0) return { desde: hoyDate, hasta: hoyDate };
-    const minFecha = licencias.reduce(
-      (min, l) => (l.fechaInicio < min ? l.fechaInicio : min),
-      licencias[0].fechaInicio
-    );
-    return { desde: primerDiaMes(new Date(minFecha)), hasta: primerDiaMes(hoyDate) };
-  }, [modo, anioActivo, rangoDesde, rangoHasta, licencias, hoyDate]);
 
   // Memoizado (no recalculado en cada render): onPointerMove del tooltip
   // dispara un setState por cada movimiento del mouse sobre el gráfico, y
@@ -146,7 +92,7 @@ export default function AusentismoCard({
   const ausentismo = useMemo(() => calcularAusentismoMensual(desde, hasta, licencias), [desde, hasta, licencias]);
 
   const [comoTabla, setComoTabla] = useState(false);
-  const [mostrarTendencia, setMostrarTendencia] = useState(false);
+  const [mostrarTendencia, setMostrarTendencia] = useState(mostrarTendenciaInicial);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const [exportAbierto, setExportAbierto] = useState(false);
@@ -255,59 +201,12 @@ export default function AusentismoCard({
     }
   }
 
-  function imprimir() {
-    setExportAbierto(false);
-    window.print();
-  }
-
-  // Distinto de "sin datos en el período elegido" (ver más abajo): acá no
-  // hay NADA cargado en todo el sistema, así que ni el selector de período
-  // tiene sentido (no hay años entre los que elegir).
-  if (licencias.length === 0) {
-    return (
-      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
-        <h3 className="text-sm font-semibold text-[var(--c-text)] mb-1">Ausentismo por causa</h3>
-        <p className="text-[12.5px] text-[var(--c-text-faint)]">Todavía no hay licencias aprobadas cargadas.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
       <div className="flex items-center justify-between mb-1 gap-2.5 flex-wrap">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Ausentismo por causa</h3>
         {!modoExport && (
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            <div className="relative">
-              <select
-                value={modo === "anio" ? String(anioActivo) : modo}
-                onChange={(e) => elegirPeriodo(e.target.value)}
-                className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
-              >
-                <option value="todo">Todo el historial</option>
-                {anios.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-                <option value="rango">Seleccionar período…</option>
-              </select>
-              {modo === "rango" && (
-                <div className="absolute left-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
-                  <input
-                    type="date"
-                    value={rangoDesde}
-                    onChange={(e) => setRangoDesde(e.target.value)}
-                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                  />
-                  <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
-                  <input
-                    type="date"
-                    value={rangoHasta}
-                    onChange={(e) => setRangoHasta(e.target.value)}
-                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                  />
-                </div>
-              )}
-            </div>
             {!comoTabla && (
               <button
                 type="button"
@@ -347,14 +246,6 @@ export default function AusentismoCard({
                 <div className="absolute right-0 top-full mt-1 z-30 w-44 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] py-1 shadow-lg shadow-black/40">
                   <button
                     type="button"
-                    onClick={imprimir}
-                    title='Antes de imprimir, desmarcá "Encabezados y pies de página" en el diálogo del navegador. Para PDF, elegí "Guardar como PDF" como destino.'
-                    className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
-                  >
-                    🖨️ Imprimir / PDF
-                  </button>
-                  <button
-                    type="button"
                     onClick={descargarCsv}
                     className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
                   >
@@ -371,7 +262,16 @@ export default function AusentismoCard({
               )}
             </div>
             <GraficoDescargable nombreArchivo="ausentismo-por-causa">
-              {(t) => <AusentismoCard licencias={licencias} hoy={hoy} modoExport tema={t} />}
+              {(t) => (
+                <AusentismoCard
+                  licencias={licencias}
+                  desde={desde}
+                  hasta={hasta}
+                  modoExport
+                  tema={t}
+                  mostrarTendenciaInicial={mostrarTendencia}
+                />
+              )}
             </GraficoDescargable>
           </div>
         )}
@@ -621,18 +521,6 @@ export default function AusentismoCard({
             </div>
           )}
         </div>
-      )}
-
-      {!modoExport && (
-        <InformeAusentismo
-          meses={meses}
-          causasPresentes={causasPresentes}
-          totalPorCausa={totalPorCausa}
-          totalCantidad={totalCantidad}
-          picoIndex={picoIndex}
-          escalaMax={escalaMax}
-          labelDeCausa={labelDeCausa}
-        />
       )}
         </>
       )}

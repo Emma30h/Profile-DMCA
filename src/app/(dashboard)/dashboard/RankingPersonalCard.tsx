@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import AgenteAvatar from "@/components/AgenteAvatar";
 import {
   CAUSAS_AUSENTISMO,
+  calcularRankingPersonal,
   causaDeLicencia,
   colorDeCausa,
   labelDeCausa,
   type CausaAusentismo,
+  type FilaPersonalRanking,
   type LicenciaAusentismoRow,
 } from "@/lib/ausentismo";
 import { useEntrada } from "@/lib/useEntrada";
@@ -17,25 +19,13 @@ import { useReplayOnChange } from "@/lib/useReplayOnChange";
 import { TEMA_INSTITUCIONAL, type ChartTheme } from "@/lib/chartThemes";
 import GraficoDescargable from "@/components/charts/GraficoDescargable";
 
-type ModoPeriodo = "todo" | "anio" | "rango";
 type Metrica = "licencias" | "dias";
 type Vista = "general" | "porTipo";
-
-interface FilaPersonal {
-  agenteId: string;
-  nombreCompleto: string;
-  fotoUrl: string | null;
-  sexo: string | null;
-  porCausaCantidad: Record<CausaAusentismo, number>;
-  porCausaDias: Record<CausaAusentismo, number>;
-  totalCantidad: number;
-  totalDias: number;
-}
 
 interface Tooltip {
   x: number;
   y: number;
-  fila: FilaPersonal;
+  fila: FilaPersonalRanking;
 }
 
 const ALTURA_FILA = 30;
@@ -48,40 +38,48 @@ const VISTA_LABEL: Record<Vista, string> = { general: "General", porTipo: "Por t
 
 export default function RankingPersonalCard({
   licencias,
-  hoy,
   tema = TEMA_INSTITUCIONAL,
   modoExport = false,
+  metricaInicial = "licencias",
+  vistaInicial = "porTipo",
+  causasSeleccionadasInicial,
 }: {
   licencias: LicenciaAusentismoRow[];
-  hoy: string;
   tema?: ChartTheme;
   modoExport?: boolean;
+  // Solo se usan al abrir "Descargar como imagen": la vista exportada tiene
+  // que salir igual a lo que el usuario está viendo (métrica, vista y
+  // filtro de causas), no reiniciada a los valores por defecto — ver el
+  // self-render dentro de GraficoDescargable más abajo.
+  metricaInicial?: Metrica;
+  vistaInicial?: Vista;
+  causasSeleccionadasInicial?: Set<CausaAusentismo>;
 }) {
   const router = useRouter();
   // Color único para la vista "general" (no representa ninguna causa
   // puntual): el accent del tema elegido, para que se lea como "total
   // agregado" y no se confunda con el color de alguna causa específica.
   const colorGeneral = tema.accent;
-  const hoyDate = useMemo(() => new Date(hoy), [hoy]);
 
-  const anios = useMemo(() => {
-    const set = new Set(licencias.map((l) => new Date(l.fechaInicio).getUTCFullYear()));
-    return [...set].sort((a, b) => b - a);
-  }, [licencias]);
-
-  const [modo, setModo] = useState<ModoPeriodo>("todo");
-  const [anio, setAnio] = useState<number | null>(null);
-  const [rangoDesde, setRangoDesde] = useState("");
-  const [rangoHasta, setRangoHasta] = useState("");
-  const [metrica, setMetrica] = useState<Metrica>("licencias");
-  const [vista, setVista] = useState<Vista>("porTipo");
+  const [metrica, setMetrica] = useState<Metrica>(metricaInicial);
+  const [vista, setVista] = useState<Vista>(vistaInicial);
   const [causasSeleccionadas, setCausasSeleccionadas] = useState<Set<CausaAusentismo>>(
-    () => new Set(CAUSAS_AUSENTISMO)
+    () => causasSeleccionadasInicial ?? new Set(CAUSAS_AUSENTISMO)
   );
   const [filtroAbierto, setFiltroAbierto] = useState(false);
   const filtroRef = useRef<HTMLDivElement>(null);
   const [cantidadMostrada, setCantidadMostrada] = useState(PASO_MOSTRAR);
-  const anioActivo = anio ?? anios[0] ?? hoyDate.getUTCFullYear();
+  // El filtro general (período/turno/sexo) vive en EstadisticasAusentismo.tsx
+  // y ya llega aplicado en `licencias` — sin esto, cambiar de período desde
+  // la barra general dejaría la paginación de "Mostrar N más" en una página
+  // que puede ni siquiera existir en el ranking nuevo. Ajuste de estado
+  // durante el render (no en un efecto): patrón recomendado por React para
+  // resetear estado derivado cuando cambia una prop.
+  const [licenciasPrevias, setLicenciasPrevias] = useState(licencias);
+  if (licencias !== licenciasPrevias) {
+    setLicenciasPrevias(licencias);
+    setCantidadMostrada(PASO_MOSTRAR);
+  }
 
   useEffect(() => {
     if (!filtroAbierto) return;
@@ -107,78 +105,22 @@ export default function RankingPersonalCard({
     });
   }
 
-  function elegirPeriodo(valor: string) {
-    setCantidadMostrada(PASO_MOSTRAR);
-    if (valor === "todo") {
-      setModo("todo");
-      return;
-    }
-    if (valor === "rango") {
-      setModo("rango");
-      if (!rangoDesde && !rangoHasta && licencias.length > 0) {
-        const fechas = licencias.map((l) => l.fechaInicio.slice(0, 10)).sort();
-        setRangoDesde(fechas[0]);
-        setRangoHasta(fechas[fechas.length - 1]);
-      }
-      return;
-    }
-    setModo("anio");
-    setAnio(Number(valor));
-  }
-
-  const licenciasPeriodo = useMemo(() => {
-    if (modo === "anio") {
-      return licencias.filter((l) => new Date(l.fechaInicio).getUTCFullYear() === anioActivo);
-    }
-    if (modo === "rango") {
-      if (!rangoDesde || !rangoHasta) return [];
-      return licencias.filter((l) => {
-        const f = l.fechaInicio.slice(0, 10);
-        return f >= rangoDesde && f <= rangoHasta;
-      });
-    }
-    return licencias;
-  }, [licencias, modo, anioActivo, rangoDesde, rangoHasta]);
-
   // Filtro de causas: aplicado sobre las licencias crudas (no sobre las
   // filas ya agrupadas) — así un agente cuya única licencia sea, por
   // ejemplo, Maternidad, directamente desaparece del ranking cuando esa
   // causa se destilda, en vez de quedar con una fila en 0.
   const licenciasFiltradas = useMemo(
-    () => licenciasPeriodo.filter((l) => causasSeleccionadas.has(causaDeLicencia(l.tipo))),
-    [licenciasPeriodo, causasSeleccionadas]
+    () => licencias.filter((l) => causasSeleccionadas.has(causaDeLicencia(l.tipo))),
+    [licencias, causasSeleccionadas]
   );
 
   // Una fila por agente (no por causa): la barra de cada fila queda
   // apilada por causa, mismo lenguaje visual que "Ausentismo por causa" —
   // acá el eje es "quién", no "cuándo".
-  const filas: FilaPersonal[] = useMemo(() => {
-    const porAgente = new Map<string, FilaPersonal>();
-    for (const l of licenciasFiltradas) {
-      let fila = porAgente.get(l.agenteId);
-      if (!fila) {
-        fila = {
-          agenteId: l.agenteId,
-          nombreCompleto: `${l.agente.apellidos}, ${l.agente.nombres}`,
-          fotoUrl: l.agente.fotoUrl,
-          sexo: l.agente.sexo,
-          porCausaCantidad: Object.fromEntries(CAUSAS_AUSENTISMO.map((c) => [c, 0])) as Record<CausaAusentismo, number>,
-          porCausaDias: Object.fromEntries(CAUSAS_AUSENTISMO.map((c) => [c, 0])) as Record<CausaAusentismo, number>,
-          totalCantidad: 0,
-          totalDias: 0,
-        };
-        porAgente.set(l.agenteId, fila);
-      }
-      const causa = causaDeLicencia(l.tipo);
-      fila.porCausaCantidad[causa] += 1;
-      fila.porCausaDias[causa] += l.diasHabiles;
-      fila.totalCantidad += 1;
-      fila.totalDias += l.diasHabiles;
-    }
-    return [...porAgente.values()].sort((a, b) =>
-      metrica === "licencias" ? b.totalCantidad - a.totalCantidad : b.totalDias - a.totalDias
-    );
-  }, [licenciasFiltradas, metrica]);
+  const filas: FilaPersonalRanking[] = useMemo(
+    () => calcularRankingPersonal(licenciasFiltradas, metrica),
+    [licenciasFiltradas, metrica]
+  );
 
   const picoValor = Math.max(1, ...filas.map((f) => (metrica === "licencias" ? f.totalCantidad : f.totalDias)));
   const escalaMax = Math.max(5, Math.ceil(picoValor / 5) * 5);
@@ -220,51 +162,12 @@ export default function RankingPersonalCard({
     router.push(`/personal/${agenteId}`);
   }
 
-  if (licencias.length === 0) {
-    return (
-      <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
-        <h3 className="text-sm font-semibold text-[var(--c-text)] mb-1">Personal con más licencias</h3>
-        <p className="text-[12.5px] text-[var(--c-text-faint)]">Todavía no hay licencias aprobadas cargadas.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] p-4.5">
       <div className="flex items-center justify-between mb-1 gap-2.5 flex-wrap">
         <h3 className="text-sm font-semibold text-[var(--c-text)]">Personal con más licencias</h3>
         {!modoExport && (
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            <div className="relative">
-              <select
-                value={modo === "anio" ? String(anioActivo) : modo}
-                onChange={(e) => elegirPeriodo(e.target.value)}
-                className="text-[11px] font-semibold text-[var(--c-text-muted)] bg-[var(--c-bg-elev)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)]"
-              >
-                <option value="todo">Todo el historial</option>
-                {anios.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-                <option value="rango">Seleccionar período…</option>
-              </select>
-              {modo === "rango" && (
-                <div className="absolute right-0 top-full mt-1 z-30 flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-1.5 shadow-lg shadow-black/40 whitespace-nowrap">
-                  <input
-                    type="date"
-                    value={rangoDesde}
-                    onChange={(e) => setRangoDesde(e.target.value)}
-                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                  />
-                  <span className="text-[var(--c-text-faint)] text-[11px]">→</span>
-                  <input
-                    type="date"
-                    value={rangoHasta}
-                    onChange={(e) => setRangoHasta(e.target.value)}
-                    className="rounded-md border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-2 py-1 text-[11px] text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] [color-scheme:dark]"
-                  />
-                </div>
-              )}
-            </div>
             <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
               {(["porTipo", "general"] as const).map((v) => (
                 <button
@@ -354,7 +257,16 @@ export default function RankingPersonalCard({
               )}
             </div>
             <GraficoDescargable nombreArchivo="personal-con-mas-licencias">
-              {(t) => <RankingPersonalCard licencias={licencias} hoy={hoy} modoExport tema={t} />}
+              {(t) => (
+                <RankingPersonalCard
+                  licencias={licencias}
+                  modoExport
+                  tema={t}
+                  metricaInicial={metrica}
+                  vistaInicial={vista}
+                  causasSeleccionadasInicial={causasSeleccionadas}
+                />
+              )}
             </GraficoDescargable>
           </div>
         )}
