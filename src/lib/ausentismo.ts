@@ -136,12 +136,15 @@ export interface LicenciaAusentismoRow {
   fechaInicio: string;
   agenteId: string;
   diasHabiles: number;
+  motivo: string | null;
   agente: {
     nombres: string;
     apellidos: string;
     fotoUrl: string | null;
     sexo: string | null;
     turno: string | null;
+    estado: string;
+    tipoPersonal: string;
   };
 }
 
@@ -342,6 +345,246 @@ export function calcularPorTurno(licencias: LicenciaAusentismoRow[]): EjeTurno[]
     if (!entrada.ids.includes(l.agenteId)) entrada.ids.push(l.agenteId);
   }
   return TURNOS_ROTATIVOS.map((t) => ({ turno: t, ...porTurno.get(t)! }));
+}
+
+// Ranking de diagnósticos de carpeta médica. El campo `motivo` de una
+// carpeta médica se carga como "Diagnostico: <texto libre>" (con tipeos
+// ocasionales del prefijo, ej. "Diagnostocp:" — ver la convención establecida
+// durante la carga masiva de licencias históricas), a mano y sin un catálogo
+// cerrado, así que el mismo diagnóstico puede terminar escrito con distinta
+// mayúscula/acentuación entre una carga y otra (p. ej. "SÍNDROME GRIPAL" vs.
+// "sindrome gripal"). `clave` normaliza eso (acentos/mayúsculas/espacios) Y
+// además saca calificativos de severidad/cronicidad (a pedido explícito del
+// usuario: "Gastritis" y "Gastritis Aguda" deben contar como el mismo
+// diagnóstico) — pero NO calificativos que describen tipo/causa en vez de
+// severidad (ej. "hemorrágica", "viral"), esos sí distinguen diagnósticos
+// realmente distintos y quedan separados a propósito.
+const PREFIJO_DIAGNOSTICO = /^diagn\S*:\s*/i;
+
+const PALABRAS_SEVERIDAD = new Set([
+  "agudo", "aguda", "agudos", "agudas",
+  "cronico", "cronica", "cronicos", "cronicas",
+  "severo", "severa", "severos", "severas",
+  "leve", "leves",
+  "moderado", "moderada", "moderados", "moderadas",
+  "grave", "graves",
+]);
+
+// Sinónimos puntuales: mismo diagnóstico nombrado con otra palabra completa
+// (no solo otra grafía/acento — para eso ya alcanza con sacar acentos — ni
+// un calificativo de más — para eso está PALABRAS_SEVERIDAD). Curado a mano
+// diagnóstico por diagnóstico a pedido del usuario, revisando el listado
+// real: NO es un fuzzy-match automático por similitud de texto, para no
+// arriesgarse a fusionar diagnósticos que solo "suenan parecido" pero son
+// clínicamente distintos (ver el criterio ya establecido para "hemorrágica"/
+// "alta" — esos SÍ quedan separados porque marcan una complicación o una
+// ubicación anatómica distinta, no solo la causa). "Viral" en cambio sí se
+// unifica a pedido del usuario: solo indica el agente causal, no cambia el
+// cuadro en sí. Las claves ya pasaron por el resto de la normalización (sin
+// acentos/mayúsculas/severidad) antes de llegar acá.
+const SINONIMOS_DIAGNOSTICO: Record<string, string> = {
+  // Cuadro gripal / gripe: mismo cuadro, muchas formas de nombrarlo —
+  // algunas con tipeo de "sindrome" (sinfrome/sintondrome), o agregando
+  // "y fiebre" (la fiebre ya es parte esperada del cuadro gripal).
+  gripe: "sindrome gripal",
+  "cuadro gripal": "sindrome gripal",
+  "estado gripal": "sindrome gripal",
+  "estado gripal y fiebre": "sindrome gripal",
+  "sintoma gripal": "sindrome gripal",
+  "sinfrome gripal": "sindrome gripal",
+  "sintondrome gripal": "sindrome gripal",
+  "enfermedad tipo influenza": "sindrome gripal",
+  // Migraña
+  "cuadro de migrana": "migrana",
+  "cefalea migranosa": "migrana",
+  // ITU es la sigla de "Infección de Tracto Urinario" — mismo diagnóstico.
+  "itu infeccion de tracto urinario": "infeccion urinaria",
+  // Faringoamigdalitis escrito como sus dos partes por separado, o con tipeo.
+  "faringitis amigdalitis": "faringoamigdalitis",
+  farinjoamigdalitis: "faringoamigdalitis",
+  // "Viral" solo aclara la causa, no es un cuadro distinto.
+  "faringitis viral": "faringitis",
+  "conjuntivitis viral": "conjuntivitis",
+  // Lumbalgia = dolor lumbar, mismo concepto con otra redacción.
+  "dolor lumbar": "lumbalgia",
+  // "Colitis" ya es intestinal por definición — "intestinal" acá es
+  // redundante, no un calificativo que agregue información nueva.
+  "colitis intestinal": "colitis",
+  // "Cuadro de X"/"Trastorno de X" son la misma redacción "por bloque" ya
+  // vista en "cuadro gripal"/"cuadro de migraña" — el diagnóstico de fondo
+  // es el mismo, solo cambia el envoltorio clínico/burocrático.
+  "cuadro de bronquitis": "bronquitis",
+  "trastorno de ansiedad": "ansiedad",
+  // Extracción dental: la pieza puntual (muela, molar inferior) no cambia
+  // el tipo de ausencia, a pedido del usuario.
+  "extraccion de muela": "extraccion dentaria",
+  "extracion molar inferio": "extraccion dentaria",
+  // Fiebre de menor grado — mismo criterio que agudo/leve/grave: la
+  // intensidad no cambia el diagnóstico de base.
+  febricula: "sindrome febril",
+  // Tipeo (falta la "a" de "ciatalgia").
+  "lumbocitalgia izquierda": "lumbociatalgia",
+  // "Bronquitis espasmódica" es el nombre clínico de "bronquitis con
+  // broncoespasmo" — mismo cuadro, una es el término médico y la otra la
+  // descripción en palabras sueltas.
+  "bronquitis y broncoespasmo": "bronquitis espasmodica",
+  // Exacerbación asmática = crisis asmática: mismo término (un brote de
+  // asma), no dos cuadros distintos.
+  "exacerbacion asmatica": "crisis asmatica",
+  // "Post quirúrgico" / "Postcirugía" son el mismo concepto sin especificar
+  // qué cirugía — a diferencia de "Postcirugía dental" o "Post Operatorio
+  // Septumplastia", que sí nombran una cirugía puntual y quedan separados.
+  "post quirurgico": "postcirugia",
+  // Mismo diagnóstico (osteocondritis rotuliana grado 2) documentado con
+  // cada vez más detalle (lado, tratamiento) en licencias sucesivas — el
+  // grado y la localización rotuliana ya identifican el mismo cuadro.
+  "ostecondritis rotuliana grado 2 en rodilla derecha": "ostecondritis rotuliana grado 2",
+  "ostecondritis rotuliana grado 2 en rodilla derecha tratamiento con infiltracion": "ostecondritis rotuliana grado 2",
+  // Misma rodilla, misma lesión de cartílago rotuliano redactada dos veces
+  // distinto ("condral" / "condrítica"), a pedido del usuario.
+  "lesion condritica rotuliana de rodilla derecha": "lesion condral rotuliana rodilla derecha",
+  // Mismo motivo (embarazo) con o sin la semana de gestación aclarada.
+  "embarazo de 19 semanas": "embarazo",
+  // Tipeos puntuales detectados en la carga real.
+  cafalea: "cefalea",
+  gastroeteritis: "gastroenteritis",
+  umbalgia: "lumbalgia",
+  "nauceas y vomito": "nauseas y vomito",
+};
+
+function normalizarDiagnostico(texto: string): string {
+  const sinAcentos = texto
+    .normalize("NFD")
+    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "") // saca acentos para agrupar variantes de escritura
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " "); // puntuación → espacio, para no pegar "aguda." a la palabra siguiente
+  const base = sinAcentos
+    .split(/\s+/)
+    .filter((palabra) => palabra && !PALABRAS_SEVERIDAD.has(palabra))
+    .join(" ")
+    .trim();
+  return SINONIMOS_DIAGNOSTICO[base] ?? base;
+}
+
+// Palabras de severidad + "viral" (único calificativo de causa que también
+// se unifica, ver SINONIMOS_DIAGNOSTICO) aplicadas al texto ORIGINAL
+// (conserva mayúsculas/acentos de lo que quede) — para que la etiqueta que
+// se muestra en pantalla nunca diga "Aguda" ni "Viral" aunque esa haya sido
+// la variante de escritura más repetida del grupo: el grupo ya mezcla casos
+// con y sin ese calificativo, así que mostrarlo en algunos casos sí y en
+// otros no sería inconsistente.
+const PALABRAS_OCULTAR_EN_ETIQUETA = new Set([...PALABRAS_SEVERIDAD, "viral", "virales"]);
+
+function quitarPalabrasSeveridad(texto: string): string {
+  const limpio = texto
+    .split(/\s+/)
+    .filter((palabra) => {
+      const clave = palabra
+        .normalize("NFD")
+        .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+      return !PALABRAS_OCULTAR_EN_ETIQUETA.has(clave);
+    })
+    .join(" ")
+    .trim();
+  return limpio || texto;
+}
+
+// Clave normalizada del diagnóstico de una licencia (null si no es carpeta
+// médica o no tiene un motivo utilizable) — extraída aparte para que
+// calcularRankingDiagnosticos y calcularEstacionalidadDiagnostico apliquen
+// exactamente el mismo criterio de agrupación sin duplicarlo.
+function claveDiagnostico(l: LicenciaAusentismoRow): string | null {
+  if (l.tipo !== "CARPETA_MEDICA" || !l.motivo) return null;
+  const texto = l.motivo.replace(PREFIJO_DIAGNOSTICO, "").trim();
+  if (!texto) return null;
+  const clave = normalizarDiagnostico(texto);
+  return clave || null;
+}
+
+export interface FilaDiagnostico {
+  clave: string; // normalizado (sin acentos/mayúsculas) — identidad del grupo
+  etiqueta: string; // variante de escritura más repetida del grupo, sin palabras de severidad (ver quitarPalabrasSeveridad) — no se reinventa capitalización del resto
+  cantidad: number;
+  ids: string[];
+}
+
+export function calcularRankingDiagnosticos(licencias: LicenciaAusentismoRow[]): FilaDiagnostico[] {
+  const grupos = new Map<string, { cantidad: number; ids: string[]; variantes: Map<string, number> }>();
+  for (const l of licencias) {
+    const clave = claveDiagnostico(l);
+    if (!clave || !l.motivo) continue;
+    const texto = l.motivo.replace(PREFIJO_DIAGNOSTICO, "").trim();
+    let grupo = grupos.get(clave);
+    if (!grupo) {
+      grupo = { cantidad: 0, ids: [], variantes: new Map() };
+      grupos.set(clave, grupo);
+    }
+    grupo.cantidad += 1;
+    if (!grupo.ids.includes(l.agenteId)) grupo.ids.push(l.agenteId);
+    grupo.variantes.set(texto, (grupo.variantes.get(texto) ?? 0) + 1);
+  }
+  return [...grupos.entries()]
+    .map(([clave, g]) => {
+      let etiqueta = clave;
+      let mejorConteo = 0;
+      for (const [variante, conteo] of g.variantes) {
+        if (conteo > mejorConteo) {
+          etiqueta = variante;
+          mejorConteo = conteo;
+        }
+      }
+      return { clave, etiqueta: quitarPalabrasSeveridad(etiqueta), cantidad: g.cantidad, ids: g.ids };
+    })
+    .sort((a, b) => b.cantidad - a.cantidad);
+}
+
+// Esqueleto de meses reales (cronológico, no cíclico) entre `desde` y
+// `hasta` — mismo criterio de etiquetado que calcularAusentismoMensual
+// (año en la primera columna y en cada enero), extraído aparte para que
+// EstacionalidadDiagnosticosCard.tsx arme UN solo eje de meses compartido
+// por todas las series que esté comparando.
+export interface MesEnRango {
+  key: string; // "2025-03"
+  label: string; // "mar" o "mar '25" en enero / primer mes de la serie
+  mesLargo: string; // "Marzo 2025"
+}
+
+export function mesesEntre(desde: Date, hasta: Date): MesEnRango[] {
+  const meses: MesEnRango[] = [];
+  if (desde > hasta) return meses;
+  const cursor = new Date(desde);
+  while (cursor <= hasta) {
+    const y = cursor.getUTCFullYear();
+    const m = cursor.getUTCMonth();
+    const esPrimeroOEnero = meses.length === 0 || m === 0;
+    meses.push({
+      key: claveMes(cursor),
+      label: esPrimeroOEnero ? `${MESES_CORTOS[m]} '${String(y).slice(2)}` : MESES_CORTOS[m],
+      mesLargo: `${MESES_LARGOS[m]} ${y}`,
+    });
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+  return meses;
+}
+
+// Cantidad de carpetas médicas de un diagnóstico puntual en cada mes real de
+// `meses` (línea de tiempo cronológica de verdad, ej. desde que arrancó el
+// programa en 2024 hasta hoy — NO un ciclo de 12 meses que junta todos los
+// eneros entre sí) — para que, comparando 2+ diagnósticos, todas las series
+// compartan el mismo eje y arranquen del mismo punto (mismo criterio que el
+// gráfico de referencia del usuario: Car y Transit miden ambos sobre el
+// mismo espectro de minutos, no uno por separado).
+export function calcularEstacionalidadDiagnostico(licencias: LicenciaAusentismoRow[], clave: string, meses: MesEnRango[]): number[] {
+  const indice = new Map(meses.map((m, i) => [m.key, i]));
+  const porMes = new Array(meses.length).fill(0) as number[];
+  for (const l of licencias) {
+    if (claveDiagnostico(l) !== clave) continue;
+    const i = indice.get(claveMes(new Date(l.fechaInicio)));
+    if (i !== undefined) porMes[i] += 1;
+  }
+  return porMes;
 }
 
 // Ausentismo normalizado por dotación — "licencias por cada 100 agentes

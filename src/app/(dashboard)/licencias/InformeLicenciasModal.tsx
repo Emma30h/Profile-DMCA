@@ -50,6 +50,34 @@ function calcularMediaExponencial(valores: number[], alpha: number): number[] {
   });
   return resultado;
 }
+// Rojo vivo fijo: la media exponencial es una referencia, no una serie de
+// la categórica del informe (que ya usa --inf-accent/--inf-accent-900 para
+// las barras), así que se identifica por color propio en vez de compartir
+// tono con los datos. Validado con validate_palette.js contra esos dos
+// colores de barra sobre fondo blanco (ΔE > 17 en ambos, lejos del piso).
+const COLOR_MEDIA_EXPONENCIAL = "#e2231a";
+
+// Catmull-Rom → Bézier (tensión uniforme, divisor /6): igual que la línea de
+// tendencia de AusentismoPorDotacionCard.tsx en el dashboard — con solo
+// unos pocos puntos mensuales, un polyline recto se ve quebrado en vez de
+// leerse como una media móvil lisa y continua.
+function curvaSuave(puntos: { x: number; y: number }[]): string {
+  if (puntos.length < 2) return "";
+  if (puntos.length === 2) return `M ${puntos[0].x},${puntos[0].y} L ${puntos[1].x},${puntos[1].y}`;
+  let d = `M ${puntos[0].x},${puntos[0].y}`;
+  for (let i = 0; i < puntos.length - 1; i++) {
+    const p0 = puntos[i - 1] ?? puntos[i];
+    const p1 = puntos[i];
+    const p2 = puntos[i + 1];
+    const p3 = puntos[i + 2] ?? p2;
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+  }
+  return d;
+}
 
 // "Causas más frecuentes": barra + cuadro de cantidad/% comparten estas tres
 // medidas para que sus filas queden alineadas (ver comentario en el render).
@@ -393,14 +421,16 @@ function InformeLicenciasTabla({
                       preserveAspectRatio="none"
                       style={{ position: "absolute", inset: 0, width: "100%", height: ALTURA_PLOT, pointerEvents: "none" }}
                     >
-                      <polyline
-                        points={mediaExponencial
-                          .map((v, i) => `${((i + 0.5) / meses.length) * 1000},${ALTURA_PLOT - (v / escalaMax) * ALTURA_PLOT}`)
-                          .join(" ")}
+                      <path
+                        d={curvaSuave(
+                          mediaExponencial.map((v, i) => ({
+                            x: ((i + 0.5) / meses.length) * 1000,
+                            y: ALTURA_PLOT - (v / escalaMax) * ALTURA_PLOT,
+                          }))
+                        )}
                         fill="none"
-                        stroke="var(--inf-accent-900)"
+                        stroke={COLOR_MEDIA_EXPONENCIAL}
                         strokeWidth={2.4}
-                        strokeDasharray="7 5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
@@ -415,7 +445,7 @@ function InformeLicenciasTabla({
                   </div>
                 </div>
               </div>
-              <p className="inf-fineprint">Línea punteada: media exponencial de la serie mensual.</p>
+              <p className="inf-fineprint">Línea roja: media exponencial de la serie mensual.</p>
             </div>
           )}
 

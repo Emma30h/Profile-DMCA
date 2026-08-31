@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import GestorFeriados from "./GestorFeriados";
 import EstadisticasAusentismo from "./EstadisticasAusentismo";
 import { normalizarBusqueda } from "@/lib/personalLabels";
-import { TIPO_LICENCIA_LABELS, LICENCIA_CATEGORIA_DE_TIPO, CATEGORIA_LICENCIA_INFO } from "@/types";
-import { Spinner } from "@/components/ui/Spinner";
+import { TIPO_LICENCIA_LABELS, LICENCIA_CATEGORIA_DE_TIPO, CATEGORIA_LICENCIA_INFO, TIPOS_PERSONAL } from "@/types";
+import { Spinner, ButtonSpinner } from "@/components/ui/Spinner";
 import type { LicenciaAusentismoRow } from "@/lib/ausentismo";
 import type { FlujoPersonalStats } from "../dashboard/stats";
 
@@ -23,6 +23,7 @@ interface AgenteResumen {
   nombres: string;
   apellidos: string;
   sector: string | null;
+  tipoPersonal: string;
 }
 
 interface LicenciaRow {
@@ -48,6 +49,39 @@ const TIPO_LICENCIA_BADGE: Record<string, string> = Object.fromEntries(
 const TIPO_LICENCIA_EMOJI: Record<string, string> = Object.fromEntries(
   Object.entries(LICENCIA_CATEGORIA_DE_TIPO).map(([tipo, categoria]) => [tipo, CATEGORIA_LICENCIA_INFO[categoria].emoji])
 );
+
+const ESTADO_LICENCIA_LABEL: Record<string, string> = {
+  PENDIENTE: "Pendiente",
+  APROBADA: "Aprobada",
+  RECHAZADA: "Rechazada",
+  CANCELADA: "Cancelada",
+};
+
+const TIPO_PERSONAL_LABEL: Record<string, string> = {
+  SEGURIDAD: "Seguridad",
+  TECNICO: "Técnico",
+  CIVIL_BECARIO: "Civil Becario",
+  CIVIL_POLICIAL: "Civil Policial",
+};
+
+function fechaHoy(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function csvEscape(v: string): string {
+  return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+
+function descargarBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", {
@@ -737,6 +771,7 @@ export default function VistaLicencias({
   esAdmin,
   feriados,
   ausentismoLicencias,
+  licenciasOrdinarias,
   hoy: hoyAusentismo,
   flujoPersonal,
 }: {
@@ -747,6 +782,7 @@ export default function VistaLicencias({
   esAdmin: boolean;
   feriados: Feriado[];
   ausentismoLicencias: LicenciaAusentismoRow[];
+  licenciasOrdinarias: LicenciaAusentismoRow[];
   hoy: string;
   flujoPersonal: FlujoPersonalStats;
 }) {
@@ -788,6 +824,7 @@ export default function VistaLicencias({
   // Filtros por columna (sólo se aplican con filtrosActivos = true)
   const [filtrosActivos, setFiltrosActivos] = useState(false);
   const [filtroSectores, setFiltroSectores] = useState<string[]>([]);
+  const [filtroTiposPersonal, setFiltroTiposPersonal] = useState<string[]>([]);
   const [filtroTipos, setFiltroTipos] = useState<string[]>([]);
   const [filtroPeriodoInicio, setFiltroPeriodoInicio] = useState("");
   const [filtroPeriodoFin, setFiltroPeriodoFin] = useState("");
@@ -795,9 +832,9 @@ export default function VistaLicencias({
   // Al abrir un filtro se muestra como modal centrado con fondo oscuro (ver
   // más abajo), no como desplegable pegado a la cabecera: así nunca queda
   // recortado ni mal posicionado por el scroll o el tamaño de la tabla.
-  const [columnaAbierta, setColumnaAbierta] = useState<"sector" | "tipo" | "periodo" | "agente" | null>(null);
+  const [columnaAbierta, setColumnaAbierta] = useState<"sector" | "tipoPersonal" | "tipo" | "periodo" | "agente" | null>(null);
 
-  function abrirColumna(columna: "sector" | "tipo" | "periodo" | "agente") {
+  function abrirColumna(columna: "sector" | "tipoPersonal" | "tipo" | "periodo" | "agente") {
     setColumnaAbierta((c) => (c === columna ? null : columna));
   }
 
@@ -807,6 +844,7 @@ export default function VistaLicencias({
       if (!activando) {
         // Al desactivar, se limpian del todo (no quedan filtros "ocultos" aplicados).
         setFiltroSectores([]);
+        setFiltroTiposPersonal([]);
         setFiltroTipos([]);
         setFiltroPeriodoInicio("");
         setFiltroPeriodoFin("");
@@ -821,6 +859,10 @@ export default function VistaLicencias({
     setFiltroSectores((prev) => (prev.includes(nombre) ? prev.filter((x) => x !== nombre) : [...prev, nombre]));
   }
 
+  function toggleFiltroTipoPersonal(valor: string) {
+    setFiltroTiposPersonal((prev) => (prev.includes(valor) ? prev.filter((x) => x !== valor) : [...prev, valor]));
+  }
+
   function toggleFiltroTipo(valor: string) {
     setFiltroTipos((prev) => (prev.includes(valor) ? prev.filter((x) => x !== valor) : [...prev, valor]));
   }
@@ -830,7 +872,7 @@ export default function VistaLicencias({
   }
 
   const cantidadFiltrosColumna =
-    filtroSectores.length + filtroTipos.length + filtroAgentes.length + (filtroPeriodoInicio || filtroPeriodoFin ? 1 : 0);
+    filtroSectores.length + filtroTiposPersonal.length + filtroTipos.length + filtroAgentes.length + (filtroPeriodoInicio || filtroPeriodoFin ? 1 : 0);
 
   // Navegación del calendario
   const hoy = new Date();
@@ -858,6 +900,7 @@ export default function VistaLicencias({
   const licenciasFiltradas = licencias.filter((l) => {
     if (soloVigentes && !esVigente(l)) return false;
     if (filtroSectores.length > 0 && (!l.agente.sector || !filtroSectores.includes(l.agente.sector))) return false;
+    if (filtroTiposPersonal.length > 0 && !filtroTiposPersonal.includes(l.agente.tipoPersonal)) return false;
     if (filtroTipos.length > 0 && !filtroTipos.includes(l.tipo)) return false;
     if (filtroAgentes.length > 0 && !filtroAgentes.includes(l.agente.id)) return false;
     // Rango de período: se muestran las licencias que se superponen en algún
@@ -878,7 +921,7 @@ export default function VistaLicencias({
   // render (patrón recomendado por React) en vez de en un efecto, para no
   // disparar una segunda pasada de renders.
   const filtrosKey = JSON.stringify({
-    filtroBusqueda, soloVigentes, filtroSectores, filtroTipos, filtroAgentes, filtroPeriodoInicio, filtroPeriodoFin,
+    filtroBusqueda, soloVigentes, filtroSectores, filtroTiposPersonal, filtroTipos, filtroAgentes, filtroPeriodoInicio, filtroPeriodoFin,
   });
   const [prevFiltrosKey, setPrevFiltrosKey] = useState(filtrosKey);
   if (filtrosKey !== prevFiltrosKey) {
@@ -890,6 +933,82 @@ export default function VistaLicencias({
 
   const tiposLicencia = Object.entries(TIPO_LICENCIA_LABELS);
 
+  // Exportar .csv / .xlsx: sobre licenciasFiltradas (todo lo que cumple los
+  // filtros activos + búsqueda + "Solo vigentes"), no solo licenciasVisibles
+  // (la porción ya cargada por "Cargar más") — quien exporta espera bajarse
+  // el resultado filtrado completo, no solo lo que ya scrolleó.
+  const [exportAbierto, setExportAbierto] = useState(false);
+  const [descargandoExcel, setDescargandoExcel] = useState(false);
+  const [errorExport, setErrorExport] = useState<string | null>(null);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!exportAbierto) return;
+    function cerrar(e: MouseEvent) {
+      if (exportMenuRef.current?.contains(e.target as Node)) return;
+      setExportAbierto(false);
+    }
+    document.addEventListener("mousedown", cerrar);
+    return () => document.removeEventListener("mousedown", cerrar);
+  }, [exportAbierto]);
+
+  const columnasExport = [
+    { id: "agente", label: "Agente" },
+    { id: "tipoPersonal", label: "Tipo de personal" },
+    { id: "sector", label: "Sector" },
+    { id: "tipo", label: "Tipo" },
+    { id: "estado", label: "Estado" },
+    { id: "desde", label: "Desde" },
+    { id: "hasta", label: "Hasta" },
+    { id: "dias", label: "Días" },
+    { id: "motivo", label: "Motivo" },
+  ];
+  const filasExport: Record<string, string>[] = licenciasFiltradas.map((l) => ({
+    agente: `${l.agente.apellidos}, ${l.agente.nombres}`,
+    tipoPersonal: TIPO_PERSONAL_LABEL[l.agente.tipoPersonal] ?? l.agente.tipoPersonal,
+    sector: l.agente.sector ?? "",
+    tipo: TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo,
+    estado: ESTADO_LICENCIA_LABEL[l.estado] ?? l.estado,
+    desde: fmt(l.fechaInicio),
+    hasta: fmt(l.fechaFin),
+    dias: String(l.diasHabiles),
+    motivo: l.motivo ?? "",
+  }));
+
+  function descargarCsv() {
+    setExportAbierto(false);
+    const lineas = [
+      columnasExport.map((c) => csvEscape(c.label)),
+      ...filasExport.map((f) => columnasExport.map((c) => csvEscape(f[c.id] ?? ""))),
+    ];
+    const csv = lineas.map((l) => l.join(",")).join("\r\n");
+    // BOM + "sep=,": mismo motivo que en AusentismoCard.tsx — sin el BOM
+    // Excel interpreta el archivo como Latin-1 y rompe tildes/ñ; sin la
+    // directiva, la configuración regional argentina (separador de listas
+    // ";") abre el .csv sin dividirlo en columnas.
+    const blob = new Blob(["﻿sep=,\r\n" + csv], { type: "text/csv;charset=utf-8" });
+    descargarBlob(blob, `licencias_${fechaHoy()}.csv`);
+  }
+
+  async function descargarExcel() {
+    setExportAbierto(false);
+    setDescargandoExcel(true);
+    setErrorExport(null);
+    try {
+      const res = await fetch("/api/licencias/excel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ columnas: columnasExport, filas: filasExport }),
+      });
+      if (!res.ok) throw new Error((await res.text()) || "No se pudo generar el Excel");
+      descargarBlob(await res.blob(), `licencias_${fechaHoy()}.xlsx`);
+    } catch (e) {
+      setErrorExport(e instanceof Error ? e.message : "No se pudo generar el Excel");
+    } finally {
+      setDescargandoExcel(false);
+    }
+  }
+
   // Agentes distintos presentes en esta tabla, para el filtro de "Agente".
   const agentesUnicos = Array.from(
     new Map(licencias.map((l) => [l.agente.id, l.agente])).values()
@@ -899,7 +1018,7 @@ export default function VistaLicencias({
   // activarse no despliega nada ahí mismo: abre el modal centrado (definido
   // más abajo, junto al resto del JSX) para no depender de la posición de
   // la cabecera ni del tamaño/scroll de la tabla.
-  function renderCabeceraFiltrable(columna: "sector" | "tipo" | "periodo" | "agente", label: string, activo: boolean) {
+  function renderCabeceraFiltrable(columna: "sector" | "tipoPersonal" | "tipo" | "periodo" | "agente", label: string, activo: boolean) {
     if (!filtrosActivos) {
       return <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--c-text-muted)] uppercase tracking-wide">{label}</th>;
     }
@@ -919,8 +1038,9 @@ export default function VistaLicencias({
     );
   }
 
-  const FILTRO_COLUMNA_TITULOS: Record<"sector" | "tipo" | "periodo" | "agente", string> = {
+  const FILTRO_COLUMNA_TITULOS: Record<"sector" | "tipoPersonal" | "tipo" | "periodo" | "agente", string> = {
     sector: "Sector",
+    tipoPersonal: "Tipo de personal",
     tipo: "Tipo",
     periodo: "Período",
     agente: "Agente",
@@ -943,6 +1063,31 @@ export default function VistaLicencias({
         <button
           type="button"
           onClick={() => setFiltroSectores([])}
+          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
+        >
+          Limpiar
+        </button>
+      )}
+    </div>
+  );
+
+  const contenidoFiltroTipoPersonal = (
+    <div className="space-y-0.5">
+      {TIPOS_PERSONAL.map((t) => (
+        <label key={t} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filtroTiposPersonal.includes(t)}
+            onChange={() => toggleFiltroTipoPersonal(t)}
+            className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
+          />
+          {TIPO_PERSONAL_LABEL[t] ?? t}
+        </label>
+      ))}
+      {filtroTiposPersonal.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setFiltroTiposPersonal([])}
           className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
@@ -1033,8 +1178,9 @@ export default function VistaLicencias({
     </div>
   );
 
-  const CONTENIDO_FILTRO_COLUMNA: Record<"sector" | "tipo" | "periodo" | "agente", React.ReactNode> = {
+  const CONTENIDO_FILTRO_COLUMNA: Record<"sector" | "tipoPersonal" | "tipo" | "periodo" | "agente", React.ReactNode> = {
     sector: contenidoFiltroSector,
+    tipoPersonal: contenidoFiltroTipoPersonal,
     tipo: contenidoFiltroTipo,
     periodo: contenidoFiltroPeriodo,
     agente: contenidoFiltroAgente,
@@ -1118,7 +1264,12 @@ export default function VistaLicencias({
 
       {/* Estadísticas generales */}
       {mainTab === "estadisticas" && (
-        <EstadisticasAusentismo licencias={ausentismoLicencias} hoy={hoyAusentismo} flujoPersonal={flujoPersonal} />
+        <EstadisticasAusentismo
+          licencias={ausentismoLicencias}
+          licenciasOrdinarias={licenciasOrdinarias}
+          hoy={hoyAusentismo}
+          flujoPersonal={flujoPersonal}
+        />
       )}
 
       {/* Filtros */}
@@ -1166,7 +1317,49 @@ export default function VistaLicencias({
           </button>
           Solo vigentes
         </label>
+        <div className="relative ml-auto" ref={exportMenuRef}>
+          <button
+            type="button"
+            onClick={() => setExportAbierto((v) => !v)}
+            disabled={descargandoExcel || licenciasFiltradas.length === 0}
+            aria-expanded={exportAbierto}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-1.5 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
+          >
+            {descargandoExcel && <ButtonSpinner />}
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Exportar
+            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          {exportAbierto && (
+            <div className="absolute right-0 top-full mt-1 z-30 w-48 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] py-1 shadow-lg shadow-black/40">
+              <button
+                type="button"
+                onClick={descargarCsv}
+                className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
+              >
+                Descargar CSV
+              </button>
+              <button
+                type="button"
+                onClick={descargarExcel}
+                className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
+              >
+                Descargar Excel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+      )}
+
+      {mainTab === "licencias" && errorExport && (
+        <div className="rounded-lg bg-[var(--c-coral)]/10 border border-[var(--c-coral)]/30 px-3 py-2 text-[11.5px] text-[var(--c-coral)]">
+          {errorExport}
+        </div>
       )}
 
       {/* Vista lista / calendario */}
@@ -1175,7 +1368,7 @@ export default function VistaLicencias({
       )}
       {mainTab === "licencias" && !vistaPending && vista === "lista" && (
         <div key={vista} className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden animate-fade-in">
-          {/* Mobile: la tabla de 6 columnas no entra en un teléfono sin
+          {/* Mobile: la tabla de varias columnas no entra en un teléfono sin
               scroll horizontal permanente — mismo criterio que el resto de
               la app (calendario/agenda), acá una tarjeta por licencia. */}
           <div className="lg:hidden divide-y divide-[var(--c-bg-elev-2)]">
@@ -1193,9 +1386,11 @@ export default function VistaLicencias({
                       <span>{TIPO_LICENCIA_EMOJI[l.tipo]}</span>
                     </span>
                   </div>
-                  {!esSupervisor && l.agente.sector && (
-                    <p className="text-xs text-[var(--c-text-muted)]">{l.agente.sector}</p>
-                  )}
+                  <p className="text-xs text-[var(--c-text-muted)]">
+                    {[TIPO_PERSONAL_LABEL[l.agente.tipoPersonal] ?? l.agente.tipoPersonal, !esSupervisor ? l.agente.sector : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
                   <div className="flex items-center justify-between gap-2 text-xs text-[var(--c-text-secondary)]">
                     <span className="inline-flex items-center gap-1.5">
                       {!soloVigentes && estadoVigencia(l) && (
@@ -1220,6 +1415,7 @@ export default function VistaLicencias({
               <thead>
                 <tr className="bg-[var(--c-bg)] border-b border-[var(--c-line)]">
                   {renderCabeceraFiltrable("agente", "Agente", filtroAgentes.length > 0)}
+                  {renderCabeceraFiltrable("tipoPersonal", "Personal", filtroTiposPersonal.length > 0)}
                   {!esSupervisor && renderCabeceraFiltrable("sector", "Sector", filtroSectores.length > 0)}
                   {renderCabeceraFiltrable("tipo", "Tipo", filtroTipos.length > 0)}
                   {renderCabeceraFiltrable("periodo", "Período", Boolean(filtroPeriodoInicio || filtroPeriodoFin))}
@@ -1230,7 +1426,7 @@ export default function VistaLicencias({
               <tbody className="divide-y divide-[var(--c-bg-elev-2)]">
                 {licenciasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={esSupervisor ? 5 : 6} className="px-6 py-12 text-center text-sm text-[var(--c-text-faint)]">
+                    <td colSpan={esSupervisor ? 6 : 7} className="px-6 py-12 text-center text-sm text-[var(--c-text-faint)]">
                       No hay licencias.
                     </td>
                   </tr>
@@ -1242,6 +1438,7 @@ export default function VistaLicencias({
                           {l.agente.apellidos}, {l.agente.nombres}
                         </Link>
                       </td>
+                      <td className="px-4 py-3 text-[var(--c-text-muted)] text-xs">{TIPO_PERSONAL_LABEL[l.agente.tipoPersonal] ?? l.agente.tipoPersonal}</td>
                       {!esSupervisor && (
                         <td className="px-4 py-3 text-[var(--c-text-muted)] text-xs">{l.agente.sector ?? "—"}</td>
                       )}

@@ -159,6 +159,11 @@ export interface DashboardStats {
   // el usuario cambia de período (ver AusentismoCard.tsx) — mismo criterio
   // que ya usa EstadisticasLicencias.tsx para el informe por legajo.
   ausentismoLicencias: LicenciaAusentismoRow[];
+  // Licencia Ordinaria (vacaciones), aparte de `ausentismoLicencias` — el
+  // único consumidor es RankingPersonalCard.tsx, con su propio checkbox
+  // "Licencia Ordinaria" desactivado por defecto (ver ese componente). El
+  // resto de los gráficos de ausentismo sigue sin verla nunca.
+  licenciasOrdinarias: LicenciaAusentismoRow[];
   novedades: NovedadTipoStats[];
 }
 
@@ -374,18 +379,21 @@ async function calcularStats(): Promise<DashboardStats> {
       where: { estado: "ACTIVO" },
       select: { id: true, origenInstitucional: true },
     }),
-    // Ordinaria (vacaciones planificadas) queda afuera del gráfico de
-    // ausentismo desde la query — no tiene sentido traerla para descartarla
-    // después. Sin filtro por agente.estado, ver comentario en
-    // calcularAusentismoMensual.
+    // Se trae TODO lo APROBADO, incluida Ordinaria (vacaciones planificadas)
+    // — se separa recién abajo en dos arrays (ausentismoLicencias /
+    // licenciasOrdinarias) en vez de excluirla acá: RankingPersonalCard.tsx
+    // necesita poder sumarla opcionalmente, el resto de los gráficos sigue
+    // recibiendo exactamente lo mismo que antes. Sin filtro por
+    // agente.estado, ver comentario en calcularAusentismoMensual.
     prisma.licencia.findMany({
-      where: { estado: "APROBADA", tipo: { not: "ORDINARIA" } },
+      where: { estado: "APROBADA" },
       select: {
         tipo: true,
         fechaInicio: true,
         agenteId: true,
         diasHabiles: true,
-        agente: { select: { nombres: true, apellidos: true, fotoUrl: true, sexo: true, turno: true } },
+        motivo: true,
+        agente: { select: { nombres: true, apellidos: true, fotoUrl: true, sexo: true, turno: true, estado: true, tipoPersonal: true } },
       },
     }),
   ]);
@@ -516,19 +524,28 @@ async function calcularStats(): Promise<DashboardStats> {
   const fechasIngreso = agentesConIngreso
     .filter((a): a is { id: string; fechaIngreso: Date } => a.fechaIngreso !== null);
   const flujoPersonal = calcularFlujoPersonal(hoy, fechasIngreso, transicionesEstado);
-  const ausentismoLicencias: LicenciaAusentismoRow[] = ausentismoRows.map((l) => ({
+  const mapearAusentismoRow = (l: (typeof ausentismoRows)[number]): LicenciaAusentismoRow => ({
     tipo: l.tipo,
     fechaInicio: l.fechaInicio.toISOString(),
     agenteId: l.agenteId,
     diasHabiles: l.diasHabiles,
+    motivo: l.motivo,
     agente: {
       nombres: l.agente.nombres,
       apellidos: l.agente.apellidos,
       fotoUrl: l.agente.fotoUrl,
       sexo: l.agente.sexo,
       turno: l.agente.turno,
+      estado: l.agente.estado,
+      tipoPersonal: l.agente.tipoPersonal,
     },
-  }));
+  });
+  const ausentismoLicencias: LicenciaAusentismoRow[] = ausentismoRows
+    .filter((l) => l.tipo !== "ORDINARIA")
+    .map(mapearAusentismoRow);
+  const licenciasOrdinarias: LicenciaAusentismoRow[] = ausentismoRows
+    .filter((l) => l.tipo === "ORDINARIA")
+    .map(mapearAusentismoRow);
 
   const licenciasActivasHoyIds = licenciasActivasHoyRows.map((l) => l.agenteId);
 
@@ -579,6 +596,7 @@ async function calcularStats(): Promise<DashboardStats> {
     },
     flujoPersonal,
     ausentismoLicencias,
+    licenciasOrdinarias,
     novedades,
   };
 }

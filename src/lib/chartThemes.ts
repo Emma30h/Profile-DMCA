@@ -41,6 +41,18 @@ export interface ChartTheme {
   // Color único para gráficos de una sola serie (línea, barra destacada,
   // polígono de radar) — = categorico[0].
   accent: string;
+  // Color alternativo para gráficos de UNA SOLA línea que además conviven
+  // con una línea de tendencia de color fijo (var(--c-amber) en los 5
+  // temas — ver AusentismoPorDotacionCard.tsx): a diferencia de `accent`
+  // (= categorico[0], pensado para leerse bien junto al resto de la
+  // categórica), acá lo que importa es 1) no confundirse con el amarillo/
+  // ámbar de esa tendencia y 2) notarse claramente distinto entre temas
+  // "fríos" que de otro modo comparten familia de azules (Institucional y
+  // Océano). Validado con scripts/validate_palette.js del skill dataviz,
+  // `--pairs all` contra el ámbar de cada modo (#8f6200 claro / #f0b429
+  // oscuro) y entre sí los 3 temas de fondo claro — todos pasan CVD y
+  // piso de visión normal.
+  accentSolo: string;
   // Par para comparaciones de sexo (RingCompare).
   sexoMasc: string;
   sexoFem: string;
@@ -70,6 +82,7 @@ export const TEMA_INSTITUCIONAL: ChartTheme = {
     "#e66767", // rojo
   ],
   accent: "#3987e5",
+  accentSolo: "#3987e5",
   sexoMasc: "#3987e5",
   sexoFem: "#d55181",
   donut: {
@@ -87,6 +100,10 @@ export const TEMA_OCEANO: ChartTheme = {
   fondo: "#ffffff",
   categorico: ["#0096b6", "#6a3cc0", "#009134", "#005bb3", "#008f8a", "#4175de", "#00905e", "#0073cf"],
   accent: "#0096b6",
+  // Violeta (uno de los tonos fríos ya validados de esta paleta) en vez del
+  // teal-azulado de `accent`: contra el azul institucional, un teal queda
+  // demasiado cerca en el mismo tono — ver comentario en la interfaz.
+  accentSolo: "#6a3cc0",
   sexoMasc: "#6a3cc0",
   sexoFem: "#009134",
   donut: {
@@ -104,6 +121,10 @@ export const TEMA_ATARDECER: ChartTheme = {
   fondo: "#ffffff",
   categorico: ["#dc4f3c", "#ba0682", "#b56c00", "#913600", "#8c418e", "#c35c38", "#bc31aa", "#bf0038"],
   accent: "#dc4f3c",
+  // `accent` (#dc4f3c) falla el chequeo CVD contra el ámbar de la tendencia
+  // en modo claro (ΔE 4.2, por debajo del piso) — un protanope los vería
+  // casi iguales. Magenta en su lugar, ya validado.
+  accentSolo: "#ba0682",
   sexoMasc: "#b56c00",
   sexoFem: "#bc31aa",
   donut: {
@@ -121,6 +142,7 @@ export const TEMA_MEDIANOCHE: ChartTheme = {
   fondo: "#0d1526",
   categorico: ["#0097f0", "#1d9a6a", "#1e92ef", "#008f80", "#6e74f2", "#007b2b", "#825dc4", "#009ab2"],
   accent: "#0097f0",
+  accentSolo: "#0097f0",
   sexoMasc: "#6e74f2",
   sexoFem: "#007b2b",
   donut: {
@@ -138,6 +160,7 @@ export const TEMA_BRASAS: ChartTheme = {
   fondo: "#0d1526",
   categorico: ["#bc69ae", "#c96f34", "#a04055", "#b358c3", "#ad3e33", "#cc7800", "#ac2d79", "#c94c15"],
   accent: "#bc69ae",
+  accentSolo: "#bc69ae",
   sexoMasc: "#b358c3",
   sexoFem: "#cc7800",
   donut: {

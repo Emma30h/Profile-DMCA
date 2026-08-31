@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const barlow = Barlow({
@@ -31,7 +32,9 @@ export default function RootLayout({
             de contenido (la única parte de la app que responde al tema;
             sidebar/header/pantallas de auth quedan siempre oscuros)
             parpadearía en oscuro un instante al cargar en claro. */}
-        <script
+        <Script
+          id="tema-inicial"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `try{if(localStorage.getItem("tema")==="light"){document.documentElement.setAttribute("data-theme","light");}}catch(e){}`,
           }}

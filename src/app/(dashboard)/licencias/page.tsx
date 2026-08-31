@@ -40,7 +40,13 @@ export default async function LicenciasPage() {
       orderBy: { fechaInicio: "desc" },
       include: {
         agente: {
-          select: { id: true, nombres: true, apellidos: true, sector: { select: { nombre: true } } },
+          select: {
+            id: true,
+            nombres: true,
+            apellidos: true,
+            sector: { select: { nombre: true } },
+            tipoPersonal: true,
+          },
         },
       },
     }),
@@ -82,6 +88,7 @@ export default async function LicenciasPage() {
             nombres: l.agente.nombres,
             apellidos: l.agente.apellidos,
             sector: l.agente.sector?.nombre ?? null,
+            tipoPersonal: l.agente.tipoPersonal,
           },
         }))}
         sectores={sectores}
@@ -90,6 +97,7 @@ export default async function LicenciasPage() {
         esAdmin={esAdmin}
         feriados={feriados}
         ausentismoLicencias={stats.ausentismoLicencias}
+        licenciasOrdinarias={stats.licenciasOrdinarias}
         hoy={stats.hoy}
         flujoPersonal={stats.flujoPersonal}
       />

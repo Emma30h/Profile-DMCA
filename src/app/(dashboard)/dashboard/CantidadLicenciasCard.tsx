@@ -321,7 +321,16 @@ export default function CantidadLicenciasCard({
       {buckets.length < 2 ? (
         <p className="text-[12.5px] text-[var(--c-text-faint)] py-6 text-center">No hay suficientes datos para graficar una tendencia.</p>
       ) : (
-        <div className="flex items-start gap-2.5">
+        // key por rango+granularidad: al tocar un botón de período, fuerza a
+        // React a desmontar y remontar todo el bloque (ejes + gráfico) para
+        // que retome `animate-fade-in` con los datos ya finales, en vez de
+        // que las etiquetas de los ejes salten instantáneas mientras solo la
+        // línea crece — así todo el cambio de período se siente como una
+        // única transición. La curva en sí sigue animando su propio "crecer
+        // desde 0" vía useReplayOnChange (transform en el <g> de más abajo),
+        // que no se ve afectado por este remount porque vive en un hook del
+        // componente padre, no en este div.
+        <div key={`${rango}-${granularidad}`} className="flex items-start gap-2.5 animate-fade-in">
           <div className="relative shrink-0 w-7 text-right text-[10px] text-[var(--c-text-faint)]" style={{ height: ALTURA }}>
             {lineasGrilla.map(({ frac, valor }) => (
               <span

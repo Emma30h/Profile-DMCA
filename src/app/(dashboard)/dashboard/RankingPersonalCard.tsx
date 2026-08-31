@@ -3,16 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AgenteAvatar from "@/components/AgenteAvatar";
-import {
-  CAUSAS_AUSENTISMO,
-  calcularRankingPersonal,
-  causaDeLicencia,
-  colorDeCausa,
-  labelDeCausa,
-  type CausaAusentismo,
-  type FilaPersonalRanking,
-  type LicenciaAusentismoRow,
-} from "@/lib/ausentismo";
+import { type LicenciaAusentismoRow } from "@/lib/ausentismo";
+import { TIPOS_LICENCIA, TIPO_LICENCIA_LABELS, type TipoLicencia } from "@/types";
 import { useEntrada } from "@/lib/useEntrada";
 import { useCountUp } from "@/lib/useCountUp";
 import { useReplayOnChange } from "@/lib/useReplayOnChange";
@@ -22,10 +14,83 @@ import GraficoDescargable from "@/components/charts/GraficoDescargable";
 type Metrica = "licencias" | "dias";
 type Vista = "general" | "porTipo";
 
+// A diferencia del resto del dashboard (que agrupa en ~7 "causas" y pliega
+// el resto en "Otros" — ver CAUSAS_AUSENTISMO en ausentismo.ts, limitado a
+// propósito a los 8 colores que la paleta categórica tiene validados para
+// daltonismo/contraste), acá el pedido explícito fue discriminar los 16
+// tipos de licencia reales, sin plegar nada en un bucket genérico. Pasado
+// los 8 colores validados, algunos pares de acá ya NO están garantizados
+// como distinguibles para daltónicos (decisión consciente, no un error) —
+// en la práctica un mismo agente rara vez acumula más de 2-3 tipos distintos
+// en un período, así que el choque de colores en una barra real es poco
+// común aunque la paleta completa tenga 16 entradas.
+const TIPO_LICENCIA_CHART_COLOR: Record<TipoLicencia, string> = {
+  ORDINARIA: "#9085e9",
+  CARPETA_MEDICA: "#34d399",
+  MEDICA: "#d55181",
+  ANTIGUEDAD_POLICIAL: "#41c8c8",
+  MATRIMONIO: "#c2d345",
+  ASISTENCIA_FAMILIAR_ENFERMO: "#3987e5",
+  MATERNIDAD: "#d95926",
+  PATERNIDAD_ADOPCION: "#199e70",
+  NACIMIENTO_ADOPCION_HIJO_DISCAPACITADO: "#32ae51",
+  ESTIMULO: "#9e64d8",
+  FALLECIMIENTO_FAMILIAR: "#c98500",
+  EXAMEN_CURSOS_NO_POLICIALES: "#6ba92d",
+  RETIRO_VOLUNTARIO: "#b736c9",
+  EXCEPCIONAL_REMUNERADA: "#d45eb7",
+  ADSCRIPCION: "#46cc33",
+  SANCION: "#e66767",
+};
+
+// Mismo orden que el resto de la app (TIPOS_LICENCIA, agrupado por
+// categoría) salvo Ordinaria, que se manda al final — es la única
+// desactivada por defecto (ver `tiposSeleccionados` más abajo), separarla
+// visualmente del resto ayuda a notar que es la excepción.
+const TIPOS_FILTRO: TipoLicencia[] = [...TIPOS_LICENCIA.filter((t) => t !== "ORDINARIA"), "ORDINARIA"];
+
+interface FilaPersonalPorTipo {
+  agenteId: string;
+  nombreCompleto: string;
+  fotoUrl: string | null;
+  sexo: string | null;
+  porTipoCantidad: Record<string, number>;
+  porTipoDias: Record<string, number>;
+  totalCantidad: number;
+  totalDias: number;
+}
+
+// Agrupa por `tipo` crudo (no por la "causa" colapsada que usa el resto del
+// dashboard) — ver el comentario de TIPO_LICENCIA_CHART_COLOR de arriba.
+function calcularRankingPorTipo(licencias: LicenciaAusentismoRow[]): FilaPersonalPorTipo[] {
+  const porAgente = new Map<string, FilaPersonalPorTipo>();
+  for (const l of licencias) {
+    let fila = porAgente.get(l.agenteId);
+    if (!fila) {
+      fila = {
+        agenteId: l.agenteId,
+        nombreCompleto: `${l.agente.apellidos}, ${l.agente.nombres}`,
+        fotoUrl: l.agente.fotoUrl,
+        sexo: l.agente.sexo,
+        porTipoCantidad: {},
+        porTipoDias: {},
+        totalCantidad: 0,
+        totalDias: 0,
+      };
+      porAgente.set(l.agenteId, fila);
+    }
+    fila.porTipoCantidad[l.tipo] = (fila.porTipoCantidad[l.tipo] ?? 0) + 1;
+    fila.porTipoDias[l.tipo] = (fila.porTipoDias[l.tipo] ?? 0) + l.diasHabiles;
+    fila.totalCantidad += 1;
+    fila.totalDias += l.diasHabiles;
+  }
+  return [...porAgente.values()];
+}
+
 interface Tooltip {
   x: number;
   y: number;
-  fila: FilaPersonalRanking;
+  fila: FilaPersonalPorTipo;
 }
 
 const ALTURA_FILA = 30;
@@ -38,33 +103,38 @@ const VISTA_LABEL: Record<Vista, string> = { general: "General", porTipo: "Por t
 
 export default function RankingPersonalCard({
   licencias,
+  licenciasOrdinarias,
   tema = TEMA_INSTITUCIONAL,
   modoExport = false,
   metricaInicial = "licencias",
   vistaInicial = "porTipo",
-  causasSeleccionadasInicial,
+  tiposSeleccionadosInicial,
 }: {
   licencias: LicenciaAusentismoRow[];
+  // Licencia Ordinaria (vacaciones), aparte de `licencias` — solo se mezcla
+  // adentro cuando el usuario tilda "Licencia Ordinaria" en el filtro
+  // (desactivado por defecto, ver `tiposSeleccionados` más abajo).
+  licenciasOrdinarias: LicenciaAusentismoRow[];
   tema?: ChartTheme;
   modoExport?: boolean;
   // Solo se usan al abrir "Descargar como imagen": la vista exportada tiene
   // que salir igual a lo que el usuario está viendo (métrica, vista y
-  // filtro de causas), no reiniciada a los valores por defecto — ver el
+  // filtro de tipos), no reiniciada a los valores por defecto — ver el
   // self-render dentro de GraficoDescargable más abajo.
   metricaInicial?: Metrica;
   vistaInicial?: Vista;
-  causasSeleccionadasInicial?: Set<CausaAusentismo>;
+  tiposSeleccionadosInicial?: Set<TipoLicencia>;
 }) {
   const router = useRouter();
-  // Color único para la vista "general" (no representa ninguna causa
+  // Color único para la vista "general" (no representa ningún tipo
   // puntual): el accent del tema elegido, para que se lea como "total
-  // agregado" y no se confunda con el color de alguna causa específica.
+  // agregado" y no se confunda con el color de algún tipo específico.
   const colorGeneral = tema.accent;
 
   const [metrica, setMetrica] = useState<Metrica>(metricaInicial);
   const [vista, setVista] = useState<Vista>(vistaInicial);
-  const [causasSeleccionadas, setCausasSeleccionadas] = useState<Set<CausaAusentismo>>(
-    () => causasSeleccionadasInicial ?? new Set(CAUSAS_AUSENTISMO)
+  const [tiposSeleccionados, setTiposSeleccionados] = useState<Set<TipoLicencia>>(
+    () => tiposSeleccionadosInicial ?? new Set(TIPOS_FILTRO.filter((t) => t !== "ORDINARIA"))
   );
   const [filtroAbierto, setFiltroAbierto] = useState(false);
   const filtroRef = useRef<HTMLDivElement>(null);
@@ -95,32 +165,32 @@ export default function RankingPersonalCard({
     return () => document.removeEventListener("mousedown", cerrar);
   }, [filtroAbierto]);
 
-  function alternarCausa(c: CausaAusentismo) {
+  function alternarTipo(t: TipoLicencia) {
     setCantidadMostrada(PASO_MOSTRAR);
-    setCausasSeleccionadas((prev) => {
+    setTiposSeleccionados((prev) => {
       const next = new Set(prev);
-      if (next.has(c)) next.delete(c);
-      else next.add(c);
+      if (next.has(t)) next.delete(t);
+      else next.add(t);
       return next;
     });
   }
 
-  // Filtro de causas: aplicado sobre las licencias crudas (no sobre las
+  // Filtro de tipos: aplicado sobre las licencias crudas (no sobre las
   // filas ya agrupadas) — así un agente cuya única licencia sea, por
-  // ejemplo, Maternidad, directamente desaparece del ranking cuando esa
-  // causa se destilda, en vez de quedar con una fila en 0.
+  // ejemplo, Maternidad, directamente desaparece del ranking cuando ese
+  // tipo se destilda, en vez de quedar con una fila en 0.
   const licenciasFiltradas = useMemo(
-    () => licencias.filter((l) => causasSeleccionadas.has(causaDeLicencia(l.tipo))),
-    [licencias, causasSeleccionadas]
+    () => [...licencias, ...licenciasOrdinarias].filter((l) => tiposSeleccionados.has(l.tipo as TipoLicencia)),
+    [licencias, licenciasOrdinarias, tiposSeleccionados]
   );
 
-  // Una fila por agente (no por causa): la barra de cada fila queda
-  // apilada por causa, mismo lenguaje visual que "Ausentismo por causa" —
-  // acá el eje es "quién", no "cuándo".
-  const filas: FilaPersonalRanking[] = useMemo(
-    () => calcularRankingPersonal(licenciasFiltradas, metrica),
-    [licenciasFiltradas, metrica]
-  );
+  // Una fila por agente (no por tipo): la barra de cada fila queda apilada
+  // por tipo, mismo lenguaje visual que "Ausentismo por causa" — acá el eje
+  // es "quién", no "cuándo".
+  const filas: FilaPersonalPorTipo[] = useMemo(() => {
+    const base = calcularRankingPorTipo(licenciasFiltradas);
+    return base.sort((a, b) => (metrica === "licencias" ? b.totalCantidad - a.totalCantidad : b.totalDias - a.totalDias));
+  }, [licenciasFiltradas, metrica]);
 
   const picoValor = Math.max(1, ...filas.map((f) => (metrica === "licencias" ? f.totalCantidad : f.totalDias)));
   const escalaMax = Math.max(5, Math.ceil(picoValor / 5) * 5);
@@ -129,17 +199,17 @@ export default function RankingPersonalCard({
     return { frac, valor: Math.round(escalaMax * frac) };
   });
 
-  // Causas presentes en el ranking actual, en el orden fijo de
-  // CAUSAS_AUSENTISMO — sostiene la leyenda de la vista "Por tipo" (con
-  // ≥2 series la identidad no puede depender solo del color).
-  const causasConDatos = useMemo(() => {
-    const set = new Set<CausaAusentismo>();
+  // Tipos presentes en el ranking actual, en el orden fijo de TIPOS_FILTRO —
+  // sostiene la leyenda de la vista "Por tipo" (con ≥2 series la identidad
+  // no puede depender solo del color).
+  const tiposConDatos = useMemo(() => {
+    const set = new Set<TipoLicencia>();
     for (const f of filas) {
-      for (const c of CAUSAS_AUSENTISMO) {
-        if ((metrica === "licencias" ? f.porCausaCantidad[c] : f.porCausaDias[c]) > 0) set.add(c);
+      for (const t of TIPOS_FILTRO) {
+        if ((metrica === "licencias" ? f.porTipoCantidad[t] : f.porTipoDias[t]) > 0) set.add(t);
       }
     }
-    return CAUSAS_AUSENTISMO.filter((c) => set.has(c));
+    return TIPOS_FILTRO.filter((t) => set.has(t));
   }, [filas, metrica]);
 
   const filasVisibles = filas.slice(0, cantidadMostrada);
@@ -148,7 +218,7 @@ export default function RankingPersonalCard({
   // propio montaje ya es el disparador de "empezar a tomar vida". En
   // modoExport la vista previa tiene que salir ya "crecida" (ver
   // GraficoDescargable.tsx), nunca a mitad de animación. replayListo hace
-  // que cambiar de período/métrica/causas reactive la misma transición de
+  // que cambiar de período/métrica/tipos reactive la misma transición de
   // "crecer desde 0" en vez de que las barras salten directo al valor nuevo.
   const entrada = useEntrada();
   const replayListo = useReplayOnChange(filas);
@@ -209,19 +279,19 @@ export default function RankingPersonalCard({
                 aria-expanded={filtroAbierto}
                 className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-[var(--c-text)] border border-[var(--c-line)] hover:border-[var(--c-line-strong)] rounded-md px-2.5 py-1 transition-colors"
               >
-                Causas{causasSeleccionadas.size < CAUSAS_AUSENTISMO.length ? ` (${causasSeleccionadas.size})` : ""}
+                Tipos{tiposSeleccionados.size < TIPOS_FILTRO.length ? ` (${tiposSeleccionados.size})` : ""}
                 <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
                 </svg>
               </button>
               {filtroAbierto && (
-                <div className="absolute right-0 top-full mt-1 z-30 w-56 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-2 shadow-lg shadow-black/40">
+                <div className="absolute right-0 top-full mt-1 z-30 w-56 max-h-80 overflow-y-auto rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] p-2 shadow-lg shadow-black/40">
                   <div className="flex items-center justify-between mb-1.5 px-1">
                     <button
                       type="button"
                       onClick={() => {
                         setCantidadMostrada(PASO_MOSTRAR);
-                        setCausasSeleccionadas(new Set(CAUSAS_AUSENTISMO));
+                        setTiposSeleccionados(new Set(TIPOS_FILTRO));
                       }}
                       className="text-[10.5px] font-semibold text-[var(--c-blue)] hover:underline"
                     >
@@ -231,26 +301,26 @@ export default function RankingPersonalCard({
                       type="button"
                       onClick={() => {
                         setCantidadMostrada(PASO_MOSTRAR);
-                        setCausasSeleccionadas(new Set());
+                        setTiposSeleccionados(new Set());
                       }}
                       className="text-[10.5px] font-semibold text-[var(--c-text-faint)] hover:underline"
                     >
                       Ninguna
                     </button>
                   </div>
-                  {CAUSAS_AUSENTISMO.map((c) => (
+                  {TIPOS_FILTRO.map((t) => (
                     <label
-                      key={c}
+                      key={t}
                       className="flex items-center gap-2 px-1 py-1 rounded-md hover:bg-[var(--c-line)] cursor-pointer"
                     >
                       <input
                         type="checkbox"
-                        checked={causasSeleccionadas.has(c)}
-                        onChange={() => alternarCausa(c)}
+                        checked={tiposSeleccionados.has(t)}
+                        onChange={() => alternarTipo(t)}
                         className="accent-[var(--c-blue)]"
                       />
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: colorDeCausa(c, tema) }} />
-                      <span className="text-[12px] text-[var(--c-text-secondary)]">{labelDeCausa(c)}</span>
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: TIPO_LICENCIA_CHART_COLOR[t] }} />
+                      <span className="text-[12px] text-[var(--c-text-secondary)]">{TIPO_LICENCIA_LABELS[t] ?? t}</span>
                     </label>
                   ))}
                 </div>
@@ -260,11 +330,12 @@ export default function RankingPersonalCard({
               {(t) => (
                 <RankingPersonalCard
                   licencias={licencias}
+                  licenciasOrdinarias={licenciasOrdinarias}
                   modoExport
                   tema={t}
                   metricaInicial={metrica}
                   vistaInicial={vista}
-                  causasSeleccionadasInicial={causasSeleccionadas}
+                  tiposSeleccionadosInicial={tiposSeleccionados}
                 />
               )}
             </GraficoDescargable>
@@ -272,21 +343,21 @@ export default function RankingPersonalCard({
         )}
       </div>
       <p className="text-[11px] text-[var(--c-text-faint)] mb-3.5">
-        Ranking por {metrica === "licencias" ? "cantidad de licencias" : "cantidad de días"}, sin licencia ordinaria (vacaciones) — <b className="text-[var(--c-text-muted)] tabular-nums">{cantidadAgentesAnimada}</b> {filas.length === 1 ? "agente" : "agentes"} con ausentismo en el período.
-        {causasSeleccionadas.size < CAUSAS_AUSENTISMO.length && (
-          <> Filtrado a {causasSeleccionadas.size} de {CAUSAS_AUSENTISMO.length} causas.</>
+        Ranking por {metrica === "licencias" ? "cantidad de licencias" : "cantidad de días"}, discriminado por tipo — <b className="text-[var(--c-text-muted)] tabular-nums">{cantidadAgentesAnimada}</b> {filas.length === 1 ? "agente" : "agentes"} con ausentismo en el período.
+        {tiposSeleccionados.size < TIPOS_FILTRO.length && (
+          <> Filtrado a {tiposSeleccionados.size} de {TIPOS_FILTRO.length} tipos.</>
         )}
       </p>
 
-      {vista === "porTipo" && causasConDatos.length > 0 && (
+      {vista === "porTipo" && tiposConDatos.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap mb-3.5">
-          {causasConDatos.map((c) => (
+          {tiposConDatos.map((t) => (
             <span
-              key={c}
+              key={t}
               className="inline-flex items-center gap-1.5 text-[11px] text-[var(--c-text-secondary)] bg-[var(--c-bg)] border border-[var(--c-bg-elev-2)] pl-2 pr-2.5 py-1 rounded-full"
             >
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: colorDeCausa(c, tema) }} />
-              {labelDeCausa(c)}
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: TIPO_LICENCIA_CHART_COLOR[t] }} />
+              {TIPO_LICENCIA_LABELS[t] ?? t}
             </span>
           ))}
         </div>
@@ -294,8 +365,8 @@ export default function RankingPersonalCard({
 
       {filas.length === 0 ? (
         <p className="text-[12.5px] text-[var(--c-text-faint)] py-6 text-center">
-          {causasSeleccionadas.size === 0
-            ? "Seleccioná al menos un tipo de licencia en el filtro de causas."
+          {tiposSeleccionados.size === 0
+            ? "Seleccioná al menos un tipo de licencia en el filtro."
             : "Sin licencias en el período elegido."}
         </p>
       ) : (
@@ -338,7 +409,7 @@ export default function RankingPersonalCard({
                 </div>
                 <div className="flex flex-col relative" style={{ gap: GAP_FILAS }}>
                   {filasVisibles.map((f, i) => {
-                    const porCausa = metrica === "licencias" ? f.porCausaCantidad : f.porCausaDias;
+                    const porTipo = metrica === "licencias" ? f.porTipoCantidad : f.porTipoDias;
                     const total = metrica === "licencias" ? f.totalCantidad : f.totalDias;
                     return (
                       <div
@@ -365,10 +436,10 @@ export default function RankingPersonalCard({
                           }}
                         >
                           {vista === "porTipo" ? (
-                            CAUSAS_AUSENTISMO.map((c) => {
-                              const valor = porCausa[c];
+                            TIPOS_FILTRO.map((t) => {
+                              const valor = porTipo[t] ?? 0;
                               if (valor <= 0) return null;
-                              return <div key={c} style={{ width: `${(valor / total) * 100}%`, background: colorDeCausa(c, tema) }} />;
+                              return <div key={t} style={{ width: `${(valor / total) * 100}%`, background: TIPO_LICENCIA_CHART_COLOR[t] }} />;
                             })
                           ) : (
                             <div style={{ width: "100%", background: colorGeneral }} />
@@ -418,14 +489,14 @@ export default function RankingPersonalCard({
         >
           <div className="font-bold mb-1">{tooltip.fila.nombreCompleto}</div>
           {vista === "porTipo" &&
-            CAUSAS_AUSENTISMO.map((c) => {
-              const valor = metrica === "licencias" ? tooltip.fila.porCausaCantidad[c] : tooltip.fila.porCausaDias[c];
-              if (valor <= 0) return null;
+            TIPOS_FILTRO.map((t) => {
+              const valor = metrica === "licencias" ? tooltip.fila.porTipoCantidad[t] : tooltip.fila.porTipoDias[t];
+              if (!valor || valor <= 0) return null;
               return (
-                <div key={c} className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: colorDeCausa(c, tema) }} />
+                <div key={t} className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: TIPO_LICENCIA_CHART_COLOR[t] }} />
                   <span className="font-bold tabular-nums">{valor}</span>
-                  <span className="text-[var(--c-text-faint)]">{labelDeCausa(c)}</span>
+                  <span className="text-[var(--c-text-faint)]">{TIPO_LICENCIA_LABELS[t] ?? t}</span>
                 </div>
               );
             })}
