@@ -27,11 +27,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${barlow.variable} ${barlowCondensed.variable} h-full`} suppressHydrationWarning>
-      <head>
+      <body className="h-full overflow-x-hidden bg-slate-950 font-sans antialiased">
+        {children}
         {/* Aplica el tema guardado ANTES del primer paint — si no, el área
             de contenido (la única parte de la app que responde al tema;
             sidebar/header/pantallas de auth quedan siempre oscuros)
-            parpadearía en oscuro un instante al cargar en claro. */}
+            parpadearía en oscuro un instante al cargar en claro. Next.js
+            siempre inyecta los scripts beforeInteractive dentro de <head>
+            sin importar dónde se escriban en el árbol — pero en Next 16 con
+            React 19 colocar el <Script> DENTRO de <head> dispara el warning
+            "Encountered a script tag while rendering React component"
+            (RootLayout completeWork), porque React ahora reconcilia <head>
+            como parte normal del árbol. La doc oficial de next/script lo
+            coloca junto a {"{children}"} dentro de <body>; ahí React no lo ve
+            como un <script> renderizado y Next lo sigue hoisteando a <head>. */}
         <Script
           id="tema-inicial"
           strategy="beforeInteractive"
@@ -39,8 +48,7 @@ export default function RootLayout({
             __html: `try{if(localStorage.getItem("tema")==="light"){document.documentElement.setAttribute("data-theme","light");}}catch(e){}`,
           }}
         />
-      </head>
-      <body className="h-full overflow-x-hidden bg-slate-950 font-sans antialiased">{children}</body>
+      </body>
     </html>
   );
 }

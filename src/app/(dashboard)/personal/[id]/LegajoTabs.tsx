@@ -1946,6 +1946,7 @@ export default function LegajoTabs({
               sector: agente.sector?.nombre ?? null,
               fotoUrl: agente.fotoUrl,
               sexo: agente.sexo,
+              turno: agente.turno,
             }}
             tipoPersonal={agente.tipoPersonal}
             licencias={licencias}

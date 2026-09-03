@@ -36,6 +36,13 @@
   --c-amber-strong: #b5820f;
   --c-coral: #ef5f6b;
   --c-coral-strong: #cf2e3a;
+
+  /* Opacidad del logo "ojos en alerta" usado como marca de agua decorativa
+     (ver OrganigramaChart.tsx). En grises, sobre --c-bg-elev oscuro (#111c31)
+     un 10% ya se distingue; sobre el blanco de [data-theme="light"] el mismo
+     10% queda casi invisible — se sube acá, no en el componente, para que
+     responda al toggle de tema en vivo igual que el resto de estas variables. */
+  --c-marca-agua-opacity: 0.1;
 }
 
 /* Duplica los valores de :root (oscuro) bajo un selector explícito. Hace
@@ -72,6 +79,8 @@
   --c-amber-strong: #b5820f;
   --c-coral: #ef5f6b;
   --c-coral-strong: #cf2e3a;
+
+  --c-marca-agua-opacity: 0.1;
 }
 
 [data-theme="light"] {
@@ -101,6 +110,8 @@
   --c-amber-strong: #714d00;
   --c-coral: #c8323f;
   --c-coral-strong: #a52632;
+
+  --c-marca-agua-opacity: 0.2;
 }
 
 @theme inline {
@@ -710,6 +721,8 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
 }
 .inf-meta b { display: block; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; color: var(--inf-text); }
 .inf-meta .inf-meta-gap { margin-top: var(--inf-2); }
+.inf-head-right { display: flex; flex-direction: column; align-items: flex-end; gap: var(--inf-4); }
+.inf-logo { width: 42px; height: 42px; object-fit: contain; flex: none; }
 
 .bp { position: relative; border: 1px solid var(--inf-divider); border-radius: 0; }
 .bp > i {
@@ -854,6 +867,41 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   font-family: var(--inf-font-h); font-weight: 600; font-size: 22px; line-height: 1;
 }
 
+/* Barras horizontales ("Días por categoría") y anillo múltiple ("Cantidad
+   por tipo") — misma composición visual que ya usan las tarjetas en
+   pantalla (EstadisticasLicencias.tsx), traducida a la paleta clara de
+   impresión: sin animación ni hover, solo el estado final. */
+.inf-hbars { display: flex; flex-direction: column; gap: var(--inf-3); }
+.inf-hbar-row { display: flex; align-items: center; gap: var(--inf-3); }
+.inf-hbar-label {
+  flex: none; width: 116px; font-size: 10.5px; text-align: right; color: rgba(29, 31, 32, 0.7);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.inf-hbar-track { flex: 1; min-width: 0; height: 9px; background: rgba(29, 31, 32, 0.06); position: relative; }
+.inf-hbar-fill { position: absolute; inset: 0; right: auto; }
+.inf-hbar-value {
+  flex: none; width: 40px; text-align: right; font-variant-numeric: tabular-nums;
+  font-family: var(--inf-font-h); font-weight: 600; font-size: 11.5px;
+}
+
+.inf-ring-wrap { display: flex; align-items: center; gap: var(--inf-6); }
+.inf-ring-box { position: relative; width: 84px; height: 84px; flex: none; }
+.inf-ring-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.inf-ring-center b { font-family: var(--inf-font-h); font-weight: 600; font-size: 19px; line-height: 1; }
+.inf-ring-center span { font-size: 8.5px; color: var(--inf-muted); margin-top: 2px; }
+.inf-ring-legend { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.inf-ring-legend-row { display: flex; align-items: center; gap: 7px; font-size: 11px; }
+.inf-ring-legend-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.inf-ring-legend-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inf-ring-legend-pct { flex: none; width: 30px; text-align: right; color: var(--inf-muted); font-variant-numeric: tabular-nums; }
+.inf-ring-legend-val {
+  flex: none; width: 20px; text-align: right; font-variant-numeric: tabular-nums;
+  font-family: var(--inf-font-h); font-weight: 600;
+}
+
 .inf-notes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--inf-6); font-size: 11.5px; color: rgba(29, 31, 32, 0.7); }
 .inf-notes > div { border-left: 1px solid var(--inf-divider); padding-left: var(--inf-3); break-inside: avoid; }
 .inf-notes .inf-fl { margin-bottom: var(--inf-1); }
@@ -903,7 +951,9 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   .print-informe tfoot { display: table-footer-group; }
   .print-informe .inf-plate,
   .print-informe .inf-kpi,
-  .print-informe .inf-chart { break-inside: avoid; }
+  .print-informe .inf-chart,
+  .print-informe .inf-hbars,
+  .print-informe .inf-ring-wrap { break-inside: avoid; }
   /* .inf-sec (la sección completa) NO lleva break-inside:avoid: si el
      título más una tabla larga no entran en lo que resta de la hoja,
      "avoid" mandaría la sección ENTERA a la página siguiente, dejando un

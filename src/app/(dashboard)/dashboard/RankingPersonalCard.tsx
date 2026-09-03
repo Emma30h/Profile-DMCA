@@ -97,6 +97,14 @@ const ALTURA_FILA = 30;
 const GAP_FILAS = 8;
 const SEGMENTOS_GRILLA = 4; // 5 líneas de referencia (0, 25, 50, 75, 100% de escalaMax)
 const PASO_MOSTRAR = 10;
+// Alto de PASO_MOSTRAR filas — el bloque de filas queda fijo a esta altura
+// (con scroll propio) para que "Mostrar N más" revele filas scrolleando en
+// vez de estirar la tarjeta y correr todo lo que viene debajo.
+const ALTURA_VISIBLE = PASO_MOSTRAR * ALTURA_FILA + (PASO_MOSTRAR - 1) * GAP_FILAS;
+// Ancho real de la columna de nombres (índice + avatar + nombre, con sus
+// gaps) — usado como espaciador para que el eje X de abajo, que queda FUERA
+// del área con scroll, se siga alineando con la columna de barras.
+const ANCHO_COLUMNA_NOMBRE = 16 + 8 + 28 + 8 + 118;
 
 const METRICA_LABEL: Record<Metrica, string> = { licencias: "Licencias", dias: "Días" };
 const VISTA_LABEL: Record<Vista, string> = { general: "General", porTipo: "Por tipo" };
@@ -227,6 +235,22 @@ export default function RankingPersonalCard({
 
   const [hoverAgente, setHoverAgente] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
+
+  // Scroll del bloque de filas: al tocar "Mostrar N más" bajamos una página
+  // (en vez de dejar que el usuario tenga que buscar las filas nuevas), y al
+  // resetear el ranking (cambio de filtro/período) volvemos arriba del todo.
+  const filasScrollRef = useRef<HTMLDivElement>(null);
+  const cantidadMostradaAnterior = useRef(cantidadMostrada);
+  useEffect(() => {
+    if (filasScrollRef.current) {
+      if (cantidadMostrada > cantidadMostradaAnterior.current) {
+        filasScrollRef.current.scrollBy({ top: ALTURA_VISIBLE, behavior: "smooth" });
+      } else if (cantidadMostrada <= PASO_MOSTRAR) {
+        filasScrollRef.current.scrollTop = 0;
+      }
+    }
+    cantidadMostradaAnterior.current = cantidadMostrada;
+  }, [cantidadMostrada]);
 
   function irALegajo(agenteId: string) {
     router.push(`/personal/${agenteId}`);
@@ -371,88 +395,100 @@ export default function RankingPersonalCard({
         </p>
       ) : (
         <>
-          <div className="flex items-start gap-2.5">
-            <div className="flex flex-col shrink-0" style={{ gap: GAP_FILAS }}>
-              {filasVisibles.map((f, i) => (
-                <div
-                  key={f.agenteId}
-                  className="flex items-center gap-2 cursor-pointer"
-                  style={{ height: ALTURA_FILA }}
-                  onPointerEnter={() => setHoverAgente(f.agenteId)}
-                  onPointerLeave={() => setHoverAgente(null)}
-                  onClick={() => irALegajo(f.agenteId)}
-                >
-                  <span className="w-4 text-right text-[11px] font-bold text-[var(--c-text-faint)] tabular-nums">{i + 1}</span>
-                  <AgenteAvatar fotoUrl={f.fotoUrl} sexo={f.sexo} sizeClassName="h-7 w-7 rounded-full shrink-0" />
-                  <span
-                    className={`text-[11.5px] truncate transition-colors ${
-                      hoverAgente === f.agenteId ? "text-[var(--c-text)]" : "text-[var(--c-text-secondary)]"
-                    }`}
-                    style={{ width: 118 }}
+          <div ref={filasScrollRef} className="overflow-y-auto" style={{ maxHeight: ALTURA_VISIBLE + 4 }}>
+            <div className="flex items-start gap-2.5">
+              <div className="flex flex-col shrink-0" style={{ gap: GAP_FILAS }}>
+                {filasVisibles.map((f, i) => (
+                  <div
+                    key={f.agenteId}
+                    className="flex items-center gap-2 cursor-pointer"
+                    style={{ height: ALTURA_FILA }}
+                    onPointerEnter={() => setHoverAgente(f.agenteId)}
+                    onPointerLeave={() => setHoverAgente(null)}
+                    onClick={() => irALegajo(f.agenteId)}
                   >
-                    {f.nombreCompleto}
-                  </span>
-                </div>
-              ))}
-            </div>
+                    <span className="w-4 text-right text-[11px] font-bold text-[var(--c-text-faint)] tabular-nums">{i + 1}</span>
+                    <AgenteAvatar fotoUrl={f.fotoUrl} sexo={f.sexo} sizeClassName="h-7 w-7 rounded-full shrink-0" />
+                    <span
+                      className={`text-[11.5px] truncate transition-colors ${
+                        hoverAgente === f.agenteId ? "text-[var(--c-text)]" : "text-[var(--c-text-secondary)]"
+                      }`}
+                      style={{ width: 118 }}
+                    >
+                      {f.nombreCompleto}
+                    </span>
+                  </div>
+                ))}
+              </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="relative">
-                <div className="absolute inset-0 pointer-events-none">
-                  {lineasGrilla.map(({ frac }) => (
-                    <div
-                      key={frac}
-                      className="absolute top-0 bottom-0 border-l border-[var(--c-line)]"
-                      style={{ left: `${frac * 100}%`, opacity: frac === 0 ? 1 : 0.5 }}
-                    />
-                  ))}
-                </div>
-                <div className="flex flex-col relative" style={{ gap: GAP_FILAS }}>
-                  {filasVisibles.map((f, i) => {
-                    const porTipo = metrica === "licencias" ? f.porTipoCantidad : f.porTipoDias;
-                    const total = metrica === "licencias" ? f.totalCantidad : f.totalDias;
-                    return (
+              <div className="flex-1 min-w-0">
+                <div className="relative">
+                  <div className="absolute inset-0 pointer-events-none">
+                    {lineasGrilla.map(({ frac }) => (
                       <div
-                        key={f.agenteId}
-                        className="flex items-center cursor-pointer"
-                        style={{ height: ALTURA_FILA }}
-                        onPointerEnter={(e) => {
-                          setHoverAgente(f.agenteId);
-                          setTooltip({ x: e.clientX, y: e.clientY, fila: f });
-                        }}
-                        onPointerMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, fila: f })}
-                        onPointerLeave={() => {
-                          setHoverAgente(null);
-                          setTooltip(null);
-                        }}
-                        onClick={() => irALegajo(f.agenteId)}
-                      >
+                        key={frac}
+                        className="absolute top-0 bottom-0 border-l border-[var(--c-line)]"
+                        style={{ left: `${frac * 100}%`, opacity: frac === 0 ? 1 : 0.5 }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex flex-col relative" style={{ gap: GAP_FILAS }}>
+                    {filasVisibles.map((f, i) => {
+                      const porTipo = metrica === "licencias" ? f.porTipoCantidad : f.porTipoDias;
+                      const total = metrica === "licencias" ? f.totalCantidad : f.totalDias;
+                      return (
                         <div
-                          className="flex h-full rounded-r-[3px] overflow-hidden"
-                          style={{
-                            width: listo ? `${Math.max(total > 0 ? 1.5 : 0, (total / escalaMax) * 100)}%` : 0,
-                            filter: hoverAgente === f.agenteId ? "brightness(1.15)" : undefined,
-                            transition: `filter 150ms, width 550ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 24) * 35}ms`,
+                          key={f.agenteId}
+                          className="flex items-center cursor-pointer"
+                          style={{ height: ALTURA_FILA }}
+                          onPointerEnter={(e) => {
+                            setHoverAgente(f.agenteId);
+                            setTooltip({ x: e.clientX, y: e.clientY, fila: f });
                           }}
+                          onPointerMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, fila: f })}
+                          onPointerLeave={() => {
+                            setHoverAgente(null);
+                            setTooltip(null);
+                          }}
+                          onClick={() => irALegajo(f.agenteId)}
                         >
-                          {vista === "porTipo" ? (
-                            TIPOS_FILTRO.map((t) => {
-                              const valor = porTipo[t] ?? 0;
-                              if (valor <= 0) return null;
-                              return <div key={t} style={{ width: `${(valor / total) * 100}%`, background: TIPO_LICENCIA_CHART_COLOR[t] }} />;
-                            })
-                          ) : (
-                            <div style={{ width: "100%", background: colorGeneral }} />
+                          <div
+                            className="flex h-full rounded-r-[3px] overflow-hidden"
+                            style={{
+                              width: listo ? `${Math.max(total > 0 ? 1.5 : 0, (total / escalaMax) * 100)}%` : 0,
+                              filter: hoverAgente === f.agenteId ? "brightness(1.15)" : undefined,
+                              transition: `filter 150ms, width 550ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 24) * 35}ms`,
+                            }}
+                          >
+                            {vista === "porTipo" ? (
+                              TIPOS_FILTRO.map((t) => {
+                                const valor = porTipo[t] ?? 0;
+                                if (valor <= 0) return null;
+                                return <div key={t} style={{ width: `${(valor / total) * 100}%`, background: TIPO_LICENCIA_CHART_COLOR[t] }} />;
+                              })
+                            ) : (
+                              <div style={{ width: "100%", background: colorGeneral }} />
+                            )}
+                          </div>
+                          {total > 0 && (
+                            <span className="ml-2 text-[11px] font-bold text-[var(--c-text)] tabular-nums whitespace-nowrap">{total}</span>
                           )}
                         </div>
-                        {total > 0 && (
-                          <span className="ml-2 text-[11px] font-bold text-[var(--c-text)] tabular-nums whitespace-nowrap">{total}</span>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Eje X: fuera del bloque con scroll (arriba) para que quede
+              siempre visible en vez de scrollear con las filas — el
+              espaciador replica el ancho de la columna de nombres para que
+              siga alineado con la columna de barras. */}
+          <div className="flex items-start gap-2.5">
+            <div style={{ width: ANCHO_COLUMNA_NOMBRE, flexShrink: 0 }} />
+            <div className="flex-1 min-w-0">
               <div className="relative mt-1.5" style={{ height: 14 }}>
                 {lineasGrilla.map(({ frac, valor }) => (
                   <span

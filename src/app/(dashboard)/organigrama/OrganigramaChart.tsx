@@ -451,7 +451,13 @@ function useMostrarBotonArriba(ref: React.RefObject<HTMLDivElement | null>): boo
 function LogoMarcaDeAgua({ width, height }: { width: number; height: number }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <Image src="/logo-ojos-en-alerta-blanco.png" alt="" width={width} height={height} className="opacity-10 grayscale" />
+      <Image
+        src="/logo-ojos-en-alerta-blanco.png"
+        alt=""
+        width={width}
+        height={height}
+        className="grayscale opacity-[var(--c-marca-agua-opacity)]"
+      />
     </div>
   );
 }

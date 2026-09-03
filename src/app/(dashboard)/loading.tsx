@@ -1,9 +1,9 @@
-import { Spinner } from "@/components/ui/Spinner";
+import LogoLoader from "@/components/LogoLoader";
 
 export default function Loading() {
   return (
-    <div className="flex h-full min-h-[60vh] items-center justify-center">
-      <Spinner size={40} className="text-[var(--c-blue)]" />
+    <div className="h-full min-h-[60vh]">
+      <LogoLoader fullScreen={false} background="transparent" />
     </div>
   );
 }

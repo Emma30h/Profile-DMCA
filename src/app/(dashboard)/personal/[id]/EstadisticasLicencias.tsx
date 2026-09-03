@@ -10,8 +10,40 @@ import {
   type CategoriaLicencia,
 } from "@/types";
 import type { LicenciaEntry } from "./LegajoTabs";
+import { useEntrada } from "@/lib/useEntrada";
+import { useReplayOnChange } from "@/lib/useReplayOnChange";
+import { useCountUp } from "@/lib/useCountUp";
 
 const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+// Un componente aparte (no useCountUp llamado directo dentro de un .map) es
+// obligatorio acá: la cantidad de categorías/tipos/días visibles cambia con
+// el filtro, así que la cantidad de veces que se llamaría el hook por
+// render no sería estable — eso rompe las reglas de hooks de React. Como
+// componente, cada fila tiene su propia instancia con exactamente un hook,
+// sin importar cuántas entren o salgan al cambiar de período.
+function ValorAnimado({ value, duracionMs = 900 }: { value: number; duracionMs?: number }) {
+  const animado = useCountUp(value, 0, duracionMs);
+  return <>{animado}</>;
+}
+
+// Lunes primero (convención local), no domingo-sábado como getUTCDay() nativo.
+const DIAS_SEMANA = [
+  { corto: "Lun", label: "Lunes" },
+  { corto: "Mar", label: "Martes" },
+  { corto: "Mié", label: "Miércoles" },
+  { corto: "Jue", label: "Jueves" },
+  { corto: "Vie", label: "Viernes" },
+  { corto: "Sáb", label: "Sábado" },
+  { corto: "Dom", label: "Domingo" },
+];
+// Lunes (0) y viernes (4): arrancar ahí una licencia estira un fin de
+// semana — es el patrón que este gráfico existe para hacer visible.
+const DIAS_SEMANA_ESTIRAN_FINDE = new Set([0, 4]);
+
+function diaSemanaIndice(iso: string): number {
+  return (new Date(iso).getUTCDay() + 6) % 7;
+}
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
@@ -20,27 +52,6 @@ function fmt(iso: string) {
 function categoriaColor(tipo: string): string {
   const categoria = LICENCIA_CATEGORIA_DE_TIPO[tipo as keyof typeof LICENCIA_CATEGORIA_DE_TIPO] as CategoriaLicencia | undefined;
   return categoria ? CATEGORIA_LICENCIA_CHART_COLOR[categoria] : "#64748b";
-}
-
-function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
-  const angleRad = (angleDeg * Math.PI) / 180;
-  return { x: cx + r * Math.cos(angleRad), y: cy + r * Math.sin(angleRad) };
-}
-
-// Sector anular (para efecto "donut"), no un pie completo — deja lugar al total en el centro.
-function describeDonutSlice(cx: number, cy: number, rOuter: number, rInner: number, startAngle: number, endAngle: number) {
-  const startOuter = polarToCartesian(cx, cy, rOuter, endAngle);
-  const endOuter = polarToCartesian(cx, cy, rOuter, startAngle);
-  const startInner = polarToCartesian(cx, cy, rInner, endAngle);
-  const endInner = polarToCartesian(cx, cy, rInner, startAngle);
-  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-  return [
-    "M", startOuter.x, startOuter.y,
-    "A", rOuter, rOuter, 0, largeArc, 0, endOuter.x, endOuter.y,
-    "L", endInner.x, endInner.y,
-    "A", rInner, rInner, 0, largeArc, 1, startInner.x, startInner.y,
-    "Z",
-  ].join(" ");
 }
 
 // ─── Período dinámico (año puntual / todo el historial / rango a elección) ───
@@ -77,18 +88,45 @@ function indiceMes(fecha: Date, buckets: MesBucket[]): number {
   return fecha.getTime() < Date.UTC(buckets[0]?.anio ?? 0, buckets[0]?.mes ?? 0) ? 0 : buckets.length - 1;
 }
 
-function buildDonutSlices<T extends { tipo: string; cantidad: number }>(data: T[], total: number) {
-  let anguloActual = -90; // arranca arriba (12hs), como cualquier gráfico de torta convencional
-  return data.map((d) => {
-    const porcentaje = total > 0 ? d.cantidad / total : 0;
-    // Tope en 359.99°: con una sola porción (100%), un barrido de 360° exactos
-    // colapsa el punto de inicio y fin del arco SVG y el path deja de dibujarse.
-    const anguloBarrido = Math.min(porcentaje * 360, 359.99);
-    const anguloInicio = anguloActual;
-    const anguloFin = anguloInicio + anguloBarrido;
-    anguloActual = anguloFin;
-    return { ...d, porcentaje, path: describeDonutSlice(50, 50, 48, 28, anguloInicio, anguloFin) };
-  });
+// ─── Vista en pantalla: barras/anillo con la terminación visual ya
+// establecida en dashboard (grilla de referencia, animación de entrada,
+// tooltip flotante) — separado de todo lo de arriba, que sigue siendo lo que
+// usa InformeImprimible (paleta clara de impresión, sin animar).
+
+const ALTURA_BARRA_CATEGORIA = 24;
+const GAP_BARRAS_CATEGORIA = 10;
+const SEGMENTOS_GRILLA = 4;
+
+const RADIO_ANILLO_EXTERNO = 54;
+const PASO_ANILLO = 10;
+const GROSOR_ANILLO = 7;
+const MAX_ANILLOS = 5;
+const COLOR_OTROS = "#64748b";
+
+interface TooltipCategoria {
+  x: number;
+  y: number;
+  categoria: CategoriaLicencia;
+}
+
+interface TooltipAnillo {
+  x: number;
+  y: number;
+  tipo: string;
+}
+
+interface TooltipLicencia {
+  x: number;
+  y: number;
+  licencia: LicenciaEntry;
+}
+
+const ALTURA_GRAFICO_SEMANA = 120;
+
+interface TooltipDiaSemana {
+  x: number;
+  y: number;
+  dia: number;
 }
 
 export interface AgenteInfoInforme {
@@ -98,6 +136,12 @@ export interface AgenteInfoInforme {
   sector: string | null;
   fotoUrl: string | null;
   sexo: string | null;
+  // Solo ADMINISTRATIVO tiene semana laboral fija (L-V, sábado y domingo
+  // libres) — todo el resto (A-F, FULL TIME, GUARDIA LARGA, SUPERIOR DE
+  // TURNO, PERSONAL INGRESANTE) trabaja esquema rotativo, sin fin de semana
+  // fijo. Usado para decidir si el resaltado de lunes/viernes del gráfico de
+  // "Día de la semana en que arrancan" tiene sentido para este agente.
+  turno: string | null;
 }
 
 function hoyLargoAR() {
@@ -133,7 +177,6 @@ function InformeImprimible({
   porCategoria,
   porTipo,
   licenciasFiltradas,
-  slicesDonut,
   totalLicencias,
 }: {
   agente: AgenteInfoInforme;
@@ -143,7 +186,6 @@ function InformeImprimible({
   porCategoria: { categoria: CategoriaLicencia; dias: number; info: { label: string } }[];
   porTipo: { tipo: string; cantidad: number; label: string }[];
   licenciasFiltradas: LicenciaEntry[];
-  slicesDonut: { tipo: string; label: string; cantidad: number; porcentaje: number; path: string }[];
   totalLicencias: number;
 }) {
   const promedioLabel =
@@ -151,8 +193,18 @@ function InformeImprimible({
       ? (totalDias / totalLicencias).toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
       : "—";
 
-  const categoriaLider = porCategoria[0];
-  const pctCategoriaLider = categoriaLider && totalDias > 0 ? Math.round((categoriaLider.dias / totalDias) * 100) : 0;
+  const maxDiasComposicion = Math.max(1, ...porCategoria.map((c) => c.dias));
+
+  // Mismo criterio que el anillo en pantalla (ver porTipoVista más arriba):
+  // más de MAX_ANILLOS tipos distintos no entran legibles como anillos
+  // separados, así que el resto se pliega en "Otros".
+  const porTipoAnillo = (() => {
+    const conColor = porTipo.map((t) => ({ ...t, color: categoriaColor(t.tipo) }));
+    if (conColor.length <= MAX_ANILLOS) return conColor;
+    const principales = conColor.slice(0, MAX_ANILLOS - 1);
+    const otros = conColor.slice(MAX_ANILLOS - 1).reduce((acc, t) => acc + t.cantidad, 0);
+    return [...principales, { tipo: "OTROS", cantidad: otros, label: "Otros", color: COLOR_OTROS }];
+  })();
 
   const tipoLider = porTipo[0];
   const tipoCaption =
@@ -206,7 +258,7 @@ function InformeImprimible({
         <tr>
           <td>
             <div className="inf-runhead">
-              <strong>D.M.C.A<span> · Monitoreo Cordobeses en Alerta</span></strong>
+              <strong>Dirección Monitoreo Cordobeses en Alerta</strong>
               <span>Informe de ausentismo</span>
             </div>
           </td>
@@ -232,11 +284,15 @@ function InformeImprimible({
           <h1 className="inf-title">Informe de ausentismo</h1>
           <div className="inf-sub">{tituloPeriodo}</div>
         </div>
-        <div className="inf-meta">
-          <div>Generado</div>
-          <b>{hoyLargoAR()}</b>
-          <div className="inf-meta-gap">Documento</div>
-          <b>{nroDocumento}</b>
+        <div className="inf-head-right">
+          {/* eslint-disable-next-line @next/next/no-img-element -- mismo criterio que InformeFoto: fuera del control de next/image en un documento de impresión */}
+          <img src="/logo-ojos-en-alerta-blanco.png" alt="" className="inf-logo" />
+          <div className="inf-meta">
+            <div>Generado</div>
+            <b>{hoyLargoAR()}</b>
+            <div className="inf-meta-gap">Documento</div>
+            <b>{nroDocumento}</b>
+          </div>
         </div>
       </header>
 
@@ -291,63 +347,69 @@ function InformeImprimible({
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "var(--inf-8)" }}>
           <div>
-            <div className="inf-fl" style={{ marginBottom: "var(--inf-2)" }}>Días por categoría</div>
-            <table className="inf-table">
-              <thead><tr><th>Categoría</th><th className="num" style={{ width: 64 }}>Días</th></tr></thead>
-              <tbody>
-                {porCategoria.length === 0 ? (
-                  <tr><td colSpan={2} className="txt">Sin licencias en el período.</td></tr>
-                ) : porCategoria.map((c) => (
-                  <tr key={c.categoria}>
-                    <td className="txt">{c.info.label}</td>
-                    <td className="num">{c.dias}</td>
-                  </tr>
+            <div className="inf-fl" style={{ marginBottom: "var(--inf-3)" }}>Días por categoría</div>
+            {porCategoria.length === 0 ? (
+              <p className="inf-fineprint" style={{ margin: 0 }}>Sin licencias en el período.</p>
+            ) : (
+              <div className="inf-hbars">
+                {porCategoria.map((c) => (
+                  <div className="inf-hbar-row" key={c.categoria}>
+                    <span className="inf-hbar-label">{c.info.label}</span>
+                    <span className="inf-hbar-track">
+                      <span
+                        className="inf-hbar-fill"
+                        style={{ width: `${Math.max(3, (c.dias / maxDiasComposicion) * 100)}%`, background: CATEGORIA_LICENCIA_CHART_COLOR[c.categoria] }}
+                      />
+                    </span>
+                    <span className="inf-hbar-value">{c.dias}</span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-            {categoriaLider && (
-              <>
-                <div className="inf-meter" style={{ marginTop: "var(--inf-3)" }}>
-                  <span style={{ width: `${pctCategoriaLider}%` }} />
-                </div>
-                <div className="inf-total" style={{ borderTop: "none", marginTop: "var(--inf-1)", paddingTop: 0, fontSize: 10 }}>
-                  <span>{categoriaLider.info.label}</span>
-                  <span>{pctCategoriaLider} %</span>
-                </div>
-              </>
+              </div>
             )}
           </div>
           <div>
-            <div className="inf-fl" style={{ marginBottom: "var(--inf-2)" }}>Cantidad por tipo</div>
-            <table className="inf-table">
-              <thead><tr><th>Tipo</th><th className="num" style={{ width: 74 }}>Cantidad</th><th className="num" style={{ width: 52 }}>%</th></tr></thead>
-              <tbody>
-                {porTipo.length === 0 ? (
-                  <tr><td colSpan={3} className="txt">Sin licencias en el período.</td></tr>
-                ) : porTipo.map((t) => (
-                  <tr key={t.tipo}>
-                    <td className="txt">{t.label}</td>
-                    <td className="num">{t.cantidad}</td>
-                    <td className="num">{Math.round((t.cantidad / totalLicencias) * 100)} %</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {porTipo.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--inf-4)", marginTop: "var(--inf-3)" }}>
-                <svg viewBox="0 0 100 100" style={{ width: 74, height: 74, flex: "none" }} role="img" aria-label="Distribución porcentual por tipo de licencia">
-                  {slicesDonut.map((s) => (
-                    <path key={s.tipo} d={s.path} fill={categoriaColor(s.tipo)} stroke="#fff" strokeWidth={1.5} strokeLinejoin="round" />
-                  ))}
-                  <text x="50" y="47" textAnchor="middle" style={{ fontSize: 20, fontWeight: 600, fill: "var(--inf-text)" }}>
-                    {totalLicencias}
-                  </text>
-                  <text x="50" y="60" textAnchor="middle" style={{ fontSize: 8, fill: "var(--inf-muted)" }}>
-                    {totalLicencias === 1 ? "licencia" : "licencias"}
-                  </text>
-                </svg>
-                <div style={{ fontSize: 12, color: "var(--inf-muted)", maxWidth: "20ch" }}>{tipoCaption}</div>
-              </div>
+            <div className="inf-fl" style={{ marginBottom: "var(--inf-3)" }}>Cantidad por tipo</div>
+            {porTipoAnillo.length === 0 ? (
+              <p className="inf-fineprint" style={{ margin: 0 }}>Sin licencias en el período.</p>
+            ) : (
+              <>
+                <div className="inf-ring-wrap">
+                  <div className="inf-ring-box">
+                    <svg viewBox="0 0 120 120" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }} role="img" aria-label="Cantidad de licencias por tipo">
+                      {porTipoAnillo.map((t, i) => {
+                        const r = RADIO_ANILLO_EXTERNO - i * PASO_ANILLO;
+                        const circunferencia = 2 * Math.PI * r;
+                        const pct = totalLicencias > 0 ? t.cantidad / totalLicencias : 0;
+                        const largo = pct * circunferencia;
+                        return (
+                          <g key={t.tipo}>
+                            <circle cx="60" cy="60" r={r} fill="none" stroke={t.color} strokeOpacity={0.18} strokeWidth={GROSOR_ANILLO} />
+                            <circle
+                              cx="60" cy="60" r={r} fill="none" stroke={t.color} strokeWidth={GROSOR_ANILLO}
+                              strokeLinecap="round" strokeDasharray={`${largo} ${circunferencia}`}
+                            />
+                          </g>
+                        );
+                      })}
+                    </svg>
+                    <div className="inf-ring-center">
+                      <b>{totalLicencias}</b>
+                      <span>{totalLicencias === 1 ? "licencia" : "licencias"}</span>
+                    </div>
+                  </div>
+                  <ul className="inf-ring-legend">
+                    {porTipoAnillo.map((t) => (
+                      <li className="inf-ring-legend-row" key={t.tipo}>
+                        <span className="inf-ring-legend-dot" style={{ background: t.color }} />
+                        <span className="inf-ring-legend-label">{t.label}</span>
+                        <span className="inf-ring-legend-pct">{totalLicencias > 0 ? Math.round((t.cantidad / totalLicencias) * 100) : 0}%</span>
+                        <span className="inf-ring-legend-val">{t.cantidad}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <p className="inf-fineprint" style={{ marginTop: "var(--inf-3)" }}>{tipoCaption}</p>
+              </>
             )}
           </div>
         </div>
@@ -490,19 +552,36 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
 
   const totalDias = licenciasFiltradas.reduce((acc, l) => acc + l.diasHabiles, 0);
 
+  // Trae ambas métricas juntas (días y cantidad de licencias) — el toggle de
+  // "Días por categoría" solo elige cuál de las dos se grafica, no vuelve a
+  // recorrer licenciasFiltradas. El orden de por sí queda por días (es lo
+  // que también espera InformeImprimible, que solo usa esta versión).
   const porCategoria = useMemo(() => {
-    const acc = new Map<CategoriaLicencia, number>();
+    const acc = new Map<CategoriaLicencia, { dias: number; cantidad: number }>();
     for (const l of licenciasFiltradas) {
       const categoria = LICENCIA_CATEGORIA_DE_TIPO[l.tipo as keyof typeof LICENCIA_CATEGORIA_DE_TIPO];
       if (!categoria) continue;
-      acc.set(categoria, (acc.get(categoria) ?? 0) + l.diasHabiles);
+      const entrada = acc.get(categoria) ?? { dias: 0, cantidad: 0 };
+      entrada.dias += l.diasHabiles;
+      entrada.cantidad += 1;
+      acc.set(categoria, entrada);
     }
     return [...acc.entries()]
-      .map(([categoria, dias]) => ({ categoria, dias, info: CATEGORIA_LICENCIA_INFO[categoria] }))
+      .map(([categoria, v]) => ({ categoria, dias: v.dias, cantidad: v.cantidad, info: CATEGORIA_LICENCIA_INFO[categoria] }))
       .sort((a, b) => b.dias - a.dias);
   }, [licenciasFiltradas]);
 
-  const maxDiasCategoria = Math.max(1, ...porCategoria.map((c) => c.dias));
+  const [metricaCategoria, setMetricaCategoria] = useState<"dias" | "cantidad">("dias");
+
+  // Vista activa del gráfico "por categoría": mismos datos que porCategoria,
+  // pero reordenados según la métrica elegida (la barra más grande arriba,
+  // sea cual sea el criterio activo).
+  const porCategoriaVista = useMemo(() => {
+    if (metricaCategoria === "dias") return porCategoria;
+    return [...porCategoria].sort((a, b) => b.cantidad - a.cantidad);
+  }, [porCategoria, metricaCategoria]);
+
+  const maxValorCategoria = Math.max(1, ...porCategoriaVista.map((c) => (metricaCategoria === "dias" ? c.dias : c.cantidad)));
 
   const porTipo = useMemo(() => {
     const acc = new Map<string, number>();
@@ -513,7 +592,85 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
   }, [licenciasFiltradas]);
 
   const totalLicencias = licenciasFiltradas.length;
-  const slicesDonut = useMemo(() => buildDonutSlices(porTipo, totalLicencias), [porTipo, totalLicencias]);
+
+  // Igual que porTipo, pero con ambas métricas juntas (días y cantidad) — es
+  // lo que alimenta el anillo múltiple de pantalla. El orden y el plegado en
+  // "Otros" dependen de cuál esté activa (ver porTipoVista más abajo), así
+  // que acá todavía no se ordena ni se pliega nada.
+  const porTipoDias = useMemo(() => {
+    const acc = new Map<string, { dias: number; cantidad: number }>();
+    for (const l of licenciasFiltradas) {
+      const entrada = acc.get(l.tipo) ?? { dias: 0, cantidad: 0 };
+      entrada.dias += l.diasHabiles;
+      entrada.cantidad += 1;
+      acc.set(l.tipo, entrada);
+    }
+    return [...acc.entries()].map(([tipo, v]) => ({
+      tipo, dias: v.dias, cantidad: v.cantidad,
+      label: TIPO_LICENCIA_LABELS[tipo] ?? tipo,
+      color: categoriaColor(tipo),
+    }));
+  }, [licenciasFiltradas]);
+
+  const [metricaAnillo, setMetricaAnillo] = useState<"dias" | "cantidad">("dias");
+
+  // Ordenado y plegado en "Otros" según la métrica activa (más de
+  // MAX_ANILLOS tipos distintos no entran legibles como anillos separados
+  // — mismo criterio que el resto de la app para una serie categórica que
+  // se pasa de la cantidad de series que entran).
+  const porTipoVista = useMemo(() => {
+    const ordenado = [...porTipoDias].sort((a, b) =>
+      metricaAnillo === "dias" ? b.dias - a.dias : b.cantidad - a.cantidad
+    );
+    if (ordenado.length <= MAX_ANILLOS) return ordenado;
+    const principales = ordenado.slice(0, MAX_ANILLOS - 1);
+    const resto = ordenado.slice(MAX_ANILLOS - 1);
+    return [
+      ...principales,
+      {
+        tipo: "OTROS",
+        dias: resto.reduce((acc, i) => acc + i.dias, 0),
+        cantidad: resto.reduce((acc, i) => acc + i.cantidad, 0),
+        label: "Otros",
+        color: COLOR_OTROS,
+      },
+    ];
+  }, [porTipoDias, metricaAnillo]);
+
+  // Cuántas licencias arrancan cada día de la semana — no días acumulados
+  // (una licencia médica larga pesaría igual que diez cortas y taparía el
+  // patrón), sino cantidad de veces que ESE día fue el "Desde" elegido.
+  const porDiaSemana = useMemo(() => {
+    const acc = new Array(7).fill(0);
+    for (const l of licenciasFiltradas) acc[diaSemanaIndice(l.fechaInicio)]++;
+    return DIAS_SEMANA.map((d, i) => ({ ...d, dia: i, cantidad: acc[i] }));
+  }, [licenciasFiltradas]);
+
+  const maxPorDiaSemana = Math.max(1, ...porDiaSemana.map((d) => d.cantidad));
+
+  // El resaltado de lunes/viernes ("estira el fin de semana") solo tiene
+  // sentido con una semana laboral fija de L-V — el resto de los turnos
+  // (A-F, FULL TIME, GUARDIA LARGA, SUPERIOR DE TURNO, PERSONAL INGRESANTE)
+  // son esquemas rotativos sin fin de semana fijo, donde marcar esos dos
+  // días sería arbitrario (o directamente engañoso).
+  const esAdministrativo = agente.turno === "ADMINISTRATIVO";
+
+  // Gate de animación: arranca "colapsado" y crece una vez montado, y
+  // vuelve a jugar la transición cada vez que cambia el período filtrado
+  // (mismo mecanismo que dashboard — ver useEntrada/useReplayOnChange).
+  const entrada = useEntrada();
+  const replayListo = useReplayOnChange(licenciasFiltradas);
+  const listo = entrada && replayListo;
+
+  const [hoverCategoria, setHoverCategoria] = useState<CategoriaLicencia | null>(null);
+  const [tooltipCategoria, setTooltipCategoria] = useState<TooltipCategoria | null>(null);
+  const [hoverAnillo, setHoverAnillo] = useState<string | null>(null);
+  const [tooltipAnillo, setTooltipAnillo] = useState<TooltipAnillo | null>(null);
+  const [tooltipLicencia, setTooltipLicencia] = useState<TooltipLicencia | null>(null);
+  const [tooltipDiaSemana, setTooltipDiaSemana] = useState<TooltipDiaSemana | null>(null);
+
+  const hoyReal = new Date();
+  const hoyEnMeses = meses.findIndex((m) => m.anio === hoyReal.getUTCFullYear() && m.mes === hoyReal.getUTCMonth());
 
   if (anios.length === 0) {
     return (
@@ -529,7 +686,7 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
         <div>
           <p className="text-xs text-[var(--c-text-faint)] uppercase tracking-wide mb-0.5">Total — {tituloPeriodo}</p>
           <p className="text-3xl font-semibold tracking-tight text-[var(--c-text)] tabular-nums">
-            {totalDias} <span className="text-base font-normal text-[var(--c-text-muted)]">{totalDias === 1 ? "día" : "días"}</span>
+            <ValorAnimado value={totalDias} /> <span className="text-base font-normal text-[var(--c-text-muted)]">{totalDias === 1 ? "día" : "días"}</span>
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -552,7 +709,20 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
           )}
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => {
+              // document.title es lo que Chrome/Edge sugieren como nombre de
+              // archivo en "Guardar como PDF" — lo pisamos justo antes de
+              // imprimir y lo restauramos al cerrar el diálogo (afterprint)
+              // para no dejar la pestaña con ese título todo el tiempo.
+              const tituloOriginal = document.title;
+              document.title = `INFORME DE AUSENTISMO ${agente.nombreCompleto} ${tituloPeriodo}`.replace(/\//g, "-");
+              const restaurar = () => {
+                document.title = tituloOriginal;
+                window.removeEventListener("afterprint", restaurar);
+              };
+              window.addEventListener("afterprint", restaurar);
+              window.print();
+            }}
             title='Antes de imprimir, desmarcá "Encabezados y pies de página" en el diálogo del navegador para un resultado prolijo.'
             className="rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-2 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] hover:text-[var(--c-text)]"
           >
@@ -579,60 +749,262 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
         </div>
       </div>
 
-      {/* Total de días por categoría */}
+      {/* Días u cantidad de licencias por categoría */}
       <div className="rounded-xl border border-[var(--c-bg-elev-2)] bg-[var(--c-bg)] p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-[var(--c-text)]">Días por categoría</h3>
-        {porCategoria.length === 0 ? (
+        <div className="flex items-center justify-between gap-2.5 flex-wrap">
+          <h3 className="text-sm font-semibold text-[var(--c-text)]">Por categoría</h3>
+          <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
+            {(["dias", "cantidad"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMetricaCategoria(m)}
+                aria-pressed={metricaCategoria === m}
+                className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
+                  metricaCategoria === m
+                    ? "bg-[var(--c-blue)] text-white"
+                    : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
+                }`}
+              >
+                {m === "dias" ? "Días" : "Cantidad"}
+              </button>
+            ))}
+          </div>
+        </div>
+        {porCategoriaVista.length === 0 ? (
           <p className="text-sm text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</p>
         ) : (
-          <div className="space-y-2.5">
-            {porCategoria.map((c) => (
-              <div key={c.categoria} className="flex items-center gap-3" title={`${c.info.label}: ${c.dias} ${c.dias === 1 ? "día" : "días"}`}>
-                <span className="w-40 shrink-0 text-xs text-[var(--c-text-muted)] truncate">{c.info.label}</span>
-                <div className="flex-1 h-2 rounded-full bg-[var(--c-bg-elev)] overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${Math.max(4, (c.dias / maxDiasCategoria) * 100)}%`, backgroundColor: CATEGORIA_LICENCIA_CHART_COLOR[c.categoria] }}
-                  />
+          <div className="flex items-start gap-2.5">
+            <div className="flex flex-col shrink-0" style={{ gap: GAP_BARRAS_CATEGORIA }}>
+              {porCategoriaVista.map((c) => (
+                <div
+                  key={c.categoria}
+                  className="flex items-center justify-end text-[11.5px] text-[var(--c-text-secondary)] text-right truncate"
+                  title={c.info.label}
+                  style={{ height: ALTURA_BARRA_CATEGORIA, width: 172 }}
+                >
+                  {c.info.label}
                 </div>
-                <span className="w-14 shrink-0 text-xs text-[var(--c-text-secondary)] text-right tabular-nums">{c.dias} {c.dias === 1 ? "día" : "días"}</span>
+              ))}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="relative">
+                <div className="absolute inset-0 pointer-events-none">
+                  {Array.from({ length: SEGMENTOS_GRILLA + 1 }, (_, i) => i / SEGMENTOS_GRILLA).map((frac) => (
+                    <div
+                      key={frac}
+                      className="absolute top-0 bottom-0 border-l border-[var(--c-line)]"
+                      style={{ left: `${frac * 100}%`, opacity: frac === 0 ? 1 : 0.5 }}
+                    />
+                  ))}
+                </div>
+                <div className="flex flex-col relative" style={{ gap: GAP_BARRAS_CATEGORIA }}>
+                  {porCategoriaVista.map((c, i) => {
+                    const valor = metricaCategoria === "dias" ? c.dias : c.cantidad;
+                    // En "cantidad" no hace falta la palabra "licencias": ya
+                    // estamos en la sección de licencias, y repetirla en
+                    // cada barra era ruido — el número solo se entiende igual.
+                    const unidad = metricaCategoria === "dias" ? (valor === 1 ? "día" : "días") : "";
+                    return (
+                      <div
+                        key={c.categoria}
+                        className="flex items-center rounded-r-[3px]"
+                        style={{ height: ALTURA_BARRA_CATEGORIA }}
+                        onPointerEnter={(e) => {
+                          setHoverCategoria(c.categoria);
+                          setTooltipCategoria({ x: e.clientX, y: e.clientY, categoria: c.categoria });
+                        }}
+                        onPointerMove={(e) => setTooltipCategoria({ x: e.clientX, y: e.clientY, categoria: c.categoria })}
+                        onPointerLeave={() => {
+                          setHoverCategoria(null);
+                          setTooltipCategoria(null);
+                        }}
+                      >
+                        <div
+                          className="h-full rounded-r-[3px]"
+                          style={{
+                            width: listo ? `${Math.max(1.5, (valor / maxValorCategoria) * 100)}%` : 0,
+                            background: CATEGORIA_LICENCIA_CHART_COLOR[c.categoria],
+                            filter: hoverCategoria === c.categoria ? "brightness(1.15)" : undefined,
+                            transition: `filter 150ms, width 550ms cubic-bezier(.22,1,.36,1) ${i * 35}ms`,
+                          }}
+                        />
+                        <span className="ml-2 text-[11px] font-bold text-[var(--c-text)] tabular-nums whitespace-nowrap">
+                          <ValorAnimado value={valor} />{unidad && ` ${unidad}`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Cantidad de licencias por tipo */}
+      {/* Anillo múltiple por tipo: un anillo por tipo, relleno según qué
+          proporción del total (en días o en cantidad, según el toggle) le
+          corresponde. */}
       <div className="rounded-xl border border-[var(--c-bg-elev-2)] bg-[var(--c-bg)] p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-[var(--c-text)]">Cantidad por tipo</h3>
-        {porTipo.length === 0 ? (
+        <div className="flex items-center justify-between gap-2.5 flex-wrap">
+          <h3 className="text-sm font-semibold text-[var(--c-text)]">Por tipo</h3>
+          <div className="inline-flex rounded-md border border-[var(--c-line)] overflow-hidden">
+            {(["dias", "cantidad"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMetricaAnillo(m)}
+                aria-pressed={metricaAnillo === m}
+                className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
+                  metricaAnillo === m
+                    ? "bg-[var(--c-blue)] text-white"
+                    : "text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:bg-[var(--c-bg-elev-2)]"
+                }`}
+              >
+                {m === "dias" ? "Días" : "Cantidad"}
+              </button>
+            ))}
+          </div>
+        </div>
+        {porTipoVista.length === 0 ? (
           <p className="text-sm text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</p>
         ) : (
-          <div className="flex flex-col sm:flex-row items-center gap-5">
-            <svg viewBox="0 0 100 100" className="w-28 h-28 shrink-0" role="img" aria-label="Distribución porcentual por tipo de licencia">
-              {slicesDonut.map((s) => (
-                <path key={s.tipo} d={s.path} fill={categoriaColor(s.tipo)} stroke="#020617" strokeWidth={1.5} strokeLinejoin="round">
-                  <title>{`${s.label}: ${s.cantidad} (${Math.round(s.porcentaje * 100)}%)`}</title>
-                </path>
-              ))}
-              <text x="50" y="47" textAnchor="middle" style={{ fontSize: 20, fontWeight: 600, fill: "#f1f5f9" }}>
-                {totalLicencias}
-              </text>
-              <text x="50" y="60" textAnchor="middle" style={{ fontSize: 8, fill: "#cbd5e1" }}>
-                {totalLicencias === 1 ? "licencia" : "licencias"}
-              </text>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="relative w-36 h-36 shrink-0">
+            <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90" role="img" aria-label="Licencias por tipo">
+              {porTipoVista.map((t, i) => {
+                const r = RADIO_ANILLO_EXTERNO - i * PASO_ANILLO;
+                const circunferencia = 2 * Math.PI * r;
+                const total = metricaAnillo === "dias" ? totalDias : totalLicencias;
+                const valor = metricaAnillo === "dias" ? t.dias : t.cantidad;
+                const pct = total > 0 ? valor / total : 0;
+                const largo = listo ? pct * circunferencia : 0;
+                return (
+                  <g key={t.tipo}>
+                    <circle cx="60" cy="60" r={r} fill="none" stroke={t.color} strokeOpacity={0.16} strokeWidth={GROSOR_ANILLO} />
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r={r}
+                      fill="none"
+                      stroke={t.color}
+                      strokeWidth={GROSOR_ANILLO}
+                      strokeLinecap="round"
+                      strokeDasharray={`${largo} ${circunferencia}`}
+                      style={{
+                        filter: hoverAnillo === t.tipo ? "brightness(1.25)" : undefined,
+                        transition: `stroke-dasharray 700ms cubic-bezier(.22,1,.36,1) ${i * 60}ms, filter 150ms`,
+                      }}
+                      onPointerEnter={(e) => {
+                        setHoverAnillo(t.tipo);
+                        setTooltipAnillo({ x: e.clientX, y: e.clientY, tipo: t.tipo });
+                      }}
+                      onPointerMove={(e) => setTooltipAnillo({ x: e.clientX, y: e.clientY, tipo: t.tipo })}
+                      onPointerLeave={() => {
+                        setHoverAnillo(null);
+                        setTooltipAnillo(null);
+                      }}
+                    />
+                  </g>
+                );
+              })}
             </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-lg font-semibold tracking-tight text-[var(--c-text)] tabular-nums">
+                <ValorAnimado value={metricaAnillo === "dias" ? totalDias : totalLicencias} />
+              </span>
+              <span className="text-[10px] text-[var(--c-text-faint)]">
+                {metricaAnillo === "dias" ? (totalDias === 1 ? "día" : "días") : ""}
+              </span>
+            </div>
+            </div>
             <ul className="flex-1 w-full space-y-1.5">
-              {porTipo.map((t) => (
-                <li key={t.tipo} className="flex items-center gap-2.5 text-sm">
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: categoriaColor(t.tipo) }} />
-                  <span className="flex-1 text-[var(--c-text-secondary)] truncate">{t.label}</span>
-                  <span className="text-xs text-[var(--c-text-faint)] tabular-nums">{Math.round((t.cantidad / totalLicencias) * 100)}%</span>
-                  <span className="w-5 text-right text-[var(--c-text-muted)] tabular-nums">{t.cantidad}</span>
-                </li>
-              ))}
+              {porTipoVista.map((t) => {
+                const total = metricaAnillo === "dias" ? totalDias : totalLicencias;
+                const valor = metricaAnillo === "dias" ? t.dias : t.cantidad;
+                const unidad = metricaAnillo === "dias" ? (valor === 1 ? "día" : "días") : "";
+                return (
+                  <li
+                    key={t.tipo}
+                    className="flex items-center gap-2.5 text-sm rounded px-1 -mx-1 transition-colors"
+                    style={{ background: hoverAnillo === t.tipo ? "var(--c-bg-elev)" : undefined }}
+                    onPointerEnter={() => setHoverAnillo(t.tipo)}
+                    onPointerLeave={() => setHoverAnillo(null)}
+                  >
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                    <span className="flex-1 text-[var(--c-text-secondary)] truncate">{t.label}</span>
+                    <span className="text-xs text-[var(--c-text-faint)] tabular-nums">
+                      <ValorAnimado value={total > 0 ? Math.round((valor / total) * 100) : 0} />%
+                    </span>
+                    <span className="w-14 text-right text-[var(--c-text-muted)] tabular-nums">
+                      <ValorAnimado value={valor} />{unidad && ` ${unidad}`}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
+        )}
+      </div>
+
+      {/* Día de la semana en que arrancan las licencias */}
+      <div className="rounded-xl border border-[var(--c-bg-elev-2)] bg-[var(--c-bg)] p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-[var(--c-text)]">Día de la semana en que arrancan</h3>
+        {totalLicencias === 0 ? (
+          <p className="text-sm text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</p>
+        ) : (
+          <>
+            {esAdministrativo && (
+              <p className="text-[11px] text-[var(--c-text-faint)]">
+                <span className="inline-block w-1.5 h-1.5 rounded-full align-middle mr-1" style={{ background: "var(--c-amber)" }} />
+                Lunes y viernes remarcados: arrancar una licencia ahí estira un fin de semana.
+              </p>
+            )}
+            <div className="relative" style={{ height: ALTURA_GRAFICO_SEMANA }}>
+              <div className="absolute inset-0 pointer-events-none">
+                {[0, 0.25, 0.5, 0.75, 1].map((frac) => (
+                  <div
+                    key={frac}
+                    className="absolute left-0 right-0 border-t border-[var(--c-line)]"
+                    style={{ bottom: `${frac * 100}%`, opacity: frac === 0 ? 1 : 0.5 }}
+                  />
+                ))}
+              </div>
+              <div className="relative flex items-end justify-between gap-2 h-full">
+                {porDiaSemana.map((d, i) => {
+                  const color = esAdministrativo && DIAS_SEMANA_ESTIRAN_FINDE.has(d.dia) ? "var(--c-amber)" : "var(--c-blue)";
+                  return (
+                    <div
+                      key={d.dia}
+                      className="flex-1 flex flex-col items-center justify-end h-full cursor-default"
+                      onPointerEnter={(e) => setTooltipDiaSemana({ x: e.clientX, y: e.clientY, dia: d.dia })}
+                      onPointerMove={(e) => setTooltipDiaSemana({ x: e.clientX, y: e.clientY, dia: d.dia })}
+                      onPointerLeave={() => setTooltipDiaSemana(null)}
+                    >
+                      <span className="text-[10px] font-bold text-[var(--c-text)] tabular-nums mb-1 h-3.5">
+                        {d.cantidad > 0 ? <ValorAnimado value={d.cantidad} /> : ""}
+                      </span>
+                      <div
+                        className="w-full max-w-8 rounded-t-[3px]"
+                        style={{
+                          height: listo ? `${Math.max(d.cantidad > 0 ? 3 : 0, (d.cantidad / maxPorDiaSemana) * 100)}%` : 0,
+                          background: color,
+                          filter: tooltipDiaSemana?.dia === d.dia ? "brightness(1.15)" : undefined,
+                          transition: `filter 150ms, height 550ms cubic-bezier(.22,1,.36,1) ${i * 35}ms`,
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex justify-between gap-2">
+              {porDiaSemana.map((d) => (
+                <span key={d.dia} className="flex-1 text-center text-[10.5px] text-[var(--c-text-faint)]">{d.corto}</span>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -642,38 +1014,144 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
         {licenciasFiltradas.length === 0 || meses.length === 0 ? (
           <p className="text-sm text-[var(--c-text-faint)]">Sin licencias aprobadas en el período.</p>
         ) : (
-          <div className="space-y-2 overflow-x-auto">
-            <div
-              className="grid gap-px text-[10px] text-[var(--c-text-faint)] pl-0 min-w-max"
-              style={{ gridTemplateColumns: `repeat(${meses.length}, minmax(28px, 1fr))` }}
-            >
-              {meses.map((m, i) => (
-                <span key={`${m.anio}-${m.mes}-${i}`} className="text-center">{m.label}</span>
-              ))}
-            </div>
-            <div className="space-y-1.5 min-w-max">
-              {licenciasFiltradas.map((l) => {
-                const mesInicio = indiceMes(new Date(l.fechaInicio), meses);
-                const mesFin = indiceMes(new Date(l.fechaFin), meses);
-                const color = categoriaColor(l.tipo);
-                return (
-                  <div
-                    key={l.id}
-                    className="grid gap-px h-5"
-                    style={{ gridTemplateColumns: `repeat(${meses.length}, minmax(28px, 1fr))` }}
-                    title={`${TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo}: ${fmt(l.fechaInicio)} → ${fmt(l.fechaFin)} (${l.diasHabiles} ${l.diasHabiles === 1 ? "día" : "días"})`}
-                  >
+          <div className="overflow-x-auto">
+            <div className="relative min-w-max space-y-2 pt-3">
+              {hoyEnMeses !== -1 && (
+                <div
+                  className="absolute top-0 bottom-0 w-px bg-[var(--c-blue)] pointer-events-none z-10"
+                  style={{ left: `${((hoyEnMeses + 0.5) / meses.length) * 100}%` }}
+                >
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] font-semibold text-[var(--c-blue-text)] whitespace-nowrap">Hoy</span>
+                </div>
+              )}
+              <div
+                className="grid gap-px text-[10px] text-[var(--c-text-faint)] pl-0"
+                style={{ gridTemplateColumns: `repeat(${meses.length}, minmax(28px, 1fr))` }}
+              >
+                {meses.map((m, i) => (
+                  <span key={`${m.anio}-${m.mes}-${i}`} className="text-center">{m.label}</span>
+                ))}
+              </div>
+              <div className="space-y-1.5">
+                {licenciasFiltradas.map((l, i) => {
+                  const mesInicio = indiceMes(new Date(l.fechaInicio), meses);
+                  const mesFin = indiceMes(new Date(l.fechaFin), meses);
+                  const color = categoriaColor(l.tipo);
+                  return (
                     <div
-                      className="h-full rounded"
-                      style={{ gridColumnStart: mesInicio + 1, gridColumnEnd: mesFin + 2, backgroundColor: color }}
-                    />
-                  </div>
-                );
-              })}
+                      key={l.id}
+                      className="grid gap-px h-5"
+                      style={{ gridTemplateColumns: `repeat(${meses.length}, minmax(28px, 1fr))` }}
+                    >
+                      <div
+                        className="h-full rounded cursor-default"
+                        style={{
+                          gridColumnStart: mesInicio + 1,
+                          gridColumnEnd: mesFin + 2,
+                          background: color,
+                          opacity: listo ? 1 : 0,
+                          filter: tooltipLicencia?.licencia.id === l.id ? "brightness(1.2)" : undefined,
+                          transition: `opacity 400ms ${i * 20}ms, filter 150ms`,
+                        }}
+                        onPointerEnter={(e) => setTooltipLicencia({ x: e.clientX, y: e.clientY, licencia: l })}
+                        onPointerMove={(e) => setTooltipLicencia({ x: e.clientX, y: e.clientY, licencia: l })}
+                        onPointerLeave={() => setTooltipLicencia(null)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      {tooltipCategoria && (() => {
+        const c = porCategoria.find((x) => x.categoria === tooltipCategoria.categoria);
+        if (!c) return null;
+        return (
+          <div
+            className="fixed z-40 pointer-events-none bg-[var(--c-bg)] border border-[var(--c-line)] rounded-lg px-2.5 py-2 text-xs text-[var(--c-text)] shadow-lg shadow-black/40"
+            style={{ left: tooltipCategoria.x + 14, top: tooltipCategoria.y + 14 }}
+          >
+            <div className="flex items-center gap-1.5 font-bold mb-1">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: CATEGORIA_LICENCIA_CHART_COLOR[c.categoria] }} />
+              {c.info.label}
+            </div>
+            <div>
+              <span className="font-bold tabular-nums"><ValorAnimado value={metricaCategoria === "dias" ? c.dias : c.cantidad} /></span>
+              <span className="text-[var(--c-text-faint)] ml-1.5">
+                {metricaCategoria === "dias" ? (c.dias === 1 ? "día" : "días") + " · " : ""}
+                {metricaCategoria === "dias"
+                  ? (totalDias > 0 ? Math.round((c.dias / totalDias) * 100) : 0)
+                  : (totalLicencias > 0 ? Math.round((c.cantidad / totalLicencias) * 100) : 0)}% del total
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {tooltipAnillo && (() => {
+        const t = porTipoVista.find((x) => x.tipo === tooltipAnillo.tipo);
+        if (!t) return null;
+        const total = metricaAnillo === "dias" ? totalDias : totalLicencias;
+        const valor = metricaAnillo === "dias" ? t.dias : t.cantidad;
+        const unidad = metricaAnillo === "dias" ? (valor === 1 ? "día" : "días") : "";
+        return (
+          <div
+            className="fixed z-40 pointer-events-none bg-[var(--c-bg)] border border-[var(--c-line)] rounded-lg px-2.5 py-2 text-xs text-[var(--c-text)] shadow-lg shadow-black/40"
+            style={{ left: tooltipAnillo.x + 14, top: tooltipAnillo.y + 14 }}
+          >
+            <div className="flex items-center gap-1.5 font-bold mb-1">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: t.color }} />
+              {t.label}
+            </div>
+            <div>
+              <span className="font-bold tabular-nums"><ValorAnimado value={valor} /></span>
+              <span className="text-[var(--c-text-faint)] ml-1.5">
+                {unidad && `${unidad} · `}<ValorAnimado value={total > 0 ? Math.round((valor / total) * 100) : 0} />% del total
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {tooltipDiaSemana && (() => {
+        const d = porDiaSemana[tooltipDiaSemana.dia];
+        if (!d) return null;
+        return (
+          <div
+            className="fixed z-40 pointer-events-none bg-[var(--c-bg)] border border-[var(--c-line)] rounded-lg px-2.5 py-2 text-xs text-[var(--c-text)] shadow-lg shadow-black/40"
+            style={{ left: tooltipDiaSemana.x + 14, top: tooltipDiaSemana.y + 14 }}
+          >
+            <div className="font-bold mb-1">{d.label}</div>
+            <div>
+              <span className="font-bold tabular-nums"><ValorAnimado value={d.cantidad} /></span>
+              <span className="text-[var(--c-text-faint)] ml-1.5">
+                <ValorAnimado value={totalLicencias > 0 ? Math.round((d.cantidad / totalLicencias) * 100) : 0} />% del total
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {tooltipLicencia && (
+        <div
+          className="fixed z-40 pointer-events-none bg-[var(--c-bg)] border border-[var(--c-line)] rounded-lg px-2.5 py-2 text-xs text-[var(--c-text)] shadow-lg shadow-black/40"
+          style={{ left: tooltipLicencia.x + 14, top: tooltipLicencia.y + 14 }}
+        >
+          <div className="flex items-center gap-1.5 font-bold mb-1">
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: categoriaColor(tooltipLicencia.licencia.tipo) }} />
+            {TIPO_LICENCIA_LABELS[tooltipLicencia.licencia.tipo] ?? tooltipLicencia.licencia.tipo}
+          </div>
+          <div className="text-[var(--c-text-secondary)]">
+            {fmt(tooltipLicencia.licencia.fechaInicio)} → {fmt(tooltipLicencia.licencia.fechaFin)}
+          </div>
+          <div className="text-[var(--c-text-faint)] mt-0.5">
+            {tooltipLicencia.licencia.diasHabiles} {tooltipLicencia.licencia.diasHabiles === 1 ? "día" : "días"}
+          </div>
+        </div>
+      )}
 
       <InformeImprimible
         agente={agente}
@@ -683,7 +1161,6 @@ export default function EstadisticasLicencias({ licencias, agente }: { licencias
         porCategoria={porCategoria}
         porTipo={porTipo}
         licenciasFiltradas={licenciasFiltradas}
-        slicesDonut={slicesDonut}
         totalLicencias={totalLicencias}
       />
     </div>

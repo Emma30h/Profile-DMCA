@@ -209,6 +209,24 @@ export async function actualizarLicencia(
   }
 }
 
+// Usado por la vista previa de exportación de /licencias: da el `orden`
+// jerárquico real (ver Rango en prisma/schema.prisma) para poder ordenar de
+// mayor a menor rango cuando esa columna está en la exportación — el nombre
+// del rango solo (que sí trae obtenerDatosNomina) no alcanza para eso, ya
+// que el orden alfabético no coincide con el jerárquico.
+export async function obtenerRangosAgentes(
+  agenteIds: string[]
+): Promise<Record<string, { nombre: string; orden: number } | null>> {
+  await verificarPermiso();
+  if (agenteIds.length === 0) return {};
+
+  const agentes = await prisma.agente.findMany({
+    where: { id: { in: agenteIds } },
+    select: { id: true, rango: { select: { nombre: true, orden: true } } },
+  });
+  return Object.fromEntries(agentes.map((a) => [a.id, a.rango]));
+}
+
 export async function eliminarLicencia(licenciaId: string): Promise<ResultadoAccion> {
   try {
     const current = await verificarPermiso();

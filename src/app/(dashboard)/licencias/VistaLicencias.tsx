@@ -5,36 +5,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import GestorFeriados from "./GestorFeriados";
 import EstadisticasAusentismo from "./EstadisticasAusentismo";
+import ExportarLicenciasBtn from "./ExportarLicenciasBtn";
 import { normalizarBusqueda } from "@/lib/personalLabels";
 import { TIPO_LICENCIA_LABELS, LICENCIA_CATEGORIA_DE_TIPO, CATEGORIA_LICENCIA_INFO, TIPOS_PERSONAL } from "@/types";
-import { Spinner, ButtonSpinner } from "@/components/ui/Spinner";
+import { Spinner } from "@/components/ui/Spinner";
 import type { LicenciaAusentismoRow } from "@/lib/ausentismo";
 import type { FlujoPersonalStats } from "../dashboard/stats";
+import { TIPO_PERSONAL_LABEL, fmt, type LicenciaRow } from "./licenciasShared";
 
 interface Feriado {
   id: string;
   fecha: Date;
   nombre: string;
   aplica: boolean;
-}
-
-interface AgenteResumen {
-  id: string;
-  nombres: string;
-  apellidos: string;
-  sector: string | null;
-  tipoPersonal: string;
-}
-
-interface LicenciaRow {
-  id: string;
-  tipo: string;
-  estado: string;
-  fechaInicio: string;
-  fechaFin: string;
-  diasHabiles: number;
-  motivo: string | null;
-  agente: AgenteResumen;
 }
 
 interface SectorOption {
@@ -49,45 +32,6 @@ const TIPO_LICENCIA_BADGE: Record<string, string> = Object.fromEntries(
 const TIPO_LICENCIA_EMOJI: Record<string, string> = Object.fromEntries(
   Object.entries(LICENCIA_CATEGORIA_DE_TIPO).map(([tipo, categoria]) => [tipo, CATEGORIA_LICENCIA_INFO[categoria].emoji])
 );
-
-const ESTADO_LICENCIA_LABEL: Record<string, string> = {
-  PENDIENTE: "Pendiente",
-  APROBADA: "Aprobada",
-  RECHAZADA: "Rechazada",
-  CANCELADA: "Cancelada",
-};
-
-const TIPO_PERSONAL_LABEL: Record<string, string> = {
-  SEGURIDAD: "Seguridad",
-  TECNICO: "Técnico",
-  CIVIL_BECARIO: "Civil Becario",
-  CIVIL_POLICIAL: "Civil Policial",
-};
-
-function fechaHoy(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function csvEscape(v: string): string {
-  return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-}
-
-function descargarBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-function fmt(iso: string) {
-  return new Date(iso).toLocaleDateString("es-AR", {
-    day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC",
-  });
-}
 
 function fmtMes(anio: number, mes: number) {
   return new Date(anio, mes).toLocaleDateString("es-AR", {
@@ -933,82 +877,6 @@ export default function VistaLicencias({
 
   const tiposLicencia = Object.entries(TIPO_LICENCIA_LABELS);
 
-  // Exportar .csv / .xlsx: sobre licenciasFiltradas (todo lo que cumple los
-  // filtros activos + búsqueda + "Solo vigentes"), no solo licenciasVisibles
-  // (la porción ya cargada por "Cargar más") — quien exporta espera bajarse
-  // el resultado filtrado completo, no solo lo que ya scrolleó.
-  const [exportAbierto, setExportAbierto] = useState(false);
-  const [descargandoExcel, setDescargandoExcel] = useState(false);
-  const [errorExport, setErrorExport] = useState<string | null>(null);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!exportAbierto) return;
-    function cerrar(e: MouseEvent) {
-      if (exportMenuRef.current?.contains(e.target as Node)) return;
-      setExportAbierto(false);
-    }
-    document.addEventListener("mousedown", cerrar);
-    return () => document.removeEventListener("mousedown", cerrar);
-  }, [exportAbierto]);
-
-  const columnasExport = [
-    { id: "agente", label: "Agente" },
-    { id: "tipoPersonal", label: "Tipo de personal" },
-    { id: "sector", label: "Sector" },
-    { id: "tipo", label: "Tipo" },
-    { id: "estado", label: "Estado" },
-    { id: "desde", label: "Desde" },
-    { id: "hasta", label: "Hasta" },
-    { id: "dias", label: "Días" },
-    { id: "motivo", label: "Motivo" },
-  ];
-  const filasExport: Record<string, string>[] = licenciasFiltradas.map((l) => ({
-    agente: `${l.agente.apellidos}, ${l.agente.nombres}`,
-    tipoPersonal: TIPO_PERSONAL_LABEL[l.agente.tipoPersonal] ?? l.agente.tipoPersonal,
-    sector: l.agente.sector ?? "",
-    tipo: TIPO_LICENCIA_LABELS[l.tipo] ?? l.tipo,
-    estado: ESTADO_LICENCIA_LABEL[l.estado] ?? l.estado,
-    desde: fmt(l.fechaInicio),
-    hasta: fmt(l.fechaFin),
-    dias: String(l.diasHabiles),
-    motivo: l.motivo ?? "",
-  }));
-
-  function descargarCsv() {
-    setExportAbierto(false);
-    const lineas = [
-      columnasExport.map((c) => csvEscape(c.label)),
-      ...filasExport.map((f) => columnasExport.map((c) => csvEscape(f[c.id] ?? ""))),
-    ];
-    const csv = lineas.map((l) => l.join(",")).join("\r\n");
-    // BOM + "sep=,": mismo motivo que en AusentismoCard.tsx — sin el BOM
-    // Excel interpreta el archivo como Latin-1 y rompe tildes/ñ; sin la
-    // directiva, la configuración regional argentina (separador de listas
-    // ";") abre el .csv sin dividirlo en columnas.
-    const blob = new Blob(["﻿sep=,\r\n" + csv], { type: "text/csv;charset=utf-8" });
-    descargarBlob(blob, `licencias_${fechaHoy()}.csv`);
-  }
-
-  async function descargarExcel() {
-    setExportAbierto(false);
-    setDescargandoExcel(true);
-    setErrorExport(null);
-    try {
-      const res = await fetch("/api/licencias/excel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ columnas: columnasExport, filas: filasExport }),
-      });
-      if (!res.ok) throw new Error((await res.text()) || "No se pudo generar el Excel");
-      descargarBlob(await res.blob(), `licencias_${fechaHoy()}.xlsx`);
-    } catch (e) {
-      setErrorExport(e instanceof Error ? e.message : "No se pudo generar el Excel");
-    } finally {
-      setDescargandoExcel(false);
-    }
-  }
-
   // Agentes distintos presentes en esta tabla, para el filtro de "Agente".
   const agentesUnicos = Array.from(
     new Map(licencias.map((l) => [l.agente.id, l.agente])).values()
@@ -1317,49 +1185,10 @@ export default function VistaLicencias({
           </button>
           Solo vigentes
         </label>
-        <div className="relative ml-auto" ref={exportMenuRef}>
-          <button
-            type="button"
-            onClick={() => setExportAbierto((v) => !v)}
-            disabled={descargandoExcel || licenciasFiltradas.length === 0}
-            aria-expanded={exportAbierto}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev)] px-3 py-1.5 text-sm font-medium text-[var(--c-text-secondary)] hover:bg-[var(--c-bg-elev-2)] transition-colors disabled:opacity-50"
-          >
-            {descargandoExcel && <ButtonSpinner />}
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-            </svg>
-            Exportar
-            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
-            </svg>
-          </button>
-          {exportAbierto && (
-            <div className="absolute right-0 top-full mt-1 z-30 w-48 rounded-lg border border-[var(--c-line)] bg-[var(--c-bg-elev-2)] py-1 shadow-lg shadow-black/40">
-              <button
-                type="button"
-                onClick={descargarCsv}
-                className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
-              >
-                Descargar CSV
-              </button>
-              <button
-                type="button"
-                onClick={descargarExcel}
-                className="block w-full text-left px-3 py-1.5 text-sm text-[var(--c-text-secondary)] hover:bg-[var(--c-line)] hover:text-[var(--c-text)]"
-              >
-                Descargar Excel
-              </button>
-            </div>
-          )}
+        <div className="ml-auto">
+          <ExportarLicenciasBtn licencias={licenciasFiltradas} />
         </div>
       </div>
-      )}
-
-      {mainTab === "licencias" && errorExport && (
-        <div className="rounded-lg bg-[var(--c-coral)]/10 border border-[var(--c-coral)]/30 px-3 py-2 text-[11.5px] text-[var(--c-coral)]">
-          {errorExport}
-        </div>
       )}
 
       {/* Vista lista / calendario */}
