@@ -114,6 +114,132 @@
   --c-marca-agua-opacity: 0.2;
 }
 
+/* ─── Sistema "Industry" — landing pública + acceso ──────────────────────
+   Tokens propios (prefijo --t-, no --c-) para el diseño de Claude Design en
+   public/landing page/design_handoff_landing_acceso/. Tema independiente del
+   toggle del dashboard: atributo data-tema (no data-theme) + clave de
+   localStorage "dmca-tema" (ver useTemaIndustry.ts) — conviven sin chocar
+   porque ninguno de los dos selectores conoce al otro. */
+:root {
+  --t-bg: #141d27;
+  --t-bg-rgb: 20, 29, 39;
+  --t-bg-alt: #1a2531;
+  --t-panel: #18222e;
+  --t-input: #212d3a;
+  --t-fg: #eef1f4;
+  --t-fg-rgb: 238, 241, 244;
+  --t-accent: #94bce3;
+  --t-accent-rgb: 148, 188, 227;
+  --t-accent-hi: #b5d9fd;
+  --t-solid: #5980a6;
+  --t-solid-hover: #749dc4;
+  --t-on-solid: #0f1720;
+  --t-grid: rgba(148, 188, 227, .16);
+  --t-veil-a: rgba(20, 29, 39, .2);
+  --t-veil-b: rgba(20, 29, 39, .85);
+}
+[data-tema="claro"] {
+  --t-bg: #e4e6e9;
+  --t-bg-rgb: 228, 230, 233;
+  --t-bg-alt: #d5d9de;
+  --t-panel: #dcdfe4;
+  --t-input: #eef0f2;
+  --t-fg: #1d1f20;
+  --t-fg-rgb: 29, 31, 32;
+  --t-accent: #3f628a;
+  --t-accent-rgb: 89, 128, 166;
+  --t-accent-hi: #2f4a68;
+  --t-solid: #5980a6;
+  --t-solid-hover: #47688a;
+  --t-on-solid: #ffffff;
+  --t-grid: rgba(63, 98, 138, .45);
+  --t-veil-a: rgba(228, 230, 233, .10);
+  --t-veil-b: rgba(228, 230, 233, .72);
+}
+
+/* Marco blueprint: caja transparente hairline con marcas de registro "+" en
+   las 4 esquinas (ver styles.css del handoff) — usado por BlueprintFrame.tsx. */
+.blueprint { position: relative; border: 1px solid rgba(var(--t-fg-rgb), .2); border-radius: 0; }
+.blueprint > .corner { position: absolute; width: 11px; height: 11px; color: rgba(var(--t-fg-rgb), .42); }
+.blueprint > .corner::before, .blueprint > .corner::after { content: ""; position: absolute; background: currentColor; }
+.blueprint > .corner::before { left: 5px; top: 0; width: 1px; height: 100%; }
+.blueprint > .corner::after { top: 5px; left: 0; width: 100%; height: 1px; }
+.blueprint > .corner.tl { top: -6px; left: -6px; }
+.blueprint > .corner.tr { top: -6px; right: -6px; }
+.blueprint > .corner.bl { bottom: -6px; left: -6px; }
+.blueprint > .corner.br { bottom: -6px; right: -6px; }
+
+@keyframes dmcaFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes dmcaGrid { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, -60px, 0); } }
+@keyframes dmcaSweep {
+  0% { transform: translateY(-30%); opacity: 0; }
+  12% { opacity: .9; }
+  88% { opacity: .9; }
+  100% { transform: translateY(130%); opacity: 0; }
+}
+@keyframes dmcaBlip { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@keyframes dmcaYaw { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+@keyframes dmcaPitch { from { transform: rotateX(-18deg); } 50% { transform: rotateX(24deg); } to { transform: rotateX(-18deg); } }
+@keyframes dmcaFloat { 0%, 100% { transform: translateY(-10px); } 50% { transform: translateY(10px); } }
+@keyframes dmcaNode {
+  0%, 100% { opacity: .2; box-shadow: 0 0 0 0 rgba(var(--t-accent-rgb), 0); }
+  50% { opacity: 1; box-shadow: 0 0 12px 2px rgba(var(--t-accent-rgb), .45); }
+}
+.dmca-face { position: absolute; inset: 0; border: 1px solid rgba(var(--t-accent-rgb), .55); box-shadow: inset 0 0 40px rgba(var(--t-accent-rgb), .10); }
+.dmca-node { position: absolute; top: 50%; left: 50%; width: 7px; height: 7px; margin: -3.5px; background: var(--t-accent); animation: dmcaNode 3.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dmca-face, .dmca-node, [data-industry-anim] { animation: none !important; }
+}
+
+/* Toggle de tema de la landing/Acceso: mismo truco que .icon-tema-oscuro/
+   .icon-tema-claro (líneas de arriba) pero gateado por [data-tema], no
+   [data-theme] — los dos íconos se renderizan siempre, CSS decide cuál se ve
+   según lo que ya dejó puesto el script anti-flash, sin depender de un
+   useEffect que reintroduciría el parpadeo. */
+.t-icon-oscuro { display: inline-flex; }
+.t-icon-claro { display: none; }
+[data-tema="claro"] .t-icon-oscuro { display: none; }
+[data-tema="claro"] .t-icon-claro { display: inline-flex; }
+
+/* Botones/inputs/links del sistema Industry — los estados :hover/:focus-visible
+   que pide readme-industry.md ("Interaction states") no se pueden expresar en
+   un style inline, así que viven acá aunque el resto de la landing/Acceso use
+   sobre todo estilos inline por los tokens --t-*. */
+.t-btn {
+  font-family: var(--font-heading); font-weight: 600; letter-spacing: .07em;
+  padding: 13px 26px; cursor: pointer; text-decoration: none; display: inline-block;
+  border-radius: 0; transition: background-color .15s, border-color .15s, color .15s;
+}
+.t-btn:disabled { opacity: .5; cursor: not-allowed; }
+.t-btn-solid { background: var(--t-solid); color: var(--t-on-solid); border: 1px solid var(--t-solid); }
+.t-btn-solid:hover:not(:disabled) { background: var(--t-solid-hover); }
+.t-btn-outline { background: transparent; color: var(--t-fg); border: 1px solid rgba(var(--t-fg-rgb),.3); }
+.t-btn-outline:hover:not(:disabled) { background: rgba(var(--t-fg-rgb),.08); }
+.t-btn-block { width: 100%; text-align: center; }
+.t-link { color: var(--t-accent); text-decoration: none; transition: color .15s; }
+.t-link:hover { color: var(--t-accent-hi); }
+.t-navlink { color: rgba(var(--t-fg-rgb),.72); text-decoration: none; transition: color .15s; }
+.t-navlink:hover { color: var(--t-accent); }
+.t-input {
+  width: 100%; min-height: 42px; padding: 8px 12px; font-family: var(--font-body); font-size: 14px;
+  color: var(--t-fg); background: var(--t-input); border: 1px solid rgba(var(--t-fg-rgb),.2);
+  border-radius: 0; caret-color: var(--t-accent); transition: border-color .15s;
+}
+.t-input:hover { border-color: rgba(var(--t-fg-rgb),.35); }
+.t-input:focus-visible { outline: 2px solid var(--t-accent); outline-offset: 1px; border-color: var(--t-accent); }
+.t-icon-btn {
+  display: grid; place-items: center; background: transparent; color: rgba(var(--t-fg-rgb),.7);
+  border: 1px solid rgba(var(--t-fg-rgb),.24); cursor: pointer; transition: color .15s, border-color .15s;
+}
+.t-icon-btn:hover { color: var(--t-accent); border-color: var(--t-accent); }
+.t-tab {
+  font-family: var(--font-heading); font-weight: 600; font-size: 12px; letter-spacing: .08em;
+  padding: 8px 15px; border: 0; cursor: pointer; background: transparent; color: rgba(var(--t-fg-rgb),.7);
+  transition: background-color .15s, color .15s;
+}
+.t-tab[aria-selected="true"] { background: var(--t-solid); color: var(--t-on-solid); }
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -332,38 +458,6 @@ textarea::placeholder {
   }
 }
 
-/* Fondo "aurora" de las pantallas de login/registro: manchas de luz muy
-   difuminadas (mismos azul/violeta del glow del Sidebar) que derivan
-   lentísimo de un lado a otro detrás de la tarjeta — da sensación de
-   movimiento ambiental sin llamar la atención sobre el formulario. */
-@keyframes aurora-drift-a {
-  0%, 100% { transform: translate(-8%, -6%) scale(1); }
-  50% { transform: translate(10%, 6%) scale(1.15); }
-}
-@keyframes aurora-drift-b {
-  0%, 100% { transform: translate(6%, 8%) scale(1.1); }
-  50% { transform: translate(-10%, -8%) scale(0.95); }
-}
-@keyframes aurora-drift-c {
-  0%, 100% { transform: translate(0%, 4%) scale(1.05); }
-  50% { transform: translate(-9%, -10%) scale(1.2); }
-}
-.aurora-blob {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(80px);
-  opacity: 0.7;
-  will-change: transform;
-}
-.aurora-blob-a { animation: aurora-drift-a 20s ease-in-out infinite; }
-.aurora-blob-b { animation: aurora-drift-b 24s ease-in-out infinite; }
-.aurora-blob-c { animation: aurora-drift-c 28s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) {
-  .aurora-blob-a, .aurora-blob-b, .aurora-blob-c {
-    animation: none;
-  }
-}
-
 /* Entrada de la tarjeta de login/signup: fundido + leve desplazamiento al
    montar, para que la pantalla no aparezca de golpe. */
 @keyframes auth-card-in {
@@ -391,23 +485,6 @@ textarea::placeholder {
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal-fade-in { animation: none; }
-}
-
-/* Ping de sonar alrededor del emblema del panel de marca — dos anillos con
-   delay escalonado, más lento y suave que el animate-ping por defecto de
-   Tailwind para no competir con el formulario. */
-@keyframes auth-sonar-ping {
-  0% { transform: scale(1); opacity: 0.55; }
-  75%, 100% { transform: scale(1.9); opacity: 0; }
-}
-.auth-sonar-ping {
-  animation: auth-sonar-ping 2.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-.auth-sonar-ping-delay {
-  animation-delay: 1.4s;
-}
-@media (prefers-reduced-motion: reduce) {
-  .auth-sonar-ping, .auth-sonar-ping-delay { animation: none; }
 }
 
 /* Transición entre "Ingresar" / "Crear cuenta" en el panel de acceso: mismo

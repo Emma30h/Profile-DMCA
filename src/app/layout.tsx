@@ -48,6 +48,17 @@ export default function RootLayout({
             __html: `try{if(localStorage.getItem("tema")==="light"){document.documentElement.setAttribute("data-theme","light");}}catch(e){}`,
           }}
         />
+        {/* Mismo mecanismo que "tema-inicial" de arriba, pero para el sistema
+            Industry de la landing/Acceso (atributo data-tema, clave
+            "dmca-tema") — independiente uno del otro a propósito, ver
+            useTemaIndustry.ts. */}
+        <Script
+          id="tema-industry-inicial"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("dmca-tema")==="claro"){document.documentElement.setAttribute("data-tema","claro");}}catch(e){}`,
+          }}
+        />
       </body>
     </html>
   );

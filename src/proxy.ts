@@ -15,7 +15,10 @@ function isSupabaseConfigured(): boolean {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+  // "/" es la landing pública — comparación EXACTA, no agregarla a
+  // PUBLIC_ROUTES: ese array se compara con startsWith, así que "/" ahí
+  // volvería público literalmente cualquier ruta (todo path empieza con "/").
+  const isPublicRoute = pathname === "/" || PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
   // Las Server Actions POSTean a la URL actual (ej. una action llamada desde
   // /login justo después de un login recién hecho, donde Supabase ya ve al
   // usuario autenticado aunque nuestra tabla lo tenga como inactivo). Si acá

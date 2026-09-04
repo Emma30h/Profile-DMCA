@@ -1,18 +1,23 @@
+// Fondo liso del sistema Industry (var(--t-bg), responde al toggle de
+// landing/Acceso) en vez del degradé aurora-blob anterior — comparte esta
+// pantalla con /verificar-cuenta y /cambiar-contrasena, que no forman parte
+// del handoff de diseño pero quedan con el mismo marco alrededor.
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative h-dvh flex [align-items:safe_center] justify-center overflow-y-auto bg-slate-800 py-4 px-4 sm:px-6 sm:py-8 lg:px-8 lg:py-6">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        {/* blob-a: en mobile se centra detrás del logo (más chico y más
-            cerca) porque ahí es donde está la atención; en desktop vuelve a
-            su posición original en la esquina, detrás del panel de marca. */}
-        <div className="aurora-blob aurora-blob-a top-[-8rem] left-[calc(50%-13rem)] h-[26rem] w-[26rem] bg-blue-600 lg:top-[-10rem] lg:left-[-8rem] lg:h-[32rem] lg:w-[32rem]" />
-        <div className="aurora-blob aurora-blob-b top-1/3 -right-40 h-[36rem] w-[36rem] bg-indigo-500" />
-        <div className="aurora-blob aurora-blob-c -bottom-48 left-1/4 h-[30rem] w-[30rem] bg-blue-900" />
-      </div>
+    <div
+      className="relative h-dvh flex [align-items:safe_center] justify-center overflow-y-auto py-4 px-4 sm:px-6 sm:py-8 lg:px-8 lg:py-6"
+      // color explícito: sin esto, el texto sin color propio (el h1 de
+      // AuthScreen, por ejemplo) heredaba --foreground del body, que es el
+      // token del tema del DASHBOARD (data-theme, casi blanco por defecto) —
+      // esta pantalla usa data-tema/--t-fg, un sistema aparte que nunca pisa
+      // --foreground. En modo claro quedaba texto casi blanco sobre fondo
+      // gris claro, ilegible.
+      style={{ background: "var(--t-bg)", color: "var(--t-fg)" }}
+    >
       {children}
     </div>
   );
