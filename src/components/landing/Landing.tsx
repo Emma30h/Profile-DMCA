@@ -291,7 +291,15 @@ export default function Landing({ stats }: { stats: StatsPublicas }) {
 
       {/* ── 03 · Roles ── */}
       <section id="roles" style={{ borderTop: "1px solid rgba(var(--t-fg-rgb),.12)", padding: "66px 28px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", overflowX: "auto" }}>
+        {/* overflowY:"hidden" (no "visible"): la spec de CSS dice que si un
+            eje computa a algo distinto de "visible" y el otro queda en
+            "visible", ese otro se recalcula a "auto" — así que fijarlo en
+            "visible" a mano no evita nada, sigue disparando la regla igual.
+            Con "hidden" ninguno de los dos ejes es "visible" y la regla no
+            aplica: el translateY(38px) inicial del reveal-on-scroll
+            (SeccionHeading y cada RolRow) ya no cuenta como overflow real y
+            no aparece la scrollbar espuria mientras entran las filas. */}
+        <div style={{ maxWidth: 1180, margin: "0 auto", overflowX: "auto", overflowY: "hidden" }}>
           <SeccionHeading numero="03" titulo="Roles y permisos" />
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: 560 }}>
             <thead>
