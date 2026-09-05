@@ -2,6 +2,11 @@
 
 import { useState, useTransition, useEffect, useRef, useMemo } from "react";
 import {
+  IdCard, User, Cake, Heart, Flag, Home, Droplet, AlertTriangle, Activity, Pill,
+  Scissors, Mail, Phone, Users, MapPin, Gift, Building2, CheckCircle2, Calendar,
+  Clock, Award, Shield, GraduationCap,
+} from "lucide-react";
+import {
   actualizarAgentePersonal,
   actualizarAgenteLaboral,
   marcarEnCursoAscenso,
@@ -197,6 +202,67 @@ function toDateInput(iso: string | null): string {
   return iso.split("T")[0];
 }
 
+/** Cuenta cuántos de los valores dados están completos (no null/undefined/""),
+ *  para el contador "X de Y campos" de cada bloque de Datos Personales. */
+function contarCampos(valores: Array<string | null | undefined>): { completos: number; total: number } {
+  const total = valores.length;
+  const completos = valores.filter((v) => v != null && v.trim() !== "").length;
+  return { completos, total };
+}
+
+/** "4 a 5 m" desde fechaIngreso hasta hoy — se calcula en el render, no se
+ *  almacena (cambiaría todos los días). null si no hay fecha de ingreso o es
+ *  inválida. */
+function calcularAntiguedad(fechaIngreso: string | null): string | null {
+  if (!fechaIngreso) return null;
+  const inicio = new Date(fechaIngreso);
+  if (isNaN(inicio.getTime())) return null;
+  const ahora = new Date();
+  let años = ahora.getFullYear() - inicio.getFullYear();
+  let meses = ahora.getMonth() - inicio.getMonth();
+  if (ahora.getDate() < inicio.getDate()) meses -= 1;
+  if (meses < 0) { años -= 1; meses += 12; }
+  if (años < 0) return null;
+  return años > 0 ? `${años} a ${meses} m` : `${meses} m`;
+}
+
+type EstadoVencimiento = "vigente" | "por-vencer" | "vencido";
+
+/** Umbral "por vencer" a 60 días, igual que en el resto de la app para
+ *  vencimientos de licencias/chaleco. null si no hay fecha o es inválida. */
+function estadoVencimiento(fecha: string | null): { estado: EstadoVencimiento; dias: number } | null {
+  if (!fecha) return null;
+  const f = new Date(fecha);
+  if (isNaN(f.getTime())) return null;
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  f.setHours(0, 0, 0, 0);
+  const dias = Math.round((f.getTime() - hoy.getTime()) / 86_400_000);
+  if (dias < 0) return { estado: "vencido", dias };
+  if (dias <= 60) return { estado: "por-vencer", dias };
+  return { estado: "vigente", dias };
+}
+
+function PillVencimiento({ fecha }: { fecha: string | null }) {
+  const info = estadoVencimiento(fecha);
+  if (!info) return null;
+  const estilos: Record<EstadoVencimiento, string> = {
+    vigente: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
+    "por-vencer": "bg-[var(--c-amber)]/15 text-[var(--c-amber)]",
+    vencido: "bg-[var(--c-coral)]/15 text-[var(--c-coral)]",
+  };
+  const texto: Record<EstadoVencimiento, string> = {
+    vigente: "Vigente",
+    "por-vencer": `Vence en ${info.dias} días`,
+    vencido: "Vencido",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${estilos[info.estado]}`}>
+      {texto[info.estado]}
+    </span>
+  );
+}
+
 // ─── Form state ───────────────────────────────────────────────────────────────
 
 function initPersonal(a: AgenteDetalle): DatosPersonales {
@@ -261,13 +327,16 @@ function initLaboral(a: AgenteDetalle): DatosLaborales {
 
 // ─── Inputs de edición ────────────────────────────────────────────────────────
 
-function InputEdit({ label, value, onChange, type = "text" }: {
+function InputEdit({ label, value, onChange, type = "text", inputRef }: {
   label: string; value: string; onChange: (v: string) => void; type?: string;
+  /** Para poder enfocar este campo cuando se clickea su chip "+ Agregar" en modo lectura. */
+  inputRef?: (el: HTMLInputElement | null) => void;
 }) {
   return (
     <div>
       <label className="block text-xs text-[var(--c-text-faint)] mb-1">{label}</label>
       <input
+        ref={inputRef}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -277,14 +346,16 @@ function InputEdit({ label, value, onChange, type = "text" }: {
   );
 }
 
-function SelectEdit({ label, value, onChange, options }: {
+function SelectEdit({ label, value, onChange, options, inputRef }: {
   label: string; value: string; onChange: (v: string) => void;
   options: { value: string; label: string }[];
+  inputRef?: (el: HTMLSelectElement | null) => void;
 }) {
   return (
     <div>
       <label className="block text-xs text-[var(--c-text-faint)] mb-1">{label}</label>
       <select
+        ref={inputRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-md border border-[var(--c-line)] px-2.5 py-1.5 text-sm text-[var(--c-text)] bg-[var(--c-bg-elev)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent transition"
@@ -331,11 +402,33 @@ function NumEdit({ label, value, onChange }: {
 
 // ─── Componentes de visualización ─────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/** Bloque de Datos Personales/Laborales: columna de título a la izquierda
+ *  (con el contador "X de Y campos" si se pasa `contador`, en ámbar cuando
+ *  falta algo) + grilla de 2 columnas de campos a la derecha. Reemplaza al
+ *  antiguo `Section` (título arriba + grilla) solo en estas dos pestañas —
+ *  las demás (Historial, Cambios, Constancias, Licencias) no lo usaban. */
+function Bloque({ titulo, contador, children }: {
+  titulo: string;
+  contador?: { completos: number; total: number };
+  children: React.ReactNode;
+}) {
+  const incompleto = contador ? contador.completos < contador.total : false;
   return (
-    <div>
-      <h3 className="text-xs font-semibold text-[var(--c-text-faint)] uppercase tracking-wider mb-3">{title}</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 md:grid-cols-3">{children}</div>
+    <div className="grid grid-cols-1 md:grid-cols-[128px_minmax(0,1fr)] gap-3 md:gap-6">
+      <div>
+        <h3
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--c-text-secondary)]"
+          style={{ fontFamily: "var(--font-head)" }}
+        >
+          {titulo}
+        </h3>
+        {contador && (
+          <p className={`mt-1 text-[11px] ${incompleto ? "text-[var(--c-amber)]" : "text-[var(--c-text-faint)]"}`}>
+            {contador.completos} de {contador.total} campos
+          </p>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">{children}</div>
     </div>
   );
 }
@@ -372,128 +465,69 @@ function mensajeSaludoWhatsapp(remitente: RemitenteWhatsapp | undefined): string
   return `${saludoSegunHora()}! Le habla ${articulo} ${cargo}${remitente.nombre}.`;
 }
 
-function Field({ label, value, full, icon, whatsapp, whatsappMensaje }: {
-  label: string; value: string; full?: boolean; icon?: React.ReactNode;
-  /** Si viene y `value` no es "—", agrega un ícono de WhatsApp que abre un chat con ese número. */
+/** Reemplaza al antiguo `Field`. Dos modos:
+ *  - Con `raw`: campo potencialmente vacío y completable — si `raw` está
+ *    vacío y hay `onCompletar`, en vez del guion se muestra un chip punteado
+ *    "+ Agregar" que entra en modo edición con foco en ese campo (según
+ *    `campo`, la misma clave que usa el formulario). Sin `onCompletar`
+ *    (viewer sin permiso de edición) cae al guion de siempre.
+ *  - Sin `raw` (solo `value`): campos derivados/inmutables (DNI, CUIL, Sexo,
+ *    Fecha de nacimiento) o no-string (booleanos, números) — se muestran
+ *    igual que antes, nunca como chip. */
+function Campo({ campo, label, raw, value, full, icon, mono, whatsapp, whatsappMensaje, onCompletar, extra }: {
+  campo?: string;
+  label: string;
+  raw?: string | null;
+  value?: string;
+  full?: boolean;
+  icon?: React.ReactNode;
+  mono?: boolean;
   whatsapp?: string | null;
   whatsappMensaje?: string;
+  onCompletar?: (campo: string) => void;
+  /** Contenido extra después del valor (ej. una PillVencimiento) — se omite
+   *  cuando el campo se muestra como chip "+ Agregar". */
+  extra?: React.ReactNode;
 }) {
+  const vacio = raw !== undefined && (raw == null || raw.trim() === "");
+  const texto = value ?? val(raw);
   return (
     <div className={full ? "col-span-full" : ""}>
       <p className="flex items-center gap-1.5 text-xs text-[var(--c-text-faint)] mb-0.5">
         {icon && <span className="text-[var(--c-line-strong)] shrink-0">{icon}</span>}
         {label}
       </p>
-      <p className={`flex items-center gap-2 text-sm ${value === "—" ? "text-[var(--c-line-strong)]" : "text-[var(--c-text)]"}`}>
-        {value}
-        {whatsapp && value !== "—" && (
-          <a
-            href={whatsappUrl(whatsapp, whatsappMensaje)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Escribir por WhatsApp"
-            className="text-[var(--c-green)] hover:text-[var(--c-green)] transition-colors"
-          >
-            <IconWhatsApp />
-          </a>
-        )}
-      </p>
+      {vacio && onCompletar && campo ? (
+        <button
+          type="button"
+          onClick={() => onCompletar(campo)}
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--c-line)] px-2.5 py-1 text-xs text-[var(--c-text-faint)] hover:border-[var(--c-blue)] hover:text-[var(--c-blue-text)] transition-colors"
+        >
+          + Agregar
+        </button>
+      ) : (
+        <p className={`flex items-center gap-2 text-sm ${texto === "—" ? "text-[var(--c-line-strong)]" : "text-[var(--c-text)]"} ${mono ? "font-mono" : ""}`}>
+          {texto}
+          {extra}
+          {whatsapp && texto !== "—" && (
+            <a
+              href={whatsappUrl(whatsapp, whatsappMensaje)}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Escribir por WhatsApp"
+              className="text-[var(--c-green)] hover:text-[var(--c-green)] transition-colors"
+            >
+              <IconWhatsApp />
+            </a>
+          )}
+        </p>
+      )}
     </div>
   );
 }
 
-// ─── Íconos de campo (mismo estilo que /perfil, en tamaño chico) ──────────────
-
-function IconIdCard() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 15a2 2 0 012-2h0a2 2 0 012 2M8 10h.01M13 9h5m-5 3h5" />
-    </svg>
-  );
-}
-
-function IconPersonMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  );
-}
-
-function IconCakeMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 15a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2h14a2 2 0 012 2v4z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9V5m0 0a2 2 0 010-4 2 2 0 010 4z" />
-    </svg>
-  );
-}
-
-function IconHeartMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-    </svg>
-  );
-}
-
-function IconFlagMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 21V4m0 0l9-1 9 1v13l-9-1-9 1V4z" />
-    </svg>
-  );
-}
-
-function IconHomeMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    </svg>
-  );
-}
-
-function IconDropMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 2C8 7 5 11 5 14a7 7 0 0014 0c0-3-3-7-7-12z" />
-    </svg>
-  );
-}
-
-function IconAlert() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v3.75m0 3.75h.008M10.29 3.86L1.82 18a1.5 1.5 0 001.29 2.25h17.78a1.5 1.5 0 001.29-2.25L13.71 3.86a1.5 1.5 0 00-2.42 0z" />
-    </svg>
-  );
-}
-
-function IconPulse() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12h4l2-7 4 14 2-7h6" />
-    </svg>
-  );
-}
-
-function IconPill() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6.5 17.5l11-11a4.243 4.243 0 10-6-6l-11 11a4.243 4.243 0 106 6z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.5 6.5l9 9" />
-    </svg>
-  );
-}
-
-function IconCross() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v16m8-8H4" />
-    </svg>
-  );
-}
+// ─── Íconos de campo (lucide-react — antes eran ~20 SVG a mano acá mismo;
+//     IconWhatsApp queda porque lucide no trae logos de marca) ────────────────
 
 function IconWhatsApp() {
   return (
@@ -504,153 +538,64 @@ function IconWhatsApp() {
   );
 }
 
-function IconMail() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-function IconPhoneMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-    </svg>
-  );
-}
-
-function IconUsersMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  );
-}
-
-function IconMapPinMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  );
-}
-
-function IconGift() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20 12v8a1 1 0 01-1 1H5a1 1 0 01-1-1v-8M22 7H2v4h20V7zM12 22V7m0 0c-1.5 0-4-1-4-3.5S9.5 1 12 3s4-1.5 4 1S13.5 7 12 7z" />
-    </svg>
-  );
-}
-
-function IconBuildingMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-    </svg>
-  );
-}
-
-function IconCheckCircle() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function IconCalendarMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-function IconClockMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function IconBadgeMini() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-    </svg>
-  );
-}
-
-function IconShield() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-    </svg>
-  );
-}
-
-function IconGraduation() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.741-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443" />
-    </svg>
-  );
-}
-
 // ─── Tabs: vista (solo lectura) ───────────────────────────────────────────────
 
-function TabPersonal({ a, remitenteWhatsapp }: { a: AgenteDetalle; remitenteWhatsapp?: RemitenteWhatsapp }) {
+function TabPersonal({ a, remitenteWhatsapp, onCompletar }: {
+  a: AgenteDetalle;
+  remitenteWhatsapp?: RemitenteWhatsapp;
+  /** Si viene (solo cuando canEdit), los campos vacíos se muestran como chip
+   *  "+ Agregar" en vez de "—" y al clickearlos entran en modo edición con
+   *  foco en ese campo (ver handleCompletarCampo en LegajoTabs). */
+  onCompletar?: (campo: string) => void;
+}) {
   const mensajeWhatsapp = mensajeSaludoWhatsapp(remitenteWhatsapp);
   return (
     <div className="space-y-8">
-      <Section title="Identidad">
-        <Field icon={<IconIdCard />} label="DNI" value={cuilToDni(a.cuil)} />
-        <Field icon={<IconIdCard />} label="CUIL" value={a.cuil} />
-        <Field icon={<IconPersonMini />} label="Sexo" value={val(a.sexo)} />
-        <Field icon={<IconCakeMini />} label="Fecha de nacimiento" value={fmt(a.fechaNacimiento)} />
-        <Field icon={<IconHeartMini />} label="Estado civil" value={val(a.estadoCivil)} />
-        <Field icon={<IconFlagMini />} label="Nacionalidad" value={val(a.nacionalidad)} />
-        <Field icon={<IconHomeMini />} label="Provincia de origen" value={val(a.provinciaOrigen)} />
-        <Field icon={<IconHomeMini />} label="Ciudad de origen" value={val(a.ciudadOrigen)} />
-      </Section>
+      <Bloque titulo="Identidad" contador={contarCampos([cuilToDni(a.cuil), a.cuil, a.sexo, a.fechaNacimiento, a.estadoCivil, a.nacionalidad, a.provinciaOrigen, a.ciudadOrigen])}>
+        {/* DNI/CUIL/Sexo/Fecha de nacimiento son inmutables (no tienen campo
+            de edición) — no pueden ofrecerse como chip completable. */}
+        <Campo icon={<IdCard className="h-3.5 w-3.5" strokeWidth={1.8} />} label="DNI" value={cuilToDni(a.cuil)} mono />
+        <Campo icon={<IdCard className="h-3.5 w-3.5" strokeWidth={1.8} />} label="CUIL" value={a.cuil} mono />
+        <Campo icon={<User className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Sexo" value={val(a.sexo)} />
+        <Campo icon={<Cake className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Fecha de nacimiento" value={fmt(a.fechaNacimiento)} />
+        <Campo campo="estadoCivil" icon={<Heart className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Estado civil" raw={a.estadoCivil} onCompletar={onCompletar} />
+        <Campo campo="nacionalidad" icon={<Flag className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Nacionalidad" raw={a.nacionalidad} onCompletar={onCompletar} />
+        <Campo campo="provinciaOrigen" icon={<Home className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Provincia de origen" raw={a.provinciaOrigen} onCompletar={onCompletar} />
+        <Campo campo="ciudadOrigen" icon={<Home className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Ciudad de origen" raw={a.ciudadOrigen} onCompletar={onCompletar} />
+      </Bloque>
       <div className="border-t border-[var(--c-bg-elev-2)]" />
-      <Section title="Salud">
-        <Field icon={<IconDropMini />} label="Grupo sanguíneo" value={val(a.grupoSanguineo)} />
-        <Field icon={<IconAlert />} label="Alergias" value={val(a.alergias)} />
-        <Field icon={<IconPulse />} label="Enfermedades crónicas" value={val(a.enfermedadesCronicas)} />
-        <Field icon={<IconPill />} label="Medicamentos" value={val(a.medicamentos)} />
-        <Field icon={<IconCross />} label="Cirugías" value={val(a.cirugias)} />
-      </Section>
+      <Bloque titulo="Salud" contador={contarCampos([a.grupoSanguineo, a.alergias, a.enfermedadesCronicas, a.medicamentos, a.cirugias])}>
+        <Campo campo="grupoSanguineo" icon={<Droplet className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Grupo sanguíneo" raw={a.grupoSanguineo} onCompletar={onCompletar} />
+        <Campo campo="alergias" icon={<AlertTriangle className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Alergias" raw={a.alergias} onCompletar={onCompletar} />
+        <Campo campo="enfermedadesCronicas" icon={<Activity className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Enfermedades crónicas" raw={a.enfermedadesCronicas} onCompletar={onCompletar} />
+        <Campo campo="medicamentos" icon={<Pill className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Medicamentos" raw={a.medicamentos} onCompletar={onCompletar} />
+        <Campo campo="cirugias" icon={<Scissors className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Cirugías" raw={a.cirugias} onCompletar={onCompletar} />
+      </Bloque>
       <div className="border-t border-[var(--c-bg-elev-2)]" />
-      <Section title="Contacto">
-        <Field icon={<IconMail />} label="Email" value={val(a.email)} />
-        <Field icon={<IconPhoneMini />} label="Teléfono" value={val(a.telefono)} whatsapp={a.telefono} whatsappMensaje={mensajeWhatsapp} />
-        <Field icon={<IconPhoneMini />} label="Teléfono alternativo" value={val(a.telefonoAlternativo)} whatsapp={a.telefonoAlternativo} whatsappMensaje={mensajeWhatsapp} />
-        <Field icon={<IconUsersMini />} label="Contacto de emergencia" value={val(a.contactoEmergencia)} full />
-      </Section>
+      <Bloque titulo="Contacto" contador={contarCampos([a.email, a.telefono, a.telefonoAlternativo, a.contactoEmergencia])}>
+        <Campo campo="email" icon={<Mail className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Email" raw={a.email} onCompletar={onCompletar} />
+        <Campo campo="telefono" icon={<Phone className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Teléfono" raw={a.telefono} mono whatsapp={a.telefono} whatsappMensaje={mensajeWhatsapp} onCompletar={onCompletar} />
+        <Campo campo="telefonoAlternativo" icon={<Phone className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Teléfono alternativo" raw={a.telefonoAlternativo} mono whatsapp={a.telefonoAlternativo} whatsappMensaje={mensajeWhatsapp} onCompletar={onCompletar} />
+        <Campo campo="contactoEmergencia" icon={<Users className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Contacto de emergencia" raw={a.contactoEmergencia} onCompletar={onCompletar} full />
+      </Bloque>
       <div className="border-t border-[var(--c-bg-elev-2)]" />
-      <Section title="Domicilio">
-        <Field icon={<IconMapPinMini />} label="Domicilio real" value={val(a.domicilioReal)} />
-        {/* Espaciadores: fuerzan el salto de fila en md:grid-cols-3 para que
-            Domicilio real quede solo en su línea y Número/Barrio/Ciudad
-            queden alineados juntos en la siguiente. */}
-        <div className="hidden md:block" aria-hidden="true" />
-        <div className="hidden md:block" aria-hidden="true" />
-        <Field icon={<IconMapPinMini />} label="Número" value={val(a.nroDomicilio)} />
-        <Field icon={<IconMapPinMini />} label="Barrio" value={val(a.barrio)} />
-        <Field icon={<IconMapPinMini />} label="Ciudad" value={val(a.ciudad)} />
-        <Field icon={<IconMapPinMini />} label="Piso" value={val(a.piso)} />
-      </Section>
+      <Bloque titulo="Domicilio" contador={contarCampos([a.domicilioReal, a.nroDomicilio, a.barrio, a.ciudad, a.piso])}>
+        <Campo campo="domicilioReal" icon={<MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Domicilio real" raw={a.domicilioReal} onCompletar={onCompletar} full />
+        <Campo campo="nroDomicilio" icon={<MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Número" raw={a.nroDomicilio} onCompletar={onCompletar} />
+        <Campo campo="barrio" icon={<MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Barrio" raw={a.barrio} onCompletar={onCompletar} />
+        <Campo campo="ciudad" icon={<MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Ciudad" raw={a.ciudad} onCompletar={onCompletar} />
+        <Campo campo="piso" icon={<MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Piso" raw={a.piso} onCompletar={onCompletar} />
+      </Bloque>
       <div className="border-t border-[var(--c-bg-elev-2)]" />
-      <Section title="Familia y beneficios">
-        <Field icon={<IconUsersMini />} label="Hijos a cargo" value={String(a.hijosCargo)} />
-        <Field icon={<IconGift />} label="Posee servicio de sepelio" value={boolVal(a.poseeSepelio)} />
-        <Field icon={<IconBuildingMini />} label="Empresa de sepelio" value={val(a.empresaSepelio)} />
-      </Section>
+      {/* Sin contador: no está en el diseño de referencia (piensa en 4
+          bloques) y ni hijosCargo ni poseeSepelio tienen un estado "vacío"
+          real (siempre tienen un valor por defecto) — inventar un contador
+          acá sería confuso más que útil. */}
+      <Bloque titulo="Familia y beneficios">
+        <Campo icon={<Users className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Hijos a cargo" value={String(a.hijosCargo)} />
+        <Campo icon={<Gift className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Posee servicio de sepelio" value={boolVal(a.poseeSepelio)} />
+        <Campo campo="empresaSepelio" icon={<Building2 className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Empresa de sepelio" raw={a.empresaSepelio} onCompletar={onCompletar} />
+      </Bloque>
     </div>
   );
 }
@@ -666,6 +611,40 @@ const BAJA_PASE_ESTILO: Record<string, string> = {
   BAJA: "bg-red-500/10 border-red-500/30 text-red-400",
   PASE: "bg-[var(--c-amber)]/10 border-[var(--c-amber)]/30 text-[var(--c-amber)]",
 };
+
+/** Franja de 3 indicadores operativos arriba de Datos Laborales (Turno /
+ *  Sector / Antigüedad). Solo en modo lectura — en modo edición Turno y
+ *  Sector ya se editan en el bloque "Información laboral" de abajo, mostrar
+ *  la franja ahí también sería redundante. No inventa un horario por turno
+ *  (no existe ese dato hoy): la celda de Turno muestra solo el valor. */
+function FranjaOperativa({ turno, sector, fechaIngreso }: {
+  turno: string | null;
+  sector: { nombre: string; tipo: string } | null;
+  fechaIngreso: string | null;
+}) {
+  const antiguedad = calcularAntiguedad(fechaIngreso);
+  const celdas: { label: string; valor: string; sub?: string }[] = [
+    { label: "Turno", valor: val(turno) },
+    { label: "Sector", valor: val(sector?.nombre), sub: sector?.tipo ? capitalizar(sector.tipo) : undefined },
+    { label: "Antigüedad", valor: antiguedad ?? "—", sub: fechaIngreso ? `Ingreso ${fmt(fechaIngreso)}` : undefined },
+  ];
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 rounded-lg border border-[var(--c-line)] divide-y sm:divide-y-0 sm:divide-x divide-[var(--c-line)] overflow-hidden mb-2">
+      {celdas.map((c) => (
+        <div key={c.label} className="px-4 py-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--c-text-faint)]">{c.label}</div>
+          <div className="mt-1 text-lg font-semibold text-[var(--c-text)]" style={{ fontFamily: "var(--font-head)" }}>{c.valor}</div>
+          {c.sub && <div className="mt-0.5 text-xs text-[var(--c-text-muted)]">{c.sub}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** "DIVISION" -> "División" (capitaliza la primera letra, minúsculas el resto). */
+function capitalizar(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
 
 function TabLaboral({ a, esOperador = false, historialEstados = [] }: { a: AgenteDetalle; esOperador?: boolean; historialEstados?: HistorialEstadoEntry[] }) {
   const esSeguridad = a.tipoPersonal === "SEGURIDAD";
@@ -706,21 +685,22 @@ function TabLaboral({ a, esOperador = false, historialEstados = [] }: { a: Agent
           )}
         </div>
       )}
-      <Section title="Información laboral">
-        <Field icon={<IconBadgeMini />} label="Tipo de personal" value={tipoLabels[a.tipoPersonal] ?? a.tipoPersonal} />
-        <Field icon={<IconCheckCircle />} label="Estado" value={estadoLabels[a.estado] ?? a.estado} />
-        <Field icon={<IconCalendarMini />} label="Fecha de ingreso a Ojos en Alerta" value={fmt(a.fechaIngreso)} />
-        <Field icon={<IconClockMini />} label="Turno" value={val(a.turno)} />
-        <Field icon={<IconBuildingMini />} label="Sector" value={val(a.sector?.nombre)} />
-        <Field icon={<IconFlagMini />} label="Origen institucional" value={origenValue} />
+      <FranjaOperativa turno={a.turno} sector={a.sector} fechaIngreso={a.fechaIngreso} />
+      <Bloque titulo="Información laboral">
+        <Campo icon={<Award className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Tipo de personal" value={tipoLabels[a.tipoPersonal] ?? a.tipoPersonal} />
+        <Campo icon={<CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Estado" value={estadoLabels[a.estado] ?? a.estado} />
+        <Campo icon={<Calendar className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Fecha de ingreso a Ojos en Alerta" value={fmt(a.fechaIngreso)} />
+        <Campo icon={<Clock className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Turno" value={val(a.turno)} />
+        <Campo icon={<Building2 className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Sector" value={val(a.sector?.nombre)} />
+        <Campo icon={<Flag className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Origen institucional" value={origenValue} />
         {tieneRango && (
           <>
-            <Field icon={<IconBadgeMini />} label="Jerarquía / Rango" value={val(a.rango?.nombre)} />
-            <Field icon={<IconCalendarMini />} label="Año de egreso" value={fmt(a.anoEgreso)} />
-            <Field icon={<IconCheckCircle />} label="Perteneció al E.T.A.C." value={boolVal(a.perteneceETAC)} />
+            <Campo icon={<Award className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Jerarquía / Rango" value={val(a.rango?.nombre)} />
+            <Campo icon={<Calendar className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Año de egreso" value={fmt(a.anoEgreso)} />
+            <Campo icon={<CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Perteneció al E.T.A.C." value={boolVal(a.perteneceETAC)} />
           </>
         )}
-      </Section>
+      </Bloque>
       {esSeguridad && (
         <>
           {/* Operador puede ver Datos Laborales de Seguridad, pero no el
@@ -728,49 +708,54 @@ function TabLaboral({ a, esOperador = false, historialEstados = [] }: { a: Agent
           {!esOperador && (
             <>
               <div className="border-t border-[var(--c-bg-elev-2)]" />
-              <Section title="Armamento">
-                <Field icon={<IconShield />} label="Tipo de arma" value={val(a.tipoArma)} />
-                <Field icon={<IconShield />} label="Marca de pistola" value={val(a.marcaPistola)} />
-                <Field icon={<IconShield />} label="Modelo de pistola" value={val(a.modeloPistola)} />
-                <Field icon={<IconShield />} label="Calibre" value={val(a.calibre)} />
-              </Section>
+              <Bloque titulo="Armamento">
+                <Campo icon={<Shield className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Tipo de arma" value={val(a.tipoArma)} />
+                <Campo icon={<Shield className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Marca de pistola" value={val(a.marcaPistola)} />
+                <Campo icon={<Shield className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Modelo de pistola" value={val(a.modeloPistola)} />
+                <Campo icon={<Shield className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Calibre" value={val(a.calibre)} />
+              </Bloque>
               <div className="border-t border-[var(--c-bg-elev-2)]" />
-              <Section title="Chaleco">
-                <Field icon={<IconShield />} label="Chaleco provisto" value={boolVal(a.chalecoProvisto)} />
-                <Field icon={<IconShield />} label="Marca" value={val(a.marcaChaleco)} />
-                <Field icon={<IconShield />} label="N° de serie / Placas" value={val(a.nroSeriePlacas)} />
-                <Field icon={<IconShield />} label="Talle" value={val(a.talleChaleco)} />
-                <Field icon={<IconCalendarMini />} label="Vencimiento" value={fmt(a.vencimientoChaleco)} />
-              </Section>
+              <Bloque titulo="Chaleco">
+                <Campo icon={<Shield className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Chaleco provisto" value={boolVal(a.chalecoProvisto)} />
+                <Campo icon={<Shield className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Marca" value={val(a.marcaChaleco)} />
+                <Campo icon={<Shield className="h-3.5 w-3.5" strokeWidth={1.8} />} label="N° de serie / Placas" value={val(a.nroSeriePlacas)} />
+                <Campo icon={<Shield className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Talle" value={val(a.talleChaleco)} />
+                <Campo icon={<Calendar className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Vencimiento" value={fmt(a.vencimientoChaleco)} extra={<PillVencimiento fecha={a.vencimientoChaleco} />} />
+              </Bloque>
             </>
           )}
           <div className="border-t border-[var(--c-bg-elev-2)]" />
-          <Section title="Situación de revista">
-            <Field icon={<IconShield />} label="Tarea No Operativa (TNO)" value={boolVal(a.enTNO)} />
+          <Bloque titulo="Situación de revista">
+            <Campo icon={<Shield className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Tarea No Operativa (TNO)" value={boolVal(a.enTNO)} />
             {a.enTNO && (
               <>
-                <Field icon={<IconShield />} label="Motivo" value={val(a.motivoTNO)} />
-                <Field icon={<IconCalendarMini />} label="Desde" value={fmt(a.fechaInicioTNO)} />
+                <Campo icon={<Shield className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Motivo" value={val(a.motivoTNO)} />
+                <Campo icon={<Calendar className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Desde" value={fmt(a.fechaInicioTNO)} />
               </>
             )}
-          </Section>
+          </Bloque>
         </>
       )}
+      {!esSeguridad && (
+        <p className="rounded-md border border-dashed border-[var(--c-line)] px-3.5 py-2.5 text-xs text-[var(--c-text-muted)]">
+          Los bloques de <span className="text-[var(--c-text-secondary)]">armamento y chaleco</span> quedan ocultos: no aplican a personal {(tipoLabels[a.tipoPersonal] ?? a.tipoPersonal).toLowerCase()}.
+        </p>
+      )}
       <div className="border-t border-[var(--c-bg-elev-2)]" />
-      <Section title="Licencia de conducir">
-        <Field icon={<IconIdCard />} label="Categoría" value={val(a.licenciaConducir)} />
-        <Field icon={<IconCalendarMini />} label="Fecha de emisión" value={fmt(a.licenciaEmision)} />
-        <Field icon={<IconCalendarMini />} label="Fecha de vencimiento" value={fmt(a.licenciaVencimiento)} />
-      </Section>
+      <Bloque titulo="Licencia de conducir">
+        <Campo icon={<IdCard className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Categoría" value={val(a.licenciaConducir)} mono />
+        <Campo icon={<Calendar className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Fecha de emisión" value={fmt(a.licenciaEmision)} />
+        <Campo icon={<Calendar className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Fecha de vencimiento" value={fmt(a.licenciaVencimiento)} extra={<PillVencimiento fecha={a.licenciaVencimiento} />} />
+      </Bloque>
       <div className="border-t border-[var(--c-bg-elev-2)]" />
-      <Section title="Nivel académico">
-        <Field icon={<IconGraduation />} label="Primario" value={val(a.nivelPrimario)} />
-        <Field icon={<IconGraduation />} label="Secundario" value={val(a.nivelSecundario)} />
-        <Field icon={<IconGraduation />} label="Terciario" value={val(a.nivelTerciario)} />
-        <Field icon={<IconGraduation />} label="Universitario" value={val(a.nivelUniversitario)} />
-        <Field icon={<IconGraduation />} label="Superior" value={val(a.nivelSuperior)} />
-        {a.detalleTitulos && <Field icon={<IconGraduation />} label="Detalle de títulos / estudios" value={val(a.detalleTitulos)} full />}
-      </Section>
+      <Bloque titulo="Nivel académico">
+        <Campo icon={<GraduationCap className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Primario" value={val(a.nivelPrimario)} />
+        <Campo icon={<GraduationCap className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Secundario" value={val(a.nivelSecundario)} />
+        <Campo icon={<GraduationCap className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Terciario" value={val(a.nivelTerciario)} />
+        <Campo icon={<GraduationCap className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Universitario" value={val(a.nivelUniversitario)} />
+        <Campo icon={<GraduationCap className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Superior" value={val(a.nivelSuperior)} />
+        {a.detalleTitulos && <Campo icon={<GraduationCap className="h-3.5 w-3.5" strokeWidth={1.8} />} label="Detalle de títulos / estudios" value={val(a.detalleTitulos)} full />}
+      </Bloque>
     </div>
   );
 }
@@ -1383,70 +1368,85 @@ const GRUPO_SANGUINEO_OPTIONS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "0+", "0-
 const NIVEL_OPTIONS = ["Completo", "Incompleto", "En curso"].map((v) => ({ value: v, label: v }));
 const TURNO_OPTIONS = ["A","B","C","D","E","F","ADMINISTRATIVO","FULL TIME","GUARDIA LARGA","SUPERIOR DE TURNO","PERSONAL INGRESANTE"].map((v) => ({ value: v, label: v }));
 
-function EditTabPersonal({ form, setForm }: {
+function EditTabPersonal({ form, setForm, campoAEnfocar, onEnfocado }: {
   form: DatosPersonales;
   setForm: React.Dispatch<React.SetStateAction<DatosPersonales>>;
+  /** Clave de campo a enfocar al montar (venía de clickear su chip "+ Agregar"
+   *  en modo lectura) — ver handleCompletarCampo en LegajoTabs. */
+  campoAEnfocar?: string | null;
+  onEnfocado?: () => void;
 }) {
   const set = <K extends keyof DatosPersonales>(key: K) => (v: DatosPersonales[K]) =>
     setForm((f) => ({ ...f, [key]: v }));
 
+  const camposRef = useRef<Partial<Record<string, HTMLInputElement | HTMLSelectElement>>>({});
+  const registrar = (campo: string) => (el: HTMLInputElement | HTMLSelectElement | null) => {
+    if (el) camposRef.current[campo] = el;
+    else delete camposRef.current[campo];
+  };
+
+  useEffect(() => {
+    if (!campoAEnfocar) return;
+    const el = camposRef.current[campoAEnfocar];
+    el?.focus();
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    onEnfocado?.();
+  }, [campoAEnfocar, onEnfocado]);
+
   return (
     <div className="space-y-8">
-      <Section title="Identidad">
+      <Bloque titulo="Identidad">
         {/* CUIL, sexo y fechaNacimiento son inmutables — solo lectura */}
         <InputEdit label="Nombres" value={form.nombres} onChange={set("nombres")} />
         <InputEdit label="Apellidos" value={form.apellidos} onChange={set("apellidos")} />
-        <SelectEdit label="Estado civil" value={form.estadoCivil} onChange={set("estadoCivil")} options={ESTADO_CIVIL_OPTIONS} />
-        <InputEdit label="Nacionalidad" value={form.nacionalidad} onChange={set("nacionalidad")} />
-        <InputEdit label="Provincia de origen" value={form.provinciaOrigen} onChange={set("provinciaOrigen")} />
-        <InputEdit label="Ciudad de origen" value={form.ciudadOrigen} onChange={set("ciudadOrigen")} />
-      </Section>
+        <SelectEdit inputRef={registrar("estadoCivil")} label="Estado civil" value={form.estadoCivil} onChange={set("estadoCivil")} options={ESTADO_CIVIL_OPTIONS} />
+        <InputEdit inputRef={registrar("nacionalidad")} label="Nacionalidad" value={form.nacionalidad} onChange={set("nacionalidad")} />
+        <InputEdit inputRef={registrar("provinciaOrigen")} label="Provincia de origen" value={form.provinciaOrigen} onChange={set("provinciaOrigen")} />
+        <InputEdit inputRef={registrar("ciudadOrigen")} label="Ciudad de origen" value={form.ciudadOrigen} onChange={set("ciudadOrigen")} />
+      </Bloque>
 
       <div className="border-t border-[var(--c-bg-elev-2)]" />
 
-      <Section title="Salud">
-        <SelectEdit label="Grupo sanguíneo" value={form.grupoSanguineo} onChange={set("grupoSanguineo")} options={GRUPO_SANGUINEO_OPTIONS} />
-        <InputEdit label="Alergias" value={form.alergias} onChange={set("alergias")} />
-        <InputEdit label="Enfermedades crónicas" value={form.enfermedadesCronicas} onChange={set("enfermedadesCronicas")} />
-        <InputEdit label="Medicamentos" value={form.medicamentos} onChange={set("medicamentos")} />
-        <InputEdit label="Cirugías" value={form.cirugias} onChange={set("cirugias")} />
-      </Section>
+      <Bloque titulo="Salud">
+        <SelectEdit inputRef={registrar("grupoSanguineo")} label="Grupo sanguíneo" value={form.grupoSanguineo} onChange={set("grupoSanguineo")} options={GRUPO_SANGUINEO_OPTIONS} />
+        <InputEdit inputRef={registrar("alergias")} label="Alergias" value={form.alergias} onChange={set("alergias")} />
+        <InputEdit inputRef={registrar("enfermedadesCronicas")} label="Enfermedades crónicas" value={form.enfermedadesCronicas} onChange={set("enfermedadesCronicas")} />
+        <InputEdit inputRef={registrar("medicamentos")} label="Medicamentos" value={form.medicamentos} onChange={set("medicamentos")} />
+        <InputEdit inputRef={registrar("cirugias")} label="Cirugías" value={form.cirugias} onChange={set("cirugias")} />
+      </Bloque>
 
       <div className="border-t border-[var(--c-bg-elev-2)]" />
 
-      <Section title="Contacto">
-        <InputEdit label="Email" value={form.email} onChange={set("email")} type="email" />
-        <InputEdit label="Teléfono" value={form.telefono} onChange={set("telefono")} />
-        <InputEdit label="Teléfono alternativo" value={form.telefonoAlternativo} onChange={set("telefonoAlternativo")} />
+      <Bloque titulo="Contacto">
+        <InputEdit inputRef={registrar("email")} label="Email" value={form.email} onChange={set("email")} type="email" />
+        <InputEdit inputRef={registrar("telefono")} label="Teléfono" value={form.telefono} onChange={set("telefono")} />
+        <InputEdit inputRef={registrar("telefonoAlternativo")} label="Teléfono alternativo" value={form.telefonoAlternativo} onChange={set("telefonoAlternativo")} />
         <div className="col-span-full">
-          <InputEdit label="Contacto de emergencia" value={form.contactoEmergencia} onChange={set("contactoEmergencia")} />
+          <InputEdit inputRef={registrar("contactoEmergencia")} label="Contacto de emergencia" value={form.contactoEmergencia} onChange={set("contactoEmergencia")} />
         </div>
-      </Section>
+      </Bloque>
 
       <div className="border-t border-[var(--c-bg-elev-2)]" />
 
-      <Section title="Domicilio">
-        <InputEdit label="Domicilio real" value={form.domicilioReal} onChange={set("domicilioReal")} />
-        {/* Espaciadores: fuerzan el salto de fila en md:grid-cols-3 para que
-            Domicilio real quede solo en su línea y Número/Barrio/Ciudad
-            queden alineados juntos en la siguiente. */}
-        <div className="hidden md:block" aria-hidden="true" />
-        <div className="hidden md:block" aria-hidden="true" />
-        <InputEdit label="Número" value={form.nroDomicilio} onChange={set("nroDomicilio")} />
-        <InputEdit label="Barrio" value={form.barrio} onChange={set("barrio")} />
-        <InputEdit label="Ciudad" value={form.ciudad} onChange={set("ciudad")} />
-        <InputEdit label="Piso" value={form.piso} onChange={set("piso")} />
-      </Section>
+      <Bloque titulo="Domicilio">
+        <div className="col-span-full">
+          <InputEdit inputRef={registrar("domicilioReal")} label="Domicilio real" value={form.domicilioReal} onChange={set("domicilioReal")} />
+        </div>
+        <InputEdit inputRef={registrar("nroDomicilio")} label="Número" value={form.nroDomicilio} onChange={set("nroDomicilio")} />
+        <InputEdit inputRef={registrar("barrio")} label="Barrio" value={form.barrio} onChange={set("barrio")} />
+        <InputEdit inputRef={registrar("ciudad")} label="Ciudad" value={form.ciudad} onChange={set("ciudad")} />
+        <InputEdit inputRef={registrar("piso")} label="Piso" value={form.piso} onChange={set("piso")} />
+      </Bloque>
 
       <div className="border-t border-[var(--c-bg-elev-2)]" />
 
-      <Section title="Familia y beneficios">
+      <Bloque titulo="Familia y beneficios">
         <NumEdit label="Hijos a cargo" value={form.hijosCargo} onChange={set("hijosCargo")} />
         <CheckEdit label="Posee servicio de sepelio" checked={form.poseeSepelio} onChange={set("poseeSepelio")} />
         {form.poseeSepelio && (
-          <InputEdit label="Empresa de sepelio" value={form.empresaSepelio} onChange={set("empresaSepelio")} />
+          <InputEdit inputRef={registrar("empresaSepelio")} label="Empresa de sepelio" value={form.empresaSepelio} onChange={set("empresaSepelio")} />
         )}
-      </Section>
+      </Bloque>
     </div>
   );
 }
@@ -1470,7 +1470,7 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
 
   return (
     <div className="space-y-8">
-      <Section title="Información laboral">
+      <Bloque titulo="Información laboral">
         {/* tipoPersonal, fechaIngreso y estado son inmutables en este formulario */}
         <SelectEdit label="Turno" value={form.turno} onChange={set("turno")} options={TURNO_OPTIONS} />
         <SelectEdit
@@ -1507,29 +1507,29 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
             onChange={set("origenInstitucionalDetalle")}
           />
         )}
-      </Section>
+      </Bloque>
 
       {esSeguridad && (
         <>
           <div className="border-t border-[var(--c-bg-elev-2)]" />
-          <Section title="Armamento">
+          <Bloque titulo="Armamento">
             <InputEdit label="Tipo de arma" value={form.tipoArma} onChange={set("tipoArma")} />
             <InputEdit label="Marca de pistola" value={form.marcaPistola} onChange={set("marcaPistola")} />
             <InputEdit label="Modelo de pistola" value={form.modeloPistola} onChange={set("modeloPistola")} />
             <InputEdit label="Calibre" value={form.calibre} onChange={set("calibre")} />
-          </Section>
+          </Bloque>
 
           <div className="border-t border-[var(--c-bg-elev-2)]" />
-          <Section title="Chaleco">
+          <Bloque titulo="Chaleco">
             <CheckEdit label="Chaleco provisto" checked={form.chalecoProvisto} onChange={set("chalecoProvisto")} />
             <InputEdit label="Marca" value={form.marcaChaleco} onChange={set("marcaChaleco")} />
             <InputEdit label="N° de serie / Placas" value={form.nroSeriePlacas} onChange={set("nroSeriePlacas")} />
             <InputEdit label="Talle" value={form.talleChaleco} onChange={set("talleChaleco")} />
             <InputEdit label="Vencimiento del chaleco" value={form.vencimientoChaleco} onChange={set("vencimientoChaleco")} type="date" />
-          </Section>
+          </Bloque>
 
           <div className="border-t border-[var(--c-bg-elev-2)]" />
-          <Section title="Situación de revista">
+          <Bloque titulo="Situación de revista">
             <CheckEdit label="Tarea No Operativa (TNO)" checked={form.enTNO} onChange={set("enTNO")} />
             {form.enTNO && (
               <>
@@ -1537,21 +1537,21 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
                 <InputEdit label="Desde" value={form.fechaInicioTNO} onChange={set("fechaInicioTNO")} type="date" />
               </>
             )}
-          </Section>
+          </Bloque>
         </>
       )}
 
       <div className="border-t border-[var(--c-bg-elev-2)]" />
 
-      <Section title="Licencia de conducir">
+      <Bloque titulo="Licencia de conducir">
         <InputEdit label="Categoría" value={form.licenciaConducir} onChange={set("licenciaConducir")} />
         <InputEdit label="Fecha de emisión" value={form.licenciaEmision} onChange={set("licenciaEmision")} type="date" />
         <InputEdit label="Fecha de vencimiento" value={form.licenciaVencimiento} onChange={set("licenciaVencimiento")} type="date" />
-      </Section>
+      </Bloque>
 
       <div className="border-t border-[var(--c-bg-elev-2)]" />
 
-      <Section title="Nivel académico">
+      <Bloque titulo="Nivel académico">
         <SelectEdit label="Primario" value={form.nivelPrimario} onChange={set("nivelPrimario")} options={NIVEL_OPTIONS} />
         <SelectEdit label="Secundario" value={form.nivelSecundario} onChange={set("nivelSecundario")} options={NIVEL_OPTIONS} />
         <SelectEdit label="Terciario" value={form.nivelTerciario} onChange={set("nivelTerciario")} options={NIVEL_OPTIONS} />
@@ -1560,7 +1560,7 @@ function EditTabLaboral({ form, setForm, agente, rangos, sectores }: {
         <div className="col-span-full">
           <InputEdit label="Detalle de títulos / estudios" value={form.detalleTitulos} onChange={set("detalleTitulos")} />
         </div>
-      </Section>
+      </Bloque>
     </div>
   );
 }
@@ -1708,6 +1708,11 @@ export default function LegajoTabs({
   const [formPersonal, setFormPersonal] = useState<DatosPersonales>(() => initPersonal(agente));
   const [formLaboral, setFormLaboral] = useState<DatosLaborales>(() => initLaboral(agente));
   const [errorEdit, setErrorEdit] = useState<string | null>(null);
+  // Campo a enfocar al entrar en modo edición desde un chip "+ Agregar" de
+  // Datos Personales (ver Campo/handleCompletarCampo) — se limpia solo una
+  // vez usado (EditTabPersonal llama a onEnfocado) o si se cancela/cambia de
+  // pestaña sin usarlo.
+  const [campoAEnfocar, setCampoAEnfocar] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const tabsNavRef = useRef<HTMLElement>(null);
@@ -1760,6 +1765,7 @@ export default function LegajoTabs({
       setEditando(false);
       setErrorEdit(null);
     }
+    setCampoAEnfocar(null);
     setActiveTab(tabId);
   }
 
@@ -1770,11 +1776,19 @@ export default function LegajoTabs({
     setEditando(true);
   }
 
+  /** Clickear el chip "+ Agregar" de un campo vacío en Datos Personales:
+   *  entra en modo edición y deja que EditTabPersonal enfoque ese campo. */
+  function handleCompletarCampo(campo: string) {
+    handleEditar();
+    setCampoAEnfocar(campo);
+  }
+
   function handleCancelar() {
     setFormPersonal(initPersonal(agente));
     setFormLaboral(initLaboral(agente));
     setErrorEdit(null);
     setEditando(false);
+    setCampoAEnfocar(null);
   }
 
   function handleGuardar() {
@@ -1914,8 +1928,21 @@ export default function LegajoTabs({
         {/* Contenido del tab */}
         {activeTab === "personal" && (
           editando
-            ? <EditTabPersonal form={formPersonal} setForm={setFormPersonal} />
-            : <TabPersonal a={agente} remitenteWhatsapp={remitenteWhatsapp} />
+            ? (
+              <EditTabPersonal
+                form={formPersonal}
+                setForm={setFormPersonal}
+                campoAEnfocar={campoAEnfocar}
+                onEnfocado={() => setCampoAEnfocar(null)}
+              />
+            )
+            : (
+              <TabPersonal
+                a={agente}
+                remitenteWhatsapp={remitenteWhatsapp}
+                onCompletar={canEdit && tabEditable ? handleCompletarCampo : undefined}
+              />
+            )
         )}
         {activeTab === "laboral" && (
           editando
