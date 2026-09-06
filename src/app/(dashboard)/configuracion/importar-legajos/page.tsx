@@ -20,7 +20,7 @@ export default async function ImportarLegajosPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="dashboard-page-in space-y-5">
       <div>
         <h2 className="text-xl font-semibold text-[var(--c-text)]">Importar legajos desde el Sheet</h2>
         <p className="text-sm text-[var(--c-text-muted)] mt-0.5">

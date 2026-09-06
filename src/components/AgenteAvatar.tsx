@@ -40,22 +40,29 @@ export default function AgenteAvatar({
 
   if (fotoUrl && !error) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={fotoUrl}
-        alt=""
-        // loading="lazy": sin esto, una lista larga (ej. el ranking de
-        // personal, hasta 74 filas) dispara todas las descargas de foto de
-        // una sola vez apenas monta, compitiendo entre sí — al hacer scroll
-        // rápido las que todavía no llegaron se ven como un bache oscuro
-        // que después aparece de golpe. Con lazy, el navegador solo pide
-        // las que están por entrar en viewport.
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setCargada(true)}
-        onError={() => setError(true)}
-        className={`${sizeClassName} object-cover border border-[var(--c-line)] transition-opacity duration-300 ${cargada ? "opacity-100" : "opacity-0"}`}
-      />
+      // Contenedor con fondo propio (en vez de aplicar tamaño/opacidad
+      // directo a la <img>): con loading="lazy", el navegador puede tardar
+      // en pedir/traer la foto, y mientras tanto la <img> en opacity-0 no
+      // mostraba nada — un hueco totalmente transparente que se leía como
+      // "la foto no cargó", cuando en realidad solo estaba en tránsito.
+      <div className={`${sizeClassName} relative overflow-hidden border border-[var(--c-line)] bg-[var(--c-bg-elev-2)]`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={fotoUrl}
+          alt=""
+          // loading="lazy": sin esto, una lista larga (ej. el ranking de
+          // personal, hasta 74 filas) dispara todas las descargas de foto de
+          // una sola vez apenas monta, compitiendo entre sí — al hacer scroll
+          // rápido las que todavía no llegaron se ven como un bache oscuro
+          // que después aparece de golpe. Con lazy, el navegador solo pide
+          // las que están por entrar en viewport.
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setCargada(true)}
+          onError={() => setError(true)}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${cargada ? "opacity-100" : "opacity-0"}`}
+        />
+      </div>
     );
   }
 

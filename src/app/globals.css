@@ -568,6 +568,37 @@ textarea::placeholder {
   }
 }
 
+/* Entrada de cada sección del dashboard (Personal, Organigrama, Turnos,
+   etc.): el contenido de la página nueva es siempre un árbol de componentes
+   recién montado por React al navegar de una sección a otra (a diferencia
+   de /personal/[id], donde PersonalMasterShell persiste y sólo cambia su
+   contenido interno) — así que puesto directo en la raíz de cada page.tsx,
+   este fundido + deslizamiento dispara solo en el momento real en que el
+   loader se reemplaza por el contenido, sin necesitar un wrapper con
+   key={pathname} en el layout (eso fue lo que se probó antes y se revirtió:
+   el remonte forzado disparaba la animación al INICIO de la navegación,
+   cuando aparece el loader, no en el swap loader→contenido).
+   SIN fill-mode "both" (a diferencia de reveal-fade-in/auth-view-in): "both"
+   deja el transform de la animación (translateY(0), que sigue siendo un
+   transform real, no "none") aplicado para siempre después de terminar, lo
+   que vuelve a este contenedor "containing block" de sus descendientes
+   position:fixed — rompió el botón fixed de NovedadesDrawer, que esperaba
+   anclarse al viewport real. La clase se aplica desde el primer render (no
+   se agrega después por JS), así que no hace falta "backwards"/"both" para
+   evitar un flash inicial — wizard-step-in ya usa este mismo criterio. */
+@keyframes dashboard-page-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dashboard-page-in {
+  animation: dashboard-page-in 0.28s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-page-in {
+    animation: none;
+  }
+}
+
 /* Panel colapsable del dashboard (p. ej. "Atención requerida"): en vez de
    medir la altura por JS, se anima grid-template-rows entre 0fr y 1fr — el
    contenido interno necesita overflow-hidden + min-height:0 para poder

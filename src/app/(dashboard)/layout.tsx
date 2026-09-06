@@ -129,7 +129,15 @@ export default async function DashboardLayout({
         <Sidebar rol={rol} />
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 bg-[var(--c-bg)] text-[var(--c-text)]">{children}</main>
+          {/* min-h-0: sin esto, un item flex en un contenedor columna no se
+              achica más allá del tamaño natural de su contenido — <main>
+              crecía para acomodar el contenido en vez de quedar acotado a
+              su alto real, y el div de arriba (overflow-hidden) recortaba
+              el sobrante sin mostrar scroll. Con min-h-0, flex-1 sí lo acota
+              de verdad y overflow-y-auto activa la scrollbar como corresponde
+              — y de paso, cualquier h-full/100% de los hijos (el loader, el
+              panel del globo en /personal) ahora resuelve contra un alto real. */}
+          <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 lg:p-6 bg-[var(--c-bg)] text-[var(--c-text)]">{children}</main>
         </div>
         <EventosAsideShell>
           <Suspense fallback={<EventosAsideSkeleton />}>

@@ -101,7 +101,7 @@ export default async function MiLegajoPage() {
 
     if (solicitudPendiente) {
       return (
-        <div className="space-y-5">
+        <div className="dashboard-page-in space-y-5">
           <h2 className="text-xl font-semibold text-[var(--c-text)]">Mi Legajo</h2>
           <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] px-8 py-16 text-center space-y-4">
             <p className="text-5xl"><span className="hourglass-flip">⏳</span></p>
@@ -117,7 +117,7 @@ export default async function MiLegajoPage() {
 
     const intentosRestantes = Math.max(0, MAX_INTENTOS_CUIL - (usuario?.intentosCuil ?? 0));
     return (
-      <div className="space-y-5">
+      <div className="dashboard-page-in space-y-5">
         <h2 className="text-xl font-semibold text-[var(--c-text)]">Mi Legajo</h2>
         <div className="bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] px-8 py-16 text-center space-y-4">
           <p className="text-5xl">📋</p>
@@ -212,7 +212,7 @@ export default async function MiLegajoPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="dashboard-page-in space-y-5">
       <h2 className="text-xl font-semibold text-[var(--c-text)]">Mi Legajo</h2>
 
       {/* Header */}

@@ -125,7 +125,7 @@ export default async function PerfilPage() {
     : (agente?.sexo ? (SEXO_LABELS[agente.sexo] ?? agente.sexo) : null);
 
   return (
-    <div className="space-y-4">
+    <div className="dashboard-page-in space-y-4">
 
       <EventosResumenMobile />
 

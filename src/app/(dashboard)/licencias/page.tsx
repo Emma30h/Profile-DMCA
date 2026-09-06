@@ -66,7 +66,7 @@ export default async function LicenciasPage() {
   ]);
 
   return (
-    <div className="space-y-5">
+    <div className="dashboard-page-in space-y-5">
       <div>
         <h2 className="text-xl font-semibold text-[var(--c-text)]">Licencias y Ausentismo</h2>
         <p className="text-sm text-[var(--c-text-muted)] mt-0.5">

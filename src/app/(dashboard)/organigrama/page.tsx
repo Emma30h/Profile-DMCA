@@ -23,7 +23,7 @@ export default async function OrganigramaPage() {
   const esAdmin = Boolean(currentUser && ROLES_ADMIN.includes(currentUser.rol));
 
   return (
-    <div className="flex flex-col gap-5 h-full">
+    <div className="dashboard-page-in flex flex-col gap-5 h-full">
       <div className="shrink-0 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-[var(--c-text)]">Organigrama</h2>

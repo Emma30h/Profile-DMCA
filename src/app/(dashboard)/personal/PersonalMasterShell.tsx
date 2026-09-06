@@ -92,10 +92,17 @@ function useEsDesktop(breakpointPx = 1024): boolean {
   const [esDesktop, setEsDesktop] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia(`(min-width: ${breakpointPx}px)`);
-    setEsDesktop(mq.matches);
+    // requestAnimationFrame: mismo truco que useCountUp.ts para el chequeo
+    // inicial — setState síncrono en el cuerpo del efecto es error de lint
+    // en este repo (react-hooks/set-state-in-effect); sigue corriendo
+    // apenas se monta, solo difiere un frame.
+    const raf = requestAnimationFrame(() => setEsDesktop(mq.matches));
     const handler = (e: MediaQueryListEvent) => setEsDesktop(e.matches);
     mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+    return () => {
+      cancelAnimationFrame(raf);
+      mq.removeEventListener("change", handler);
+    };
   }, [breakpointPx]);
   return esDesktop;
 }
@@ -336,7 +343,7 @@ export default function PersonalMasterShell({
         filtrosPendientes: filtrosPending,
       }}
     >
-      <div className="flex flex-col gap-5 h-full">
+      <div className="dashboard-page-in flex flex-col gap-5 h-full">
         <div className="shrink-0 flex items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-[var(--c-text)]">Personal</h2>
@@ -365,7 +372,10 @@ export default function PersonalMasterShell({
               los dos por vez, igual que cualquier patrón lista/detalle en
               mobile. En desktop (lg:) siempre conviven lado a lado, como antes. */}
           <aside
-            className={`bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden flex-col ${
+            // min-h-0: <aside> es un ítem de grid (hijo de la grilla de arriba), y
+            // los ítems de grid tienen el mismo min-height:auto por defecto que los
+            // de flex — sin esto, lg:h-full no alcanzaba para acotarlo de verdad.
+            className={`min-h-0 bg-[var(--c-bg-elev)] rounded-xl border border-[var(--c-line)] overflow-hidden flex-col ${
               hadSelection ? "hidden lg:flex" : "flex"
             } ${fitViewport ? "lg:h-full" : "lg:sticky lg:top-0 lg:h-[calc(100vh-6rem)]"}`}
           >
@@ -383,7 +393,7 @@ export default function PersonalMasterShell({
               selectedId={selectedId}
             />
             <div className="relative flex-1 min-h-0 flex flex-col">
-              <div className="px-4 py-2 text-xs text-[var(--c-text-faint)] border-b border-[var(--c-bg-elev-2)]">
+              <div className="px-4 py-1.5 text-xs text-[var(--c-text-faint)] border-b border-[var(--c-bg-elev-2)]">
                 {agentes.length} {agentes.length === 1 ? "agente encontrado" : "agentes encontrados"}
               </div>
               <ListaAgentes
@@ -409,7 +419,7 @@ export default function PersonalMasterShell({
               que "hidden lg:block" era la causa de un panel en blanco, pero
               esa vez la causa real era el bug de "children" ya corregido más
               arriba — hoy es seguro volver a ocultarlo.) */}
-          <div className={`min-w-0 ${fitViewport ? "lg:h-full" : ""} ${hadSelection ? "block" : "hidden lg:block"}`}>
+          <div className={`min-w-0 min-h-0 ${fitViewport ? "lg:h-full" : ""} ${hadSelection ? "block" : "hidden lg:block"}`}>
             {contenido}
           </div>
         </div>

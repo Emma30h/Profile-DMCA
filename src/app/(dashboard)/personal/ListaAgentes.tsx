@@ -24,7 +24,7 @@ const TIPO_LABELS: Record<TipoPersonal, string> = {
 function Avatar({ agente }: { agente: AgenteResumen }) {
   return (
     <div className="relative shrink-0">
-      <AgenteAvatar fotoUrl={agente.fotoUrl} sexo={agente.sexo} sizeClassName="h-11 w-11 rounded-full" />
+      <AgenteAvatar fotoUrl={agente.fotoUrl} sexo={agente.sexo} sizeClassName="h-9 w-9 rounded-full" />
       {agente.estado === "ACTIVO" && (
         <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-[var(--c-green)] border-2 border-[var(--c-bg-elev)]" />
       )}
@@ -137,7 +137,7 @@ export default function ListaAgentes({
   }
 
   const barraSeleccion = (
-    <div className="shrink-0 flex items-center justify-between gap-2 border-b border-[var(--c-bg-elev-2)] bg-[var(--c-bg-elev-2)]/40 px-4 py-2">
+    <div className="shrink-0 flex items-center justify-between gap-2 border-b border-[var(--c-bg-elev-2)] bg-[var(--c-bg-elev-2)]/40 px-4 py-1.5">
       <button
         type="button"
         onClick={handleToggleModo}
@@ -201,7 +201,11 @@ export default function ListaAgentes({
   return (
     <>
     {barraSeleccion}
-    <ul className="flex-1 overflow-y-auto divide-y divide-[var(--c-bg-elev-2)]">
+    {/* min-h-0: mismo motivo que <main> en (dashboard)/layout.tsx — sin esto
+        el <ul> crece a su alto natural (todas las filas) en vez de acotarse
+        a lo que le deja flex-1, empujando la barra de "Cargar más" fuera del
+        <aside> (que la recorta con overflow-hidden, sin mostrar scroll). */}
+    <ul className="flex-1 min-h-0 overflow-y-auto divide-y divide-[var(--c-bg-elev-2)]">
       {agentesVisibles.map((a) => {
         const activo = a.id === selectedId;
         const subLabel = a.turno ?? TIPO_LABELS[a.tipoPersonal as TipoPersonal] ?? a.tipoPersonal;
@@ -226,7 +230,7 @@ export default function ListaAgentes({
             <Link
               href={href}
               onClick={(e) => handleClick(e, href)}
-              className={`flex items-center gap-3 py-3 transition-colors ${modoSeleccion ? "pl-10" : "pl-4"} ${activo ? "pr-10" : "pr-4"} ${
+              className={`flex items-center gap-3 py-2 transition-colors ${modoSeleccion ? "pl-10" : "pl-4"} ${activo ? "pr-10" : "pr-4"} ${
                 activo ? "bg-[var(--c-blue)]/10 border-l-2 border-[var(--c-blue)]" : "hover:bg-[var(--c-bg-elev-2)] border-l-2 border-transparent"
               }`}
             >
@@ -274,7 +278,7 @@ export default function ListaAgentes({
       })}
     </ul>
     {cantidadVisible < agentes.length && (
-      <div className="shrink-0 flex items-center justify-between border-t border-[var(--c-bg-elev-2)] px-4 py-2.5">
+      <div className="shrink-0 flex items-center justify-between border-t border-[var(--c-bg-elev-2)] px-4 py-2">
         <span className="text-xs text-[var(--c-text-faint)]">
           Mostrando {agentesVisibles.length} de {agentes.length}
         </span>

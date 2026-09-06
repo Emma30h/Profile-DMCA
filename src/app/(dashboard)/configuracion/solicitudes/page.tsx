@@ -121,7 +121,7 @@ export default async function SolicitudesPage() {
   const vinculacionHistorial = vinculacionSerialized.filter((s) => s.estado !== "PENDIENTE");
 
   return (
-    <div className="space-y-5">
+    <div className="dashboard-page-in space-y-5">
       <div>
         <h2 className="text-xl font-semibold text-[var(--c-text)]">Solicitudes de edición</h2>
         <p className="text-sm text-[var(--c-text-muted)] mt-0.5">

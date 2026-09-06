@@ -25,7 +25,7 @@ export default async function CrearLegajoPage() {
   const meta = user.user_metadata ?? {};
 
   return (
-    <div className="space-y-5 max-w-2xl mx-auto">
+    <div className="dashboard-page-in space-y-5 max-w-2xl mx-auto">
       <div>
         <h2 className="text-xl font-semibold text-[var(--c-text)]">Cargar mi legajo</h2>
         <p className="text-sm text-[var(--c-text-muted)] mt-1">

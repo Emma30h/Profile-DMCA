@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   const stats = await getDashboardStats();
 
   return (
-    <div>
+    <div className="dashboard-page-in">
       <NovedadesDrawer novedades={stats.novedades} tno={stats.tno} cursoAscenso={stats.cursoAscenso} />
 
       <EventosResumenMobile />

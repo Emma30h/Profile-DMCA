@@ -29,7 +29,7 @@ export default async function ConfiguracionOrganigramaPage() {
   ]);
 
   return (
-    <div className="space-y-5">
+    <div className="dashboard-page-in space-y-5">
       {/* Sticky: la lista de sectores puede quedar larga, así que el link para
           volver no puede depender de estar arriba de todo — si no, scrolleando
           un poco ya no hay forma de volver a /organigrama sin usar el botón
