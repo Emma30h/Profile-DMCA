@@ -248,10 +248,20 @@ export default function AuthScreen({ initialTab, initialError, rangos, stats }: 
   const error = vista === "login" ? loginError : signupError;
 
   return (
-    <div className="auth-card-in w-[1180px] max-w-full h-[700px] max-h-full grid grid-cols-2 border border-white/[0.12] bg-[#1e2637] font-body text-[#e8edf6] max-[900px]:grid-cols-1 max-[900px]:h-auto max-[900px]:max-h-none max-[900px]:w-full">
+    <div
+      className="auth-card-in w-[1180px] max-w-full h-[620px] max-h-full grid grid-cols-2 border font-body text-[#e8edf6] backdrop-blur-[2px] max-[900px]:grid-cols-1 max-[900px]:h-auto max-[900px]:max-h-none max-[900px]:w-full"
+      style={{
+        borderColor: "rgba(255,255,255,0.09)",
+        background: "rgba(18,25,39,0.78)",
+        boxShadow: "0 24px 60px rgba(4,8,16,0.45)",
+      }}
+    >
 
       {/* Panel institucional */}
-      <aside className="flex flex-col overflow-y-auto p-11 bg-[#182031] border-r border-white/10 max-[900px]:border-r-0 max-[900px]:border-b max-[900px]:p-5">
+      <aside
+        className="flex flex-col overflow-y-auto p-9 border-r border-white/10 max-[900px]:border-r-0 max-[900px]:border-b max-[900px]:p-5"
+        style={{ background: "rgba(11,17,28,0.35)" }}
+      >
         <div className="flex items-center gap-4 max-[900px]:gap-3">
           <div className="relative inline-flex items-center justify-center w-16 h-16 shrink-0 max-[900px]:w-11 max-[900px]:h-11">
             <span className="auth-sonar-ping absolute inset-0 rounded-full bg-[#2f6fed]/40" aria-hidden="true" />
@@ -266,7 +276,7 @@ export default function AuthScreen({ initialTab, initialError, rangos, stats }: 
           </div>
         </div>
 
-        <h1 className="font-head text-[52px] leading-[1.06] text-white mt-[54px] mb-2.5 max-[900px]:text-[26px] max-[900px]:leading-[1.1] max-[900px]:mt-5 max-[900px]:mb-1.5">
+        <h1 className="font-head text-[52px] leading-[1.06] text-white mt-9 mb-2.5 max-[900px]:text-[26px] max-[900px]:leading-[1.1] max-[900px]:mt-5 max-[900px]:mb-1.5">
           Sistema<br className="max-[900px]:hidden" /> de Gestión<br className="max-[900px]:hidden" /> de Personal
         </h1>
         <p className="max-w-[38ch] text-sm text-[#93a0b8] max-[900px]:text-[12.5px] max-[900px]:max-w-none">
@@ -280,7 +290,7 @@ export default function AuthScreen({ initialTab, initialError, rangos, stats }: 
             { n: stats.tipos, pad: true, l: "Tipos de personal" },
             { n: stats.rangos, pad: false, l: "Rangos del escalafón" },
           ].map(({ n, pad, l }, i) => (
-            <div key={l} className={"p-[18px] max-[900px]:p-2.5 " + (i % 2 === 0 ? "border-r border-white/10 " : "") + (i < 2 ? "border-b border-white/10" : "")}>
+            <div key={l} className={"p-[13px] max-[900px]:p-2.5 " + (i % 2 === 0 ? "border-r border-white/10 " : "") + (i < 2 ? "border-b border-white/10" : "")}>
               <div className="font-head text-[32px] font-semibold leading-none text-[#6fa0ff] max-[900px]:text-[22px]">
                 <StatNumber target={n} pad={pad} delayMs={i * 90} />
               </div>
@@ -288,7 +298,7 @@ export default function AuthScreen({ initialTab, initialError, rangos, stats }: 
             </div>
           ))}
         </div>
-        <div className="mt-5 text-[10.5px] uppercase tracking-[0.09em] text-[#6b7893] max-[900px]:hidden">
+        <div className="mt-3.5 text-[10.5px] uppercase tracking-[0.09em] text-[#6b7893] max-[900px]:hidden">
           DMCA · v1.0 · Uso oficial — acceso auditado
         </div>
       </aside>
