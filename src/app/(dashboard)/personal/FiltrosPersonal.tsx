@@ -8,9 +8,9 @@ import { usePersonalNav } from "./PersonalMasterShell";
 const LOCK_STORAGE_KEY = "personal-filtros-bloqueados";
 const VALUES_STORAGE_KEY = "personal-filtros-guardados";
 
-type FiltrosValues = { q: string; tipo: string[]; estado: string[]; turno: string[]; sector: string[]; etac: string[] };
+type FiltrosValues = { q: string; tipo: string[]; estado: string[]; turno: string[]; sector: string[]; origen: string[] };
 
-type CampoFiltro = "estado" | "turno" | "sector" | "tipo" | "etac";
+type CampoFiltro = "estado" | "turno" | "sector" | "tipo" | "origen";
 
 const TIPOS = [
   { value: "SEGURIDAD", label: "Seguridad" },
@@ -19,12 +19,17 @@ const TIPOS = [
   { value: "CIVIL_POLICIAL", label: "Civil Policial" },
 ];
 
-// Booleano en la base (Agente.perteneceETAC), pero viaja por la URL como
-// string "SI"/"NO" para reusar el mismo mecanismo de lista-separada-por-coma
-// que el resto de los filtros multi-selección.
-const ETACS = [
-  { value: "SI", label: "Perteneció" },
-  { value: "NO", label: "No perteneció" },
+// Combina dos campos del legajo en un solo filtro: el booleano histórico
+// Agente.perteneceETAC (opción "ETAC") y el select libre
+// Agente.origenInstitucional (911/DMCA/Gobierno/Otra dependencia). Se
+// consultan mucho como una sola pregunta ("de dónde viene este agente"),
+// así que acá conviven aunque en la base sean columnas distintas.
+const ORIGENES = [
+  { value: "ETAC", label: "E.T.A.C." },
+  { value: "911", label: "911" },
+  { value: "DMCA", label: "Dirección Monitoreo Cordobeses en Alerta" },
+  { value: "GOBIERNO", label: "Gobierno" },
+  { value: "OTRA_DEPENDENCIA", label: "Otra dependencia" },
 ];
 
 const ESTADOS = [
@@ -39,7 +44,7 @@ const FILTRO_TITULOS: Record<CampoFiltro, string> = {
   turno: "Turno / Guardia",
   sector: "Dependencia",
   tipo: "Tipo de personal",
-  etac: "E.T.A.C.",
+  origen: "Origen institucional",
 };
 
 interface SectorOption {
@@ -53,7 +58,7 @@ interface Props {
   estadoValue: string;
   turnoValue: string;
   sectorValue: string;
-  etacValue: string;
+  origenValue: string;
   /** Drill-down puntual (ids/sexo, ver queryString.ts): no tienen UI acá, pero
    * hay que saber si están puestos para no pisarlos con el candado de abajo. */
   idsValue: string;
@@ -76,7 +81,7 @@ export default function FiltrosPersonal({
   estadoValue,
   turnoValue,
   sectorValue,
-  etacValue,
+  origenValue,
   idsValue,
   sexoValue,
   sectores,
@@ -92,7 +97,7 @@ export default function FiltrosPersonal({
   const [estado, setEstado] = useState<string[]>(() => parseLista(estadoValue));
   const [turno, setTurno] = useState<string[]>(() => parseLista(turnoValue));
   const [sector, setSector] = useState<string[]>(() => parseLista(sectorValue));
-  const [etac, setEtac] = useState<string[]>(() => parseLista(etacValue));
+  const [origen, setOrigen] = useState<string[]>(() => parseLista(origenValue));
   const [bloqueado, setBloqueado] = useState(false);
   const [filtroAbierto, setFiltroAbierto] = useState<CampoFiltro | null>(null);
 
@@ -104,7 +109,7 @@ export default function FiltrosPersonal({
       if (next.estado.length > 0) params.set("estado", next.estado.join(","));
       if (next.turno.length > 0) params.set("turno", next.turno.join(","));
       if (next.sector.length > 0) params.set("sector", next.sector.join(","));
-      if (next.etac.length > 0) params.set("etac", next.etac.join(","));
+      if (next.origen.length > 0) params.set("origen", next.origen.join(","));
       // ids/sexo no se editan desde acá (son el drill-down puntual del
       // dashboard), pero sí hay que arrastrarlos: si no, tocar cualquier
       // filtro de esta barra mientras hay un recorte por ids activo lo
@@ -131,7 +136,7 @@ export default function FiltrosPersonal({
     // ids/sexo son drill-down puntual (desde un doble click en el dashboard,
     // p. ej.) — si están puestos, no hay que pisarlos con los filtros
     // guardados: el usuario vino a ver ESE recorte, no la última búsqueda.
-    if (qValue || tipoValue || estadoValue || turnoValue || sectorValue || etacValue || idsValue || sexoValue) return;
+    if (qValue || tipoValue || estadoValue || turnoValue || sectorValue || origenValue || idsValue || sexoValue) return;
 
     const guardadosRaw = localStorage.getItem(VALUES_STORAGE_KEY);
     if (!guardadosRaw) return;
@@ -147,16 +152,16 @@ export default function FiltrosPersonal({
       estado: guardados.estado ?? [],
       turno: guardados.turno ?? [],
       sector: guardados.sector ?? [],
-      etac: guardados.etac ?? [],
+      origen: guardados.origen ?? [],
     };
-    if (!next.q && next.tipo.length === 0 && next.estado.length === 0 && next.turno.length === 0 && next.sector.length === 0 && next.etac.length === 0) return;
+    if (!next.q && next.tipo.length === 0 && next.estado.length === 0 && next.turno.length === 0 && next.sector.length === 0 && next.origen.length === 0) return;
 
     setQ(next.q);
     setTipo(next.tipo);
     setEstado(next.estado);
     setTurno(next.turno);
     setSector(next.sector);
-    setEtac(next.etac);
+    setOrigen(next.origen);
     applyFilters(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -166,7 +171,7 @@ export default function FiltrosPersonal({
     setBloqueado(nuevo);
     localStorage.setItem(LOCK_STORAGE_KEY, nuevo ? "1" : "0");
     if (nuevo) {
-      localStorage.setItem(VALUES_STORAGE_KEY, JSON.stringify({ q, tipo, estado, turno, sector, etac }));
+      localStorage.setItem(VALUES_STORAGE_KEY, JSON.stringify({ q, tipo, estado, turno, sector, origen }));
     } else {
       localStorage.removeItem(VALUES_STORAGE_KEY);
     }
@@ -179,7 +184,7 @@ export default function FiltrosPersonal({
     setQ(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(
-      () => applyFilters({ q: val, tipo, estado, turno, sector, etac }),
+      () => applyFilters({ q: val, tipo, estado, turno, sector, origen }),
       350
     );
   }
@@ -187,43 +192,39 @@ export default function FiltrosPersonal({
   function toggleEstado(valor: string) {
     const next = estado.includes(valor) ? estado.filter((v) => v !== valor) : [...estado, valor];
     setEstado(next);
-    applyFilters({ q, tipo, estado: next, turno, sector, etac });
+    applyFilters({ q, tipo, estado: next, turno, sector, origen });
   }
 
   function toggleTurno(valor: string) {
     const next = turno.includes(valor) ? turno.filter((v) => v !== valor) : [...turno, valor];
     setTurno(next);
-    applyFilters({ q, tipo, estado, turno: next, sector, etac });
+    applyFilters({ q, tipo, estado, turno: next, sector, origen });
   }
 
   function toggleSector(valor: string) {
     const next = sector.includes(valor) ? sector.filter((v) => v !== valor) : [...sector, valor];
     setSector(next);
-    applyFilters({ q, tipo, estado, turno, sector: next, etac });
+    applyFilters({ q, tipo, estado, turno, sector: next, origen });
   }
 
   function toggleTipo(valor: string) {
     const next = tipo.includes(valor) ? tipo.filter((v) => v !== valor) : [...tipo, valor];
     setTipo(next);
-    // El filtro E.T.A.C. solo tiene sentido con Técnico elegido — si se
-    // destilda, se limpia también en vez de quedar aplicado "a ciegas".
-    const nextEtac = next.includes("TECNICO") ? etac : [];
-    setEtac(nextEtac);
-    applyFilters({ q, tipo: next, estado, turno, sector, etac: nextEtac });
+    applyFilters({ q, tipo: next, estado, turno, sector, origen });
   }
 
-  function toggleEtac(valor: string) {
-    const next = etac.includes(valor) ? etac.filter((v) => v !== valor) : [...etac, valor];
-    setEtac(next);
-    applyFilters({ q, tipo, estado, turno, sector, etac: next });
+  function toggleOrigen(valor: string) {
+    const next = origen.includes(valor) ? origen.filter((v) => v !== valor) : [...origen, valor];
+    setOrigen(next);
+    applyFilters({ q, tipo, estado, turno, sector, origen: next });
   }
 
   function limpiarCampo(campo: CampoFiltro) {
-    if (campo === "estado") { setEstado([]); applyFilters({ q, tipo, estado: [], turno, sector, etac }); }
-    if (campo === "turno") { setTurno([]); applyFilters({ q, tipo, estado, turno: [], sector, etac }); }
-    if (campo === "sector") { setSector([]); applyFilters({ q, tipo, estado, turno, sector: [], etac }); }
-    if (campo === "tipo") { setTipo([]); setEtac([]); applyFilters({ q, tipo: [], estado, turno, sector, etac: [] }); }
-    if (campo === "etac") { setEtac([]); applyFilters({ q, tipo, estado, turno, sector, etac: [] }); }
+    if (campo === "estado") { setEstado([]); applyFilters({ q, tipo, estado: [], turno, sector, origen }); }
+    if (campo === "turno") { setTurno([]); applyFilters({ q, tipo, estado, turno: [], sector, origen }); }
+    if (campo === "sector") { setSector([]); applyFilters({ q, tipo, estado, turno, sector: [], origen }); }
+    if (campo === "tipo") { setTipo([]); applyFilters({ q, tipo: [], estado, turno, sector, origen }); }
+    if (campo === "origen") { setOrigen([]); applyFilters({ q, tipo, estado, turno, sector, origen: [] }); }
   }
 
   function handleClearFilters() {
@@ -232,15 +233,11 @@ export default function FiltrosPersonal({
     setEstado([]);
     setTurno([]);
     setSector([]);
-    setEtac([]);
-    applyFilters({ q: "", tipo: [], estado: [], turno: [], sector: [], etac: [] });
+    setOrigen([]);
+    applyFilters({ q: "", tipo: [], estado: [], turno: [], sector: [], origen: [] });
   }
 
-  // Solo tiene sentido junto con "Técnico": el resto de los tipos de
-  // personal no distingue este dato.
-  const mostrarEtac = tipo.includes("TECNICO");
-
-  const hasFilters = Boolean(q) || tipo.length > 0 || estado.length > 0 || turno.length > 0 || sector.length > 0 || etac.length > 0;
+  const hasFilters = Boolean(q) || tipo.length > 0 || estado.length > 0 || turno.length > 0 || sector.length > 0 || origen.length > 0;
 
   // Texto compacto del disparador: "Todos"/"Todas" sin selección, la
   // etiqueta puntual si hay una sola, o un contador si hay varias.
@@ -367,23 +364,23 @@ export default function FiltrosPersonal({
     </div>
   );
 
-  const contenidoEtac = (
+  const contenidoOrigen = (
     <div className="space-y-0.5">
-      {ETACS.map((e) => (
-        <label key={e.value} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
+      {ORIGENES.map((o) => (
+        <label key={o.value} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
           <input
             type="checkbox"
-            checked={etac.includes(e.value)}
-            onChange={() => toggleEtac(e.value)}
+            checked={origen.includes(o.value)}
+            onChange={() => toggleOrigen(o.value)}
             className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
           />
-          {e.label}
+          {o.label}
         </label>
       ))}
-      {etac.length > 0 && (
+      {origen.length > 0 && (
         <button
           type="button"
-          onClick={() => limpiarCampo("etac")}
+          onClick={() => limpiarCampo("origen")}
           className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
         >
           Limpiar
@@ -397,7 +394,7 @@ export default function FiltrosPersonal({
     turno: contenidoTurno,
     sector: contenidoSector,
     tipo: contenidoTipo,
-    etac: contenidoEtac,
+    origen: contenidoOrigen,
   };
 
   return (
@@ -498,18 +495,16 @@ export default function FiltrosPersonal({
           )}
         </div>
 
-        {mostrarEtac && (
-          <div>
-            <label className="block text-[11px] font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1">
-              E.T.A.C.
-            </label>
-            {renderDisparador(
-              "etac",
-              textoDisparador(etac, "Todos", (v) => ETACS.find((e) => e.value === v)?.label ?? v),
-              etac.length > 0
-            )}
-          </div>
-        )}
+        <div>
+          <label className="block text-[11px] font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1">
+            Origen institucional
+          </label>
+          {renderDisparador(
+            "origen",
+            textoDisparador(origen, "Todos", (v) => ORIGENES.find((o) => o.value === v)?.label ?? v),
+            origen.length > 0
+          )}
+        </div>
       </div>
     </div>
 

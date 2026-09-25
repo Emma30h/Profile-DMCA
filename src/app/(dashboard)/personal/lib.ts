@@ -18,6 +18,7 @@ export interface AgenteResumen {
   fotoUrl: string | null;
   sexo: string;
   perteneceETAC: boolean | null;
+  origenInstitucional: string | null;
   rango: { nombre: string } | null;
   sector: { id: string; nombre: string } | null;
 }
@@ -72,6 +73,7 @@ export async function getAgentesResumen(
           fotoUrl: true,
           sexo: true,
           perteneceETAC: true,
+          origenInstitucional: true,
           rango: { select: { nombre: true } },
           sector: { select: { id: true, nombre: true } },
         },

@@ -82,10 +82,10 @@ export default function ListaAgentes({
   const idsFiltroActivo = Boolean(searchParams.get("ids"));
 
   // Los filtros del buscador (texto, estado, turno, dependencia, tipo,
-  // E.T.A.C.) tienen que sobrevivir a "Ver seleccionados"/"Ver todo": son
-  // los que el usuario ya armó a mano en FiltrosPersonal, y "ids" es sólo un
-  // filtro puntual que se agrega o se saca encima de esos, nunca los
-  // reemplaza.
+  // origen institucional) tienen que sobrevivir a "Ver seleccionados"/"Ver
+  // todo": son los que el usuario ya armó a mano en FiltrosPersonal, y "ids"
+  // es sólo un filtro puntual que se agrega o se saca encima de esos, nunca
+  // los reemplaza.
   function filtrosActualesSinIds(): FiltrosPersonalParams {
     return {
       q: searchParams.get("q") ?? undefined,
@@ -93,7 +93,7 @@ export default function ListaAgentes({
       estado: searchParams.get("estado") ?? undefined,
       turno: searchParams.get("turno") ?? undefined,
       sector: searchParams.get("sector") ?? undefined,
-      etac: searchParams.get("etac") ?? undefined,
+      origen: searchParams.get("origen") ?? undefined,
       sexo: searchParams.get("sexo") ?? undefined,
     };
   }

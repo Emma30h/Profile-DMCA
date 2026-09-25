@@ -211,10 +211,10 @@ export default function PersonalMasterShell({
   const sectorValue = searchParams.get("sector") ?? "";
   const idsValue = searchParams.get("ids") ?? "";
   const sexoValue = searchParams.get("sexo") ?? "";
-  const etacValue = searchParams.get("etac") ?? "";
+  const origenValue = searchParams.get("origen") ?? "";
 
   const queryString = buildQueryString({
-    q, tipo: tipoValue, estado: estadoValue, turno: turnoValue, sector: sectorValue, ids: idsValue, sexo: sexoValue, etac: etacValue,
+    q, tipo: tipoValue, estado: estadoValue, turno: turnoValue, sector: sectorValue, ids: idsValue, sexo: sexoValue, origen: origenValue,
   });
 
   // Filtrado en el cliente sobre la lista completa (ya cargada una vez desde
@@ -230,7 +230,7 @@ export default function PersonalMasterShell({
     const sectorIds = parseLista(sectorValue);
     const ids = parseLista(idsValue);
     const sexos = parseLista(sexoValue);
-    const etac = parseLista(etacValue);
+    const origen = parseLista(origenValue);
 
     return agentesCompletos.filter((a) => {
       if (q) {
@@ -248,13 +248,18 @@ export default function PersonalMasterShell({
       // agentes en la situación denunciada), no un filtro editable desde FiltrosPersonal.
       if (ids.length > 0 && !ids.includes(a.id)) return false;
       if (sexos.length > 0 && !sexos.includes(a.sexo)) return false;
-      if (etac.length > 0) {
-        const valor = a.perteneceETAC ? "SI" : "NO";
-        if (!etac.includes(valor)) return false;
+      // "Origen institucional" combina dos campos del legajo: el booleano
+      // histórico perteneceETAC (se traduce a la opción "ETAC") y el select
+      // libre origenInstitucional (911/DMCA/Gobierno/Otra dependencia).
+      if (origen.length > 0) {
+        const valores: string[] = [];
+        if (a.perteneceETAC) valores.push("ETAC");
+        if (a.origenInstitucional) valores.push(a.origenInstitucional);
+        if (!valores.some((v) => origen.includes(v))) return false;
       }
       return true;
     });
-  }, [agentesCompletos, q, tipoValue, estadoValue, turnoValue, sectorValue, idsValue, sexoValue, etacValue]);
+  }, [agentesCompletos, q, tipoValue, estadoValue, turnoValue, sectorValue, idsValue, sexoValue, origenValue]);
 
   const [isPending, startTransition] = useTransition();
   const [pendingKind, setPendingKind] = useState<PendingKind>(null);
@@ -385,7 +390,7 @@ export default function PersonalMasterShell({
               estadoValue={estadoValue}
               turnoValue={turnoValue}
               sectorValue={sectorValue}
-              etacValue={etacValue}
+              origenValue={origenValue}
               idsValue={idsValue}
               sexoValue={sexoValue}
               sectores={sectores}
