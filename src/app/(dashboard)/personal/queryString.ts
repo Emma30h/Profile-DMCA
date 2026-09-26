@@ -10,6 +10,8 @@ export interface FiltrosPersonalParams {
   sector?: string;
   /** "ETAC" | "911" | "DMCA" | "GOBIERNO" | "OTRA_DEPENDENCIA" — origen institucional del agente. */
   origen?: string;
+  /** "SI" — en curso de ascenso (solo aplica a Seguridad/Técnico). */
+  ascenso?: string;
   /** Lista de ids de agente separados por coma — drill-down puntual (p. ej. desde
    * las alertas del dashboard), no un filtro editable desde FiltrosPersonal. */
   ids?: string;
@@ -26,6 +28,7 @@ export function buildQueryString(params: FiltrosPersonalParams): string {
   if (params.turno) qs.set("turno", params.turno);
   if (params.sector) qs.set("sector", params.sector);
   if (params.origen) qs.set("origen", params.origen);
+  if (params.ascenso) qs.set("ascenso", params.ascenso);
   if (params.ids) qs.set("ids", params.ids);
   if (params.sexo) qs.set("sexo", params.sexo);
   return qs.toString();

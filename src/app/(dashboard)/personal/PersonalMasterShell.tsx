@@ -212,9 +212,10 @@ export default function PersonalMasterShell({
   const idsValue = searchParams.get("ids") ?? "";
   const sexoValue = searchParams.get("sexo") ?? "";
   const origenValue = searchParams.get("origen") ?? "";
+  const ascensoValue = searchParams.get("ascenso") ?? "";
 
   const queryString = buildQueryString({
-    q, tipo: tipoValue, estado: estadoValue, turno: turnoValue, sector: sectorValue, ids: idsValue, sexo: sexoValue, origen: origenValue,
+    q, tipo: tipoValue, estado: estadoValue, turno: turnoValue, sector: sectorValue, ids: idsValue, sexo: sexoValue, origen: origenValue, ascenso: ascensoValue,
   });
 
   // Filtrado en el cliente sobre la lista completa (ya cargada una vez desde
@@ -231,6 +232,7 @@ export default function PersonalMasterShell({
     const ids = parseLista(idsValue);
     const sexos = parseLista(sexoValue);
     const origen = parseLista(origenValue);
+    const ascenso = parseLista(ascensoValue);
 
     return agentesCompletos.filter((a) => {
       if (q) {
@@ -257,9 +259,13 @@ export default function PersonalMasterShell({
         if (a.origenInstitucional) valores.push(a.origenInstitucional);
         if (!valores.some((v) => origen.includes(v))) return false;
       }
+      // Solo Seguridad/Técnico pueden estar en curso de ascenso (ver
+      // verificarTieneRango en actions/agentes.ts) — para el resto de los
+      // tipos fechaInicioCursoAscenso siempre es null.
+      if (ascenso.length > 0 && !a.fechaInicioCursoAscenso) return false;
       return true;
     });
-  }, [agentesCompletos, q, tipoValue, estadoValue, turnoValue, sectorValue, idsValue, sexoValue, origenValue]);
+  }, [agentesCompletos, q, tipoValue, estadoValue, turnoValue, sectorValue, idsValue, sexoValue, origenValue, ascensoValue]);
 
   const [isPending, startTransition] = useTransition();
   const [pendingKind, setPendingKind] = useState<PendingKind>(null);
@@ -391,6 +397,7 @@ export default function PersonalMasterShell({
               turnoValue={turnoValue}
               sectorValue={sectorValue}
               origenValue={origenValue}
+              ascensoValue={ascensoValue}
               idsValue={idsValue}
               sexoValue={sexoValue}
               sectores={sectores}

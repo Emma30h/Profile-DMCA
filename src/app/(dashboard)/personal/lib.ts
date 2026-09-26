@@ -19,6 +19,8 @@ export interface AgenteResumen {
   sexo: string;
   perteneceETAC: boolean | null;
   origenInstitucional: string | null;
+  /** No-null = en curso de ascenso (ver actualizarTipoPersonal/marcarEnCursoAscenso en actions/agentes.ts). */
+  fechaInicioCursoAscenso: string | null;
   rango: { nombre: string } | null;
   sector: { id: string; nombre: string } | null;
 }
@@ -74,6 +76,7 @@ export async function getAgentesResumen(
           sexo: true,
           perteneceETAC: true,
           origenInstitucional: true,
+          fechaInicioCursoAscenso: true,
           rango: { select: { nombre: true } },
           sector: { select: { id: true, nombre: true } },
         },
@@ -82,7 +85,17 @@ export async function getAgentesResumen(
       }),
       prisma.agente.count({ where }),
     ]);
-    return { agentes, total };
+    // Se convierte a ISO string acá (no se deja el Date de Prisma tal cual)
+    // para que el resultado sea idéntico tanto en cache-miss como en
+    // cache-hit: getOrSet cachea con JSON.stringify, que ya lo convertiría a
+    // string solo, y el consumidor (Client Component) espera un string.
+    return {
+      agentes: agentes.map((a) => ({
+        ...a,
+        fechaInicioCursoAscenso: a.fechaInicioCursoAscenso?.toISOString() ?? null,
+      })),
+      total,
+    };
   });
 }
 

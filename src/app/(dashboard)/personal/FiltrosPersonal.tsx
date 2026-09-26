@@ -8,9 +8,9 @@ import { usePersonalNav } from "./PersonalMasterShell";
 const LOCK_STORAGE_KEY = "personal-filtros-bloqueados";
 const VALUES_STORAGE_KEY = "personal-filtros-guardados";
 
-type FiltrosValues = { q: string; tipo: string[]; estado: string[]; turno: string[]; sector: string[]; origen: string[] };
+type FiltrosValues = { q: string; tipo: string[]; estado: string[]; turno: string[]; sector: string[]; origen: string[]; ascenso: string[] };
 
-type CampoFiltro = "estado" | "turno" | "sector" | "tipo" | "origen";
+type CampoFiltro = "estado" | "turno" | "sector" | "tipo" | "origen" | "ascenso";
 
 const TIPOS = [
   { value: "SEGURIDAD", label: "Seguridad" },
@@ -32,6 +32,13 @@ const ORIGENES = [
   { value: "OTRA_DEPENDENCIA", label: "Otra dependencia" },
 ];
 
+// Booleano en la base (Agente.fechaInicioCursoAscenso no-null), pero viaja
+// por la URL como "SI" para reusar el mismo mecanismo de lista-separada-por-
+// coma que el resto de los filtros. Solo tiene sentido con Seguridad/Técnico
+// (ver verificarTieneRango en actions/agentes.ts): el resto de los tipos de
+// personal nunca puede estar en curso de ascenso.
+const ASCENSOS = [{ value: "SI", label: "En curso de ascenso" }];
+
 const ESTADOS = [
   { value: "PENDIENTE", label: "Pendiente" },
   { value: "ACTIVO", label: "Activo" },
@@ -45,6 +52,7 @@ const FILTRO_TITULOS: Record<CampoFiltro, string> = {
   sector: "Dependencia",
   tipo: "Tipo de personal",
   origen: "Origen institucional",
+  ascenso: "Condición de ascenso",
 };
 
 interface SectorOption {
@@ -59,6 +67,7 @@ interface Props {
   turnoValue: string;
   sectorValue: string;
   origenValue: string;
+  ascensoValue: string;
   /** Drill-down puntual (ids/sexo, ver queryString.ts): no tienen UI acá, pero
    * hay que saber si están puestos para no pisarlos con el candado de abajo. */
   idsValue: string;
@@ -82,6 +91,7 @@ export default function FiltrosPersonal({
   turnoValue,
   sectorValue,
   origenValue,
+  ascensoValue,
   idsValue,
   sexoValue,
   sectores,
@@ -98,6 +108,7 @@ export default function FiltrosPersonal({
   const [turno, setTurno] = useState<string[]>(() => parseLista(turnoValue));
   const [sector, setSector] = useState<string[]>(() => parseLista(sectorValue));
   const [origen, setOrigen] = useState<string[]>(() => parseLista(origenValue));
+  const [ascenso, setAscenso] = useState<string[]>(() => parseLista(ascensoValue));
   const [bloqueado, setBloqueado] = useState(false);
   const [filtroAbierto, setFiltroAbierto] = useState<CampoFiltro | null>(null);
 
@@ -110,6 +121,7 @@ export default function FiltrosPersonal({
       if (next.turno.length > 0) params.set("turno", next.turno.join(","));
       if (next.sector.length > 0) params.set("sector", next.sector.join(","));
       if (next.origen.length > 0) params.set("origen", next.origen.join(","));
+      if (next.ascenso.length > 0) params.set("ascenso", next.ascenso.join(","));
       // ids/sexo no se editan desde acá (son el drill-down puntual del
       // dashboard), pero sí hay que arrastrarlos: si no, tocar cualquier
       // filtro de esta barra mientras hay un recorte por ids activo lo
@@ -136,7 +148,7 @@ export default function FiltrosPersonal({
     // ids/sexo son drill-down puntual (desde un doble click en el dashboard,
     // p. ej.) — si están puestos, no hay que pisarlos con los filtros
     // guardados: el usuario vino a ver ESE recorte, no la última búsqueda.
-    if (qValue || tipoValue || estadoValue || turnoValue || sectorValue || origenValue || idsValue || sexoValue) return;
+    if (qValue || tipoValue || estadoValue || turnoValue || sectorValue || origenValue || ascensoValue || idsValue || sexoValue) return;
 
     const guardadosRaw = localStorage.getItem(VALUES_STORAGE_KEY);
     if (!guardadosRaw) return;
@@ -153,8 +165,9 @@ export default function FiltrosPersonal({
       turno: guardados.turno ?? [],
       sector: guardados.sector ?? [],
       origen: guardados.origen ?? [],
+      ascenso: guardados.ascenso ?? [],
     };
-    if (!next.q && next.tipo.length === 0 && next.estado.length === 0 && next.turno.length === 0 && next.sector.length === 0 && next.origen.length === 0) return;
+    if (!next.q && next.tipo.length === 0 && next.estado.length === 0 && next.turno.length === 0 && next.sector.length === 0 && next.origen.length === 0 && next.ascenso.length === 0) return;
 
     setQ(next.q);
     setTipo(next.tipo);
@@ -162,6 +175,7 @@ export default function FiltrosPersonal({
     setTurno(next.turno);
     setSector(next.sector);
     setOrigen(next.origen);
+    setAscenso(next.ascenso);
     applyFilters(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -171,7 +185,7 @@ export default function FiltrosPersonal({
     setBloqueado(nuevo);
     localStorage.setItem(LOCK_STORAGE_KEY, nuevo ? "1" : "0");
     if (nuevo) {
-      localStorage.setItem(VALUES_STORAGE_KEY, JSON.stringify({ q, tipo, estado, turno, sector, origen }));
+      localStorage.setItem(VALUES_STORAGE_KEY, JSON.stringify({ q, tipo, estado, turno, sector, origen, ascenso }));
     } else {
       localStorage.removeItem(VALUES_STORAGE_KEY);
     }
@@ -184,7 +198,7 @@ export default function FiltrosPersonal({
     setQ(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(
-      () => applyFilters({ q: val, tipo, estado, turno, sector, origen }),
+      () => applyFilters({ q: val, tipo, estado, turno, sector, origen, ascenso }),
       350
     );
   }
@@ -192,39 +206,51 @@ export default function FiltrosPersonal({
   function toggleEstado(valor: string) {
     const next = estado.includes(valor) ? estado.filter((v) => v !== valor) : [...estado, valor];
     setEstado(next);
-    applyFilters({ q, tipo, estado: next, turno, sector, origen });
+    applyFilters({ q, tipo, estado: next, turno, sector, origen, ascenso });
   }
 
   function toggleTurno(valor: string) {
     const next = turno.includes(valor) ? turno.filter((v) => v !== valor) : [...turno, valor];
     setTurno(next);
-    applyFilters({ q, tipo, estado, turno: next, sector, origen });
+    applyFilters({ q, tipo, estado, turno: next, sector, origen, ascenso });
   }
 
   function toggleSector(valor: string) {
     const next = sector.includes(valor) ? sector.filter((v) => v !== valor) : [...sector, valor];
     setSector(next);
-    applyFilters({ q, tipo, estado, turno, sector: next, origen });
+    applyFilters({ q, tipo, estado, turno, sector: next, origen, ascenso });
   }
 
   function toggleTipo(valor: string) {
     const next = tipo.includes(valor) ? tipo.filter((v) => v !== valor) : [...tipo, valor];
     setTipo(next);
-    applyFilters({ q, tipo: next, estado, turno, sector, origen });
+    // El filtro de condición de ascenso solo tiene sentido con
+    // Seguridad/Técnico elegido — si se destildan los dos, se limpia
+    // también en vez de quedar aplicado "a ciegas".
+    const nextAscenso = next.some((t) => t === "SEGURIDAD" || t === "TECNICO") ? ascenso : [];
+    setAscenso(nextAscenso);
+    applyFilters({ q, tipo: next, estado, turno, sector, origen, ascenso: nextAscenso });
   }
 
   function toggleOrigen(valor: string) {
     const next = origen.includes(valor) ? origen.filter((v) => v !== valor) : [...origen, valor];
     setOrigen(next);
-    applyFilters({ q, tipo, estado, turno, sector, origen: next });
+    applyFilters({ q, tipo, estado, turno, sector, origen: next, ascenso });
+  }
+
+  function toggleAscenso(valor: string) {
+    const next = ascenso.includes(valor) ? ascenso.filter((v) => v !== valor) : [...ascenso, valor];
+    setAscenso(next);
+    applyFilters({ q, tipo, estado, turno, sector, origen, ascenso: next });
   }
 
   function limpiarCampo(campo: CampoFiltro) {
-    if (campo === "estado") { setEstado([]); applyFilters({ q, tipo, estado: [], turno, sector, origen }); }
-    if (campo === "turno") { setTurno([]); applyFilters({ q, tipo, estado, turno: [], sector, origen }); }
-    if (campo === "sector") { setSector([]); applyFilters({ q, tipo, estado, turno, sector: [], origen }); }
-    if (campo === "tipo") { setTipo([]); applyFilters({ q, tipo: [], estado, turno, sector, origen }); }
-    if (campo === "origen") { setOrigen([]); applyFilters({ q, tipo, estado, turno, sector, origen: [] }); }
+    if (campo === "estado") { setEstado([]); applyFilters({ q, tipo, estado: [], turno, sector, origen, ascenso }); }
+    if (campo === "turno") { setTurno([]); applyFilters({ q, tipo, estado, turno: [], sector, origen, ascenso }); }
+    if (campo === "sector") { setSector([]); applyFilters({ q, tipo, estado, turno, sector: [], origen, ascenso }); }
+    if (campo === "tipo") { setTipo([]); setAscenso([]); applyFilters({ q, tipo: [], estado, turno, sector, origen, ascenso: [] }); }
+    if (campo === "origen") { setOrigen([]); applyFilters({ q, tipo, estado, turno, sector, origen: [], ascenso }); }
+    if (campo === "ascenso") { setAscenso([]); applyFilters({ q, tipo, estado, turno, sector, origen, ascenso: [] }); }
   }
 
   function handleClearFilters() {
@@ -234,10 +260,15 @@ export default function FiltrosPersonal({
     setTurno([]);
     setSector([]);
     setOrigen([]);
-    applyFilters({ q: "", tipo: [], estado: [], turno: [], sector: [], origen: [] });
+    setAscenso([]);
+    applyFilters({ q: "", tipo: [], estado: [], turno: [], sector: [], origen: [], ascenso: [] });
   }
 
-  const hasFilters = Boolean(q) || tipo.length > 0 || estado.length > 0 || turno.length > 0 || sector.length > 0 || origen.length > 0;
+  // Solo tiene sentido junto con "Seguridad" o "Técnico": el resto de los
+  // tipos de personal no puede estar en curso de ascenso.
+  const mostrarAscenso = tipo.some((t) => t === "SEGURIDAD" || t === "TECNICO");
+
+  const hasFilters = Boolean(q) || tipo.length > 0 || estado.length > 0 || turno.length > 0 || sector.length > 0 || origen.length > 0 || ascenso.length > 0;
 
   // Texto compacto del disparador: "Todos"/"Todas" sin selección, la
   // etiqueta puntual si hay una sola, o un contador si hay varias.
@@ -389,12 +420,38 @@ export default function FiltrosPersonal({
     </div>
   );
 
+  const contenidoAscenso = (
+    <div className="space-y-0.5">
+      {ASCENSOS.map((a) => (
+        <label key={a.value} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-[var(--c-line)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={ascenso.includes(a.value)}
+            onChange={() => toggleAscenso(a.value)}
+            className="rounded border-[var(--c-line-strong)] bg-[var(--c-bg-elev)] text-[var(--c-blue)] focus:ring-[var(--c-blue)]"
+          />
+          {a.label}
+        </label>
+      ))}
+      {ascenso.length > 0 && (
+        <button
+          type="button"
+          onClick={() => limpiarCampo("ascenso")}
+          className="mt-1 w-full rounded px-2 py-1 text-left text-[11px] text-[var(--c-blue-text)] hover:bg-[var(--c-line)] hover:text-[var(--c-blue-soft)]"
+        >
+          Limpiar
+        </button>
+      )}
+    </div>
+  );
+
   const CONTENIDO_FILTRO: Record<CampoFiltro, React.ReactNode> = {
     estado: contenidoEstado,
     turno: contenidoTurno,
     sector: contenidoSector,
     tipo: contenidoTipo,
     origen: contenidoOrigen,
+    ascenso: contenidoAscenso,
   };
 
   return (
@@ -505,6 +562,19 @@ export default function FiltrosPersonal({
             origen.length > 0
           )}
         </div>
+
+        {mostrarAscenso && (
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--c-text-faint)] uppercase tracking-wide mb-1">
+              Condición de ascenso
+            </label>
+            {renderDisparador(
+              "ascenso",
+              textoDisparador(ascenso, "Todos", (v) => ASCENSOS.find((a) => a.value === v)?.label ?? v),
+              ascenso.length > 0
+            )}
+          </div>
+        )}
       </div>
     </div>
 
