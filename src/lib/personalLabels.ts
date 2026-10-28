@@ -10,7 +10,7 @@ export const TIPO_LABEL: Record<string, string> = {
 };
 
 export const ESTADO_LABEL: Record<string, string> = {
-  PENDIENTE: "Pendiente", ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase",
+  PENDIENTE: "Pendiente", ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase", EN_COMISION: "En comisión",
 };
 
 export const SEXO_LABEL: Record<string, string> = {

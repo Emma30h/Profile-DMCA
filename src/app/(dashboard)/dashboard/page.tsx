@@ -43,7 +43,20 @@ export default async function DashboardPage() {
           Operador necesite para su tarea — se ocultan para ese rol, igual
           que el resto del legajo sensible. */}
       {!esOperador && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+          <KpiTile
+            label="En el 101"
+            value={stats.kpi.en101}
+            sub={
+              stats.kpi.enComisionOtros > 0
+                ? `en comisión en el 911 · +${stats.kpi.enComisionOtros} en otras dependencias`
+                : "en comisión en el 911"
+            }
+            icon="☎"
+            badgeClass="bg-[var(--c-amber)]/10 text-[var(--c-amber)]"
+            href={stats.kpi.en101 + stats.kpi.enComisionOtros > 0 ? "/personal?estado=EN_COMISION" : undefined}
+            delayMs={0}
+          />
           <KpiTile
             label="En pase"
             value={stats.kpi.enPase}

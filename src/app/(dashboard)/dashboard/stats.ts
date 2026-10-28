@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getOrSet, CACHE_TTL } from "@/lib/redis";
 import type { TipoPersonal, TipoLicencia, OrigenInstitucional } from "@/types";
-import { TIPOS_PERSONAL, TIPOS_LICENCIA } from "@/types";
+import { TIPOS_PERSONAL, TIPOS_LICENCIA, COMISION_DESTINO_101 } from "@/types";
 import { compararTurnos } from "../personal/lib";
 import { MESES_CORTOS, MESES_LARGOS, claveMes, type LicenciaAusentismoRow } from "@/lib/ausentismo";
 
@@ -42,6 +42,10 @@ function pct(parte: number, total: number): number {
 }
 
 export interface KpiStats {
+  /** Personal en comisión en el 101 (que funciona dentro del 911). */
+  en101: number;
+  /** Personal en comisión en cualquier otra dependencia. */
+  enComisionOtros: number;
   enPase: number;
   enBaja: number;
   legajosPendientes: number;
@@ -170,16 +174,17 @@ export interface DashboardStats {
 // El gráfico expresa entrada/salida de personal DE LA DEPENDENCIA, no de la
 // fuerza. Ingresos = fechaIngreso del agente (dato laboral cargado en el
 // legajo, no cuándo se validó el legajo en el sistema). Bajas = transiciones
-// a "BAJA" o "PASE" en HistorialEstado — ambas sacan al agente de la nómina
-// activa acá, aunque el motivo sea distinto (baja real vs. pase a otra
-// dependencia). El alta por validación de legajo (PENDIENTE→ACTIVO en
+// a "BAJA", "PASE" o "EN_COMISION" en HistorialEstado — todas sacan al agente
+// de la nómina activa acá, aunque el motivo sea distinto (baja real, pase a
+// otra dependencia o pase en comisión). El alta por validación de legajo (PENDIENTE→ACTIVO en
 // legajo.ts) no pasa por HistorialEstado, por eso no se puede usar la misma
 // tabla para ambos lados.
 //
 // Asimetría conocida: si alguien vuelve de un pase (PASE→ACTIVO), ese regreso
 // no se cuenta como un nuevo ingreso porque fechaIngreso no se actualiza — solo
-// se resta al irse, no se suma al volver. Si esto empieza a pasar seguido,
-// hay que revisar el criterio.
+// se resta al irse, no se suma al volver. La excepción es EN_COMISION→ACTIVO:
+// una comisión es temporal por naturaleza, así que su regreso sí suma como
+// entrada en el mes en que vuelve.
 //
 // Un agente puede tener varias transiciones el mismo mes (pruebas corregidas
 // al toque, o un pase-y-vuelta real). Lo que cuenta como "baja" de ese mes es
@@ -250,9 +255,22 @@ function calcularFlujoPersonal(
     }
   }
   for (const [clave, t] of ultimaTransicionPorAgenteYMes) {
-    if (t.estadoNuevo !== "BAJA" && t.estadoNuevo !== "PASE") continue;
+    // Regreso de una comisión: terminó el mes de nuevo ACTIVO y arrancó
+    // EN_COMISION, o sea que volvió a la dependencia ese mes. Cuenta como
+    // entrada para compensar la salida que se contó al irse en comisión.
+    if (t.estadoNuevo === "ACTIVO") {
+      if (primeraTransicionPorAgenteYMes.get(clave)?.estadoAnterior === "EN_COMISION") {
+        const i = indicePorClave.get(claveMes(t.createdAt));
+        if (i !== undefined) {
+          meses[i].altas++;
+          meses[i].altasIds.push(t.agenteId);
+        }
+      }
+      continue;
+    }
+    if (t.estadoNuevo !== "BAJA" && t.estadoNuevo !== "PASE" && t.estadoNuevo !== "EN_COMISION") continue;
     // Sólo cuenta si, al entrar el mes, el agente todavía estaba activo —
-    // si ya venía de un PASE/BAJA anterior, esto es un cambio de estado
+    // si ya venía de un PASE/BAJA/EN_COMISION anterior, esto es un cambio de estado
     // interno, no una salida nueva de la nómina activa.
     if (primeraTransicionPorAgenteYMes.get(clave)?.estadoAnterior !== "ACTIVO") continue;
     const i = indicePorClave.get(claveMes(t.createdAt));
@@ -281,6 +299,8 @@ async function calcularStats(): Promise<DashboardStats> {
   const finVentana = sumarDias(hoy, VENTANA_DIAS_ALERTA);
 
   const [
+    en101,
+    enComisionOtros,
     enPase,
     enBaja,
     legajosPendientes,
@@ -306,6 +326,10 @@ async function calcularStats(): Promise<DashboardStats> {
     agentesPorOrigen,
     ausentismoRows,
   ] = await Promise.all([
+    prisma.agente.count({ where: { estado: "EN_COMISION", comisionDestino: COMISION_DESTINO_101 } }),
+    prisma.agente.count({
+      where: { estado: "EN_COMISION", OR: [{ comisionDestino: null }, { comisionDestino: { not: COMISION_DESTINO_101 } }] },
+    }),
     prisma.agente.count({ where: { estado: "PASE" } }),
     prisma.agente.count({ where: { estado: "BAJA" } }),
     prisma.agente.count({ where: { estado: "PENDIENTE" } }),
@@ -552,6 +576,8 @@ async function calcularStats(): Promise<DashboardStats> {
   return {
     hoy: hoy.toISOString(),
     kpi: {
+      en101,
+      enComisionOtros,
       enPase,
       enBaja,
       legajosPendientes,

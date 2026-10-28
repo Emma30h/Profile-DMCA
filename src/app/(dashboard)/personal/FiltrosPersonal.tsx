@@ -44,6 +44,7 @@ const ESTADOS = [
   { value: "ACTIVO", label: "Activo" },
   { value: "BAJA", label: "Baja" },
   { value: "PASE", label: "Pase" },
+  { value: "EN_COMISION", label: "En comisión" },
 ];
 
 const FILTRO_TITULOS: Record<CampoFiltro, string> = {

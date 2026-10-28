@@ -108,8 +108,9 @@ model Agente {
 
   // Datos laborales
   tipoPersonal String  // TipoPersonal: "SEGURIDAD"|"TECNICO"|"CIVIL_BECARIO"|"CIVIL_POLICIAL"
-  estado            String  @default("PENDIENTE") // EstadoAgente: "PENDIENTE"|"ACTIVO"|"BAJA"|"PASE"
+  estado            String  @default("PENDIENTE") // EstadoAgente: "PENDIENTE"|"ACTIVO"|"BAJA"|"PASE"|"EN_COMISION"
   motivoRechazo     String? // Motivo del último rechazo de validación
+  comisionDestino   String? // Dependencia donde está en comisión (solo si estado = "EN_COMISION"); "101 (911)" para el 101
   fechaIngreso DateTime?
   turno        String?
   // Valores turno: "A"|"B"|"C"|"D"|"E"|"F"|"ADMINISTRATIVO"|"FULL TIME"|"GUARDIA LARGA"|"SUPERIOR DE TURNO"|"PERSONAL INGRESANTE"

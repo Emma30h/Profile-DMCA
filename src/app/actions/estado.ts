@@ -13,13 +13,15 @@ const ESTADO_LABELS: Record<string, string> = {
   ACTIVO: "Activo",
   BAJA: "Baja",
   PASE: "Pase",
+  EN_COMISION: "En comisión",
 };
 
 async function _cambiarEstadoAgente(
   agenteId: string,
   nuevoEstado: string,
   motivo?: string,
-  fecha?: string
+  fecha?: string,
+  extra?: { destino?: string; turno?: string }
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -34,11 +36,16 @@ async function _cambiarEstadoAgente(
     throw new Error("Sin permiso para cambiar el estado del legajo");
   }
 
-  const estadosValidos = ["ACTIVO", "BAJA", "PASE"];
+  const estadosValidos = ["ACTIVO", "BAJA", "PASE", "EN_COMISION"];
   if (!estadosValidos.includes(nuevoEstado)) {
     throw new Error("Estado no válido");
   }
 
+  // En comisión pide el destino (obligatorio) en vez de un motivo.
+  const destino = extra?.destino?.trim();
+  if (nuevoEstado === "EN_COMISION" && !destino) {
+    throw new Error("El destino de la comisión es obligatorio");
+  }
   if ((nuevoEstado === "BAJA" || nuevoEstado === "PASE") && !motivo?.trim()) {
     throw new Error("El motivo es obligatorio para este cambio de estado");
   }
@@ -66,17 +73,38 @@ async function _cambiarEstadoAgente(
   const usuarioNombre =
     [current.nombre, current.apellido].filter(Boolean).join(" ") || user.email!;
 
+  // Al volver de una comisión se le asigna turno de nuevo (se lo sacó al
+  // salir): sin turno no puede quedar activo en la nómina de DMCA.
+  const turno = extra?.turno?.trim();
+  const vuelveDeComision = estadoAnterior === "EN_COMISION" && nuevoEstado === "ACTIVO";
+  if (vuelveDeComision && !turno) {
+    throw new Error("Al volver de una comisión hay que elegir un turno (o \"Sin turno\")");
+  }
+
+  // En el historial el "motivo" de una comisión es el destino (más el detalle
+  // opcional), así el banner del legajo y el badge lo muestran sin cambios.
+  const motivoHistorial =
+    nuevoEstado === "EN_COMISION"
+      ? [destino, motivo?.trim()].filter(Boolean).join(" — ")
+      : motivo?.trim() || null;
+
   await prisma.$transaction([
     prisma.agente.update({
       where: { id: agenteId },
-      data: { estado: nuevoEstado },
+      data: {
+        estado: nuevoEstado,
+        comisionDestino: nuevoEstado === "EN_COMISION" ? destino : null,
+        ...(nuevoEstado === "EN_COMISION" ? { turno: null } : {}),
+        // "SIN_TURNO" = vuelve a la dependencia pero todavía sin turno asignado.
+        ...(vuelveDeComision ? { turno: turno === "SIN_TURNO" ? null : turno } : {}),
+      },
     }),
     prisma.historialEstado.create({
       data: {
         agenteId,
         estadoAnterior,
         estadoNuevo: nuevoEstado,
-        motivo: motivo?.trim() || null,
+        motivo: motivoHistorial,
         usuarioNombre,
         createdAt: fechaEfectiva,
       },
@@ -88,7 +116,9 @@ async function _cambiarEstadoAgente(
     const textoAnterior = ESTADO_LABELS[estadoAnterior] ?? estadoAnterior;
     const textoNuevo = ESTADO_LABELS[nuevoEstado] ?? nuevoEstado;
     let mensaje = `El estado de tu legajo cambió: ${textoAnterior} → ${textoNuevo}.`;
-    if (motivo?.trim()) mensaje += ` Motivo: ${motivo.trim()}.`;
+    if (motivoHistorial) {
+      mensaje += nuevoEstado === "EN_COMISION" ? ` Destino: ${motivoHistorial}.` : ` Motivo: ${motivoHistorial}.`;
+    }
 
     await prisma.notificacion.create({
       data: {
@@ -116,10 +146,11 @@ export async function cambiarEstadoAgente(
   agenteId: string,
   nuevoEstado: string,
   motivo?: string,
-  fecha?: string
+  fecha?: string,
+  extra?: { destino?: string; turno?: string }
 ): Promise<ResultadoAccion & { estadoAnteriorLabel?: string; estadoNuevoLabel?: string }> {
   try {
-    const { estadoAnteriorLabel, estadoNuevoLabel } = await _cambiarEstadoAgente(agenteId, nuevoEstado, motivo, fecha);
+    const { estadoAnteriorLabel, estadoNuevoLabel } = await _cambiarEstadoAgente(agenteId, nuevoEstado, motivo, fecha, extra);
     return { ok: true, estadoAnteriorLabel, estadoNuevoLabel };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Error al cambiar el estado" };

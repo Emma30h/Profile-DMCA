@@ -4,12 +4,14 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cambiarEstadoAgente, actualizarFechaVigenciaEstado } from "@/app/actions/estado";
 import { formatFechaHora } from "@/lib/fecha";
+import { COMISION_DESTINO_101 } from "@/types";
 
 const ESTADO_BADGE: Record<string, string> = {
   PENDIENTE: "bg-yellow-500/15 text-yellow-400",
   ACTIVO: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
   BAJA: "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]",
   PASE: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
+  EN_COMISION: "bg-[var(--c-amber)]/15 text-[var(--c-amber)]",
 };
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -17,15 +19,22 @@ const ESTADO_LABELS: Record<string, string> = {
   ACTIVO: "Activo",
   BAJA: "Baja",
   PASE: "Pase",
+  EN_COMISION: "En comisión",
 };
 
 const OPCIONES = [
   { value: "ACTIVO", label: "Activo" },
   { value: "BAJA", label: "Baja" },
   { value: "PASE", label: "Pase" },
+  { value: "EN_COMISION", label: "En comisión" },
 ];
 
 const REQUIERE_MOTIVO = ["BAJA", "PASE"];
+
+const TURNOS = ["A", "B", "C", "D", "E", "F", "ADMINISTRATIVO", "FULL TIME", "GUARDIA LARGA", "SUPERIOR DE TURNO", "PERSONAL INGRESANTE"];
+
+const INPUT_CLASS =
+  "w-full rounded-lg border border-[var(--c-line)] px-3 py-2 text-sm text-[var(--c-text)] bg-[var(--c-bg-elev)] focus:outline-none focus:ring-2 focus:ring-[var(--c-blue)] focus:border-transparent";
 
 // Fecha local (no UTC) en formato yyyy-mm-dd, para precargar el input date
 // con el día de hoy tal como lo ve el usuario.
@@ -49,6 +58,12 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
   const [nuevoEstado, setNuevoEstado] = useState("");
   const [motivo, setMotivo] = useState("");
   const [fecha, setFecha] = useState("");
+  // Destino de la comisión: el 101 (dentro del 911) por defecto, u otra
+  // dependencia en texto libre.
+  const [destinoEs101, setDestinoEs101] = useState(true);
+  const [destinoOtro, setDestinoOtro] = useState("");
+  // Turno a asignar cuando vuelve de una comisión.
+  const [turno, setTurno] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -62,11 +77,15 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
   const desdeMostrado = desdeOverride ?? desde ?? null;
 
   const opciones = OPCIONES.filter((o) => o.value !== estadoActual);
+  const vuelveDeComision = estadoActual === "EN_COMISION" && nuevoEstado === "ACTIVO";
 
   function handleAbrir() {
     setNuevoEstado(opciones[0]?.value ?? "");
     setMotivo("");
     setFecha(hoyLocalISO());
+    setDestinoEs101(true);
+    setDestinoOtro("");
+    setTurno("");
     setError(null);
     setEditandoFecha(false);
     setAbierto(true);
@@ -115,9 +134,22 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
       setError("La fecha es obligatoria.");
       return;
     }
+    const esComision = nuevoEstado === "EN_COMISION";
+    const destino = destinoEs101 ? COMISION_DESTINO_101 : destinoOtro.trim();
+    if (esComision && !destino) {
+      setError("Indicá a qué dependencia pasa en comisión.");
+      return;
+    }
+    if (vuelveDeComision && !turno) {
+      setError("Elegí un turno, o \"Sin turno\" si todavía no tiene.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
-      const res = await cambiarEstadoAgente(agenteId, nuevoEstado, motivo.trim() || undefined, fecha);
+      const res = await cambiarEstadoAgente(agenteId, nuevoEstado, motivo.trim() || undefined, fecha, {
+        destino: esComision ? destino : undefined,
+        turno: vuelveDeComision ? turno : undefined,
+      });
       if (res.ok) {
         setAbierto(false);
         router.refresh();
@@ -244,9 +276,67 @@ export default function CambiarEstadoBtn({ agenteId, estadoActual, desde, motivo
                 </p>
               </div>
 
+              {nuevoEstado === "EN_COMISION" && (
+                <div>
+                  <label className="block text-xs text-[var(--c-text-muted)] mb-1">
+                    Destino de la comisión
+                    <span className="text-[var(--c-coral)] ml-0.5">*</span>
+                  </label>
+                  <select
+                    value={destinoEs101 ? "101" : "OTRO"}
+                    onChange={(e) => {
+                      setDestinoEs101(e.target.value === "101");
+                      setError(null);
+                    }}
+                    className={INPUT_CLASS}
+                  >
+                    <option value="101">{COMISION_DESTINO_101}</option>
+                    <option value="OTRO">Otra dependencia…</option>
+                  </select>
+                  {!destinoEs101 && (
+                    <input
+                      type="text"
+                      value={destinoOtro}
+                      onChange={(e) => {
+                        setDestinoOtro(e.target.value);
+                        setError(null);
+                      }}
+                      placeholder="Nombre de la dependencia..."
+                      className={`${INPUT_CLASS} mt-2`}
+                    />
+                  )}
+                  <p className="text-[11px] text-[var(--c-text-faint)] mt-1">
+                    Al pasar en comisión se lo saca del turno.
+                  </p>
+                </div>
+              )}
+
+              {vuelveDeComision && (
+                <div>
+                  <label className="block text-xs text-[var(--c-text-muted)] mb-1">
+                    Turno asignado
+                    <span className="text-[var(--c-coral)] ml-0.5">*</span>
+                  </label>
+                  <select
+                    value={turno}
+                    onChange={(e) => {
+                      setTurno(e.target.value);
+                      setError(null);
+                    }}
+                    className={INPUT_CLASS}
+                  >
+                    <option value="">Elegí un turno…</option>
+                    <option value="SIN_TURNO">Sin turno</option>
+                    {TURNOS.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs text-[var(--c-text-muted)] mb-1">
-                  Motivo
+                  {nuevoEstado === "EN_COMISION" ? "Detalle (opcional)" : "Motivo"}
                   {REQUIERE_MOTIVO.includes(nuevoEstado) && (
                     <span className="text-[var(--c-coral)] ml-0.5">*</span>
                   )}

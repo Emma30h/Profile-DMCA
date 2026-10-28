@@ -8,6 +8,7 @@ const ESTADO_BADGE: Record<string, string> = {
   ACTIVO: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
   BAJA: "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]",
   PASE: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
+  EN_COMISION: "bg-[var(--c-amber)]/15 text-[var(--c-amber)]",
 };
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -15,6 +16,7 @@ const ESTADO_LABELS: Record<string, string> = {
   ACTIVO: "Activo",
   BAJA: "Baja",
   PASE: "Pase",
+  EN_COMISION: "En comisión",
 };
 
 interface Props {

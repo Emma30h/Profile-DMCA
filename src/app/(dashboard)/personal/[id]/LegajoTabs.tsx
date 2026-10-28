@@ -610,6 +610,7 @@ const ORIGEN_LABEL: Record<OrigenInstitucional, string> = {
 const BAJA_PASE_ESTILO: Record<string, string> = {
   BAJA: "bg-red-500/10 border-red-500/30 text-red-400",
   PASE: "bg-[var(--c-amber)]/10 border-[var(--c-amber)]/30 text-[var(--c-amber)]",
+  EN_COMISION: "bg-[var(--c-amber)]/10 border-[var(--c-amber)]/30 text-[var(--c-amber)]",
 };
 
 /** Franja de 3 indicadores operativos arriba de Datos Laborales (Turno /
@@ -655,7 +656,7 @@ function TabLaboral({ a, esOperador = false, historialEstados = [] }: { a: Agent
     CIVIL_BECARIO: "Civil Becario", CIVIL_POLICIAL: "Civil Policial",
   };
   const estadoLabels: Record<string, string> = {
-    PENDIENTE: "Pendiente", ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase",
+    PENDIENTE: "Pendiente", ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase", EN_COMISION: "En comisión",
   };
   const origen = a.origenInstitucional as OrigenInstitucional | null;
   const origenValue = origen
@@ -667,7 +668,7 @@ function TabLaboral({ a, esOperador = false, historialEstados = [] }: { a: Agent
   // vigente (historialEstados viene ordenado desc por createdAt) — mismo
   // criterio que el badge del encabezado en page.tsx.
   const cambioBajaPase =
-    (a.estado === "BAJA" || a.estado === "PASE")
+    (a.estado === "BAJA" || a.estado === "PASE" || a.estado === "EN_COMISION")
       ? historialEstados.find((h) => h.estadoNuevo === a.estado) ?? null
       : null;
   return (
@@ -1106,9 +1107,10 @@ const ESTADO_BADGE_SMALL: Record<string, string> = {
   ACTIVO: "bg-[var(--c-green)]/15 text-[var(--c-green)]",
   BAJA: "bg-[var(--c-bg-elev-2)] text-[var(--c-text-muted)]",
   PASE: "bg-[var(--c-blue)]/15 text-[var(--c-blue-soft)]",
+  EN_COMISION: "bg-[var(--c-amber)]/15 text-[var(--c-amber)]",
 };
 const ESTADO_LABEL_MAP: Record<string, string> = {
-  PENDIENTE: "Pendiente", ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase",
+  PENDIENTE: "Pendiente", ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase", EN_COMISION: "En comisión",
 };
 
 function fmtFechaHora(iso: string) {

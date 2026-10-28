@@ -29,7 +29,7 @@ import type { TipoPersonal } from "@/types";
 
 type Turno = (typeof TURNOS_ROTATIVOS)[number];
 type Sexo = "MASCULINO" | "FEMENINO" | "otros";
-type Estado = "ACTIVO" | "BAJA" | "PASE";
+type Estado = "ACTIVO" | "BAJA" | "PASE" | "EN_COMISION";
 
 // Los 4 filtros de personal (Turno/Sexo/Estado/Tipo de personal) son
 // multi-selección: lista vacía = sin filtro (equivalente al "todos" que
@@ -55,8 +55,8 @@ function cumpleTipoPersonal(tipoPersonal: string, filtro: TipoPersonal[]): boole
 
 const SEXOS: Sexo[] = ["MASCULINO", "FEMENINO", "otros"];
 const SEXO_LABEL: Record<Sexo, string> = { MASCULINO: "Masculino", FEMENINO: "Femenino", otros: "Otros" };
-const ESTADOS: Estado[] = ["ACTIVO", "BAJA", "PASE"];
-const ESTADO_LABEL: Record<Estado, string> = { ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase" };
+const ESTADOS: Estado[] = ["ACTIVO", "BAJA", "PASE", "EN_COMISION"];
+const ESTADO_LABEL: Record<Estado, string> = { ACTIVO: "Activo", BAJA: "Baja", PASE: "Pase", EN_COMISION: "En comisión" };
 const TIPO_PERSONAL_LABEL: Record<TipoPersonal, string> = {
   SEGURIDAD: "Seguridad",
   TECNICO: "Técnico",

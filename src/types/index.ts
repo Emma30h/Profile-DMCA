@@ -9,7 +9,7 @@ export type ResultadoAccion = { ok: true } | { ok: false; error: string };
 // ─── Tipos de dominio (reemplazan los enums de Prisma para compatibilidad SQLite) ───
 
 export type TipoPersonal = "SEGURIDAD" | "TECNICO" | "CIVIL_BECARIO" | "CIVIL_POLICIAL";
-export type EstadoAgente = "PENDIENTE" | "ACTIVO" | "BAJA" | "PASE";
+export type EstadoAgente = "PENDIENTE" | "ACTIVO" | "BAJA" | "PASE" | "EN_COMISION";
 export type RolUsuario = "SUPERADMIN" | "ADMIN" | "SUPERVISOR" | "OPERADOR" | "READONLY";
 export type EstadoLicencia = "PENDIENTE" | "APROBADA" | "RECHAZADA" | "CANCELADA";
 export type CategoriaLicencia = "ORDINARIA" | "MEDICA" | "EXTRAORDINARIA" | "EXCEPCIONAL" | "ADSCRIPCION" | "SANCION";
@@ -60,7 +60,12 @@ export const ESTADOS_AGENTE: EstadoAgente[] = [
   "ACTIVO",
   "BAJA",
   "PASE",
+  "EN_COMISION",
 ];
+
+// Destino predeterminado de un pase en comisión: el 101 funciona dentro del 911.
+// Cualquier otro destino se carga como texto libre en Agente.comisionDestino.
+export const COMISION_DESTINO_101 = "101 (911)";
 
 export const ORIGENES_INSTITUCIONALES: OrigenInstitucional[] = ["GOBIERNO", "DMCA", "911", "OTRA_DEPENDENCIA"];
 
