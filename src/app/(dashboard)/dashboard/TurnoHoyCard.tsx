@@ -227,19 +227,23 @@ export default function TurnoHoyCard({ turnoHoy, semana, eventosAscenso, relojIn
                 <div className="text-[var(--c-text-faint)]">Sin definir</div>
               )}
             </div>
-            <div>
-              <div className="text-[var(--c-text-muted)] text-[11px] mb-0.5">Superior de turno</div>
-              <div className={turnoHoy.superiorTurno ? "font-medium text-[var(--c-text)]" : "text-[var(--c-text-faint)]"}>
-                {turnoHoy.superiorTurno
-                  ? `${turnoHoy.superiorTurnoRango ? `${turnoHoy.superiorTurnoRango} ` : ""}${turnoHoy.superiorTurno}`
-                  : "Sin definir"}
-                {/* Cubre 20 a 8 hs (cruza la medianoche, ver diaDeTurnoActual()
-                    en actions/turnos.ts) — horario fijo, no depende del agente. */}
-                {turnoHoy.superiorTurno && (
-                  <span className="ml-1.5 text-[11px] font-normal text-[var(--c-text-faint)]">(20:00 a 08:00 Hrs)</span>
-                )}
+            {/* Diurno 8 a 20 Hs y nocturno 20 a 8 Hs (cruza la medianoche, ver
+                diaDeTurnoActual() en actions/turnos.ts) — horarios fijos, no
+                dependen del agente. */}
+            {[
+              { titulo: "Superior de turno diurno", nombre: turnoHoy.superiorDiurno, rango: turnoHoy.superiorDiurnoRango, horario: "08:00 a 20:00 Hs" },
+              { titulo: "Superior de turno nocturno", nombre: turnoHoy.superiorTurno, rango: turnoHoy.superiorTurnoRango, horario: "20:00 a 08:00 Hs" },
+            ].map((s) => (
+              <div key={s.titulo}>
+                <div className="text-[var(--c-text-muted)] text-[11px] mb-0.5">{s.titulo}</div>
+                <div className={s.nombre ? "font-medium text-[var(--c-text)]" : "text-[var(--c-text-faint)]"}>
+                  {s.nombre ? `${s.rango ? `${s.rango} ` : ""}${s.nombre}` : "Sin definir"}
+                  {s.nombre && (
+                    <span className="ml-1.5 text-[11px] font-normal text-[var(--c-text-faint)]">({s.horario})</span>
+                  )}
+                </div>
               </div>
-            </div>
+            ))}
             {turnoHoy.esFinDeSemana && (
               <div>
                 <div className="text-[var(--c-text-muted)] text-[11px] mb-0.5">Jefe de fin de semana</div>

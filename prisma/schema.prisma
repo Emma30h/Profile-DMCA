@@ -179,6 +179,7 @@ model Agente {
   solicitudesVinculacion SolicitudVinculacion[]
   rolesOrganigrama    RolOrganigrama[]
   diasComoSuperiorTurno DiaTurno[] @relation("SuperiorTurnoDias")
+  diasComoSuperiorDiurno DiaTurno[] @relation("SuperiorDiurnoDias")
   diasComoJefeFinDe     DiaTurno[] @relation("JefeFinDeDias")
   coberturasTurno       CoberturaTurno[]
 
@@ -338,7 +339,8 @@ model TurnoAgente {
 // Calendario mensual de guardias: qué grupo rotativo está en servicio cada día
 // (1 = letras A·C·E, 2 = letras B·D·F — las letras y horarios ya están fijos en
 // Agente.turno, esto solo define qué grupo trabaja cada día), quién es el
-// Superior de Turno (20-8 hs) y quién es el Jefe de Fin de Semana. Un registro
+// Superior de Turno nocturno (20-8 hs), el Superior de Turno diurno (8-20 hs) y
+// quién es el Jefe de Fin de Semana. Un registro
 // por día para poder ver el histórico real, igual que Asistencia/HistorialEstado.
 model DiaTurno {
   id              String   @id @default(cuid())
@@ -349,7 +351,12 @@ model DiaTurno {
   // Nombre libre, para cuando la persona todavía no tiene legajo cargado —
   // mutuamente excluyente con superiorTurnoId (uno de los dos, nunca ambos).
   superiorTurnoManual String?
-  jefeFinDeId     String?
+  // Superior de Turno diurno (8-20 hs). superiorTurno* es el nocturno (20-8 hs):
+  // se conserva el nombre original para no migrar los datos ya cargados.
+  superiorDiurnoId String?
+  superiorDiurno   Agente? @relation("SuperiorDiurnoDias", fields: [superiorDiurnoId], references: [id])
+  superiorDiurnoManual String?
+  jefeFinDeId    String?
   jefeFinDe       Agente?  @relation("JefeFinDeDias", fields: [jefeFinDeId], references: [id])
   jefeFinDeManual String?
   observacion     String?

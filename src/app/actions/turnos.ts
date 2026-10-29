@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { GrupoTurno, ResultadoAccion } from "@/types";
 
 const ROLES_ADMIN = ["SUPERADMIN", "ADMIN"];
-// Superior de Turno (20-8hs): Oficiales Jefes de menor grado — Subcomisario.
+// Superior de Turno (diurno 8-20hs y nocturno 20-8hs): Oficiales Jefes de menor grado — Subcomisario.
 // Jefe de Fin de Semana: Oficiales Superiores — Comisario Inspector y Comisario
 // Mayor (Comisario General queda afuera del grupo principal a propósito: existe
 // en el escalafón pero nunca cubre este rol en la práctica; si hiciera falta,
@@ -33,6 +33,9 @@ export interface DiaTurnoInfo {
   // Nombre libre cuando la persona todavía no tiene legajo cargado —
   // mutuamente excluyente con superiorTurno (uno de los dos, nunca ambos).
   superiorTurnoManual: string | null;
+  // Superior de turno diurno (8-20 hs); superiorTurno* es el nocturno (20-8 hs).
+  superiorDiurno: { id: string; nombreCompleto: string } | null;
+  superiorDiurnoManual: string | null;
   jefeFinDe: { id: string; nombreCompleto: string } | null;
   jefeFinDeManual: string | null;
   observacion: string | null;
@@ -64,6 +67,8 @@ export interface TurnoHoyInfo {
   grupoTurno: GrupoTurno | null;
   superiorTurno: string | null;
   superiorTurnoRango: string | null;
+  superiorDiurno: string | null;
+  superiorDiurnoRango: string | null;
   jefeFinDe: string | null;
   esFinDeSemana: boolean;
 }
@@ -75,6 +80,7 @@ export async function obtenerTurnoHoy(): Promise<TurnoHoyInfo> {
     where: { fecha: hoy },
     include: {
       superiorTurno: { select: { nombres: true, apellidos: true, rango: { select: { nombre: true } } } },
+      superiorDiurno: { select: { nombres: true, apellidos: true, rango: { select: { nombre: true } } } },
       jefeFinDe: { select: { nombres: true, apellidos: true } },
     },
   });
@@ -86,6 +92,10 @@ export async function obtenerTurnoHoy(): Promise<TurnoHoyInfo> {
       ? `${dia.superiorTurno.apellidos}, ${dia.superiorTurno.nombres}`
       : dia?.superiorTurnoManual ?? null,
     superiorTurnoRango: dia?.superiorTurno?.rango?.nombre ?? null,
+    superiorDiurno: dia?.superiorDiurno
+      ? `${dia.superiorDiurno.apellidos}, ${dia.superiorDiurno.nombres}`
+      : dia?.superiorDiurnoManual ?? null,
+    superiorDiurnoRango: dia?.superiorDiurno?.rango?.nombre ?? null,
     jefeFinDe: dia?.jefeFinDe ? `${dia.jefeFinDe.apellidos}, ${dia.jefeFinDe.nombres}` : dia?.jefeFinDeManual ?? null,
     esFinDeSemana: diaSemana === 5 || diaSemana === 0 || diaSemana === 6,
   };
@@ -100,6 +110,7 @@ export async function obtenerMesTurno(anio: number, mes: number): Promise<DiaTur
     where: { fecha: { gte: inicio, lt: fin } },
     include: {
       superiorTurno: { select: { id: true, nombres: true, apellidos: true } },
+      superiorDiurno: { select: { id: true, nombres: true, apellidos: true } },
       jefeFinDe: { select: { id: true, nombres: true, apellidos: true } },
     },
   });
@@ -117,6 +128,10 @@ export async function obtenerMesTurno(anio: number, mes: number): Promise<DiaTur
         ? { id: registro.superiorTurno.id, nombreCompleto: `${registro.superiorTurno.apellidos}, ${registro.superiorTurno.nombres}` }
         : null,
       superiorTurnoManual: registro?.superiorTurnoManual ?? null,
+      superiorDiurno: registro?.superiorDiurno
+        ? { id: registro.superiorDiurno.id, nombreCompleto: `${registro.superiorDiurno.apellidos}, ${registro.superiorDiurno.nombres}` }
+        : null,
+      superiorDiurnoManual: registro?.superiorDiurnoManual ?? null,
       jefeFinDe: registro?.jefeFinDe
         ? { id: registro.jefeFinDe.id, nombreCompleto: `${registro.jefeFinDe.apellidos}, ${registro.jefeFinDe.nombres}` }
         : null,
@@ -241,9 +256,14 @@ export async function generarMesAutomatico(params: {
   }
 }
 
+type CampoDiaTurno =
+  | "grupoTurno" | "superiorTurnoId" | "superiorTurnoManual"
+  | "superiorDiurnoId" | "superiorDiurnoManual"
+  | "jefeFinDeId" | "jefeFinDeManual" | "observacion";
+
 async function _actualizarDiaTurno(params: {
   fecha: string; // YYYY-MM-DD
-  campo: "grupoTurno" | "superiorTurnoId" | "jefeFinDeId" | "superiorTurnoManual" | "jefeFinDeManual" | "observacion";
+  campo: CampoDiaTurno;
   valor: string | null;
 }) {
   await verificarAdmin();
@@ -257,6 +277,8 @@ async function _actualizarDiaTurno(params: {
   if (campo === "grupoTurno") data = { grupoTurno: valor ? Number(valor) : null };
   else if (campo === "superiorTurnoId") data = { superiorTurnoId: valor, superiorTurnoManual: null };
   else if (campo === "superiorTurnoManual") data = { superiorTurnoManual: valor, superiorTurnoId: null };
+  else if (campo === "superiorDiurnoId") data = { superiorDiurnoId: valor, superiorDiurnoManual: null };
+  else if (campo === "superiorDiurnoManual") data = { superiorDiurnoManual: valor, superiorDiurnoId: null };
   else if (campo === "jefeFinDeId") data = { jefeFinDeId: valor, jefeFinDeManual: null };
   else if (campo === "jefeFinDeManual") data = { jefeFinDeManual: valor, jefeFinDeId: null };
   else data = { [campo]: valor };
@@ -274,7 +296,7 @@ async function _actualizarDiaTurno(params: {
 
 export async function actualizarDiaTurno(params: {
   fecha: string; // YYYY-MM-DD
-  campo: "grupoTurno" | "superiorTurnoId" | "jefeFinDeId" | "superiorTurnoManual" | "jefeFinDeManual" | "observacion";
+  campo: CampoDiaTurno;
   valor: string | null;
 }): Promise<ResultadoAccion> {
   try {

@@ -216,7 +216,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
 
   async function cambiarCampo(
     fecha: string,
-    campo: "grupoTurno" | "superiorTurnoId" | "jefeFinDeId" | "superiorTurnoManual" | "jefeFinDeManual",
+    campo: "grupoTurno" | "superiorTurnoId" | "superiorTurnoManual" | "superiorDiurnoId" | "superiorDiurnoManual" | "jefeFinDeId" | "jefeFinDeManual",
     valor: string
   ) {
     setGuardando(fecha);
@@ -303,9 +303,22 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
         </select>
 
         <SelectorAgenteModal
+          value={info.superiorDiurno?.id ?? ""}
+          valorManual={info.superiorDiurnoManual}
+          placeholder="Superior 8-20 Hs: sin asignar"
+          principal={elegibles.subcomisarios}
+          labelPrincipal="Subcomisarios"
+          otros={elegibles.otrosParaSuperiorTurno}
+          onChange={(v) => cambiarCampo(info.fecha, "superiorDiurnoId", v)}
+          onChangeManual={(nombre) => cambiarCampo(info.fecha, "superiorDiurnoManual", nombre)}
+          disabled={disabled}
+          className={superiorClass}
+        />
+
+        <SelectorAgenteModal
           value={info.superiorTurno?.id ?? ""}
           valorManual={info.superiorTurnoManual}
-          placeholder="Superior de turno: sin asignar"
+          placeholder="Superior 20-8 Hs: sin asignar"
           principal={elegibles.subcomisarios}
           labelPrincipal="Subcomisarios"
           otros={elegibles.otrosParaSuperiorTurno}
@@ -339,7 +352,7 @@ export default function VistaTurnos({ anioInicial, mesInicial, diasInicial, eleg
       <div className="flex flex-wrap gap-x-5 gap-y-1 mb-4 text-xs text-[var(--c-text-muted)]">
         <span><span className="text-[var(--c-blue-soft)] font-semibold">Turno 1 (A·C·E)</span>: A/B 7-15 hs, C/D 15-23 hs, E/F 23-7 hs</span>
         <span><span className="text-purple-300 font-semibold">Turno 2 (B·D·F)</span>: mismos horarios, grupo alterno</span>
-        <span>Superior de Turno: 20-8 hs</span>
+        <span>Superior de Turno: 8-20 Hs (diurno) y 20-8 Hs (nocturno)</span>
       </div>
 
       {/* Navegación mes + generar */}
