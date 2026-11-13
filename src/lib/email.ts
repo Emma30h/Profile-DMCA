@@ -26,6 +26,44 @@ async function enviarEmail(to: string, subject: string, htmlContent: string): Pr
   }
 }
 
+function escaparHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** Aviso de Carpeta Médica a RR.HH.: el cuerpo es el texto tal cual (formato
+ *  WhatsApp, con los asteriscos), y opcionalmente la imagen del certificado. */
+export async function enviarCarpetaMedica(
+  to: string,
+  subject: string,
+  texto: string,
+  adjunto?: { nombre: string; base64: string },
+): Promise<void> {
+  const response = await fetch(BREVO_API_URL, {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "content-type": "application/json",
+      "api-key": process.env.BREVO_API_KEY!,
+    },
+    body: JSON.stringify({
+      sender: {
+        name: process.env.BREVO_FROM_NAME ?? APP_NAME,
+        email: process.env.BREVO_FROM_EMAIL!,
+      },
+      to: [{ email: to }],
+      subject,
+      textContent: texto,
+      htmlContent: `<div style="font-family:sans-serif;font-size:14px;line-height:1.6;color:#111827;white-space:pre-wrap">${escaparHtml(texto)}</div>`,
+      ...(adjunto ? { attachment: [{ name: adjunto.nombre, content: adjunto.base64 }] } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Brevo error ${response.status}: ${body}`);
+  }
+}
+
 export async function enviarAprobacionEdicion(to: string, nombreCompleto: string, permisoHasta: Date): Promise<void> {
   const fecha = permisoHasta.toLocaleDateString("es-AR", {
     day: "2-digit", month: "2-digit", year: "numeric",

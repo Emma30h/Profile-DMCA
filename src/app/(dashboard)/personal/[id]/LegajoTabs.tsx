@@ -35,6 +35,7 @@ import {
   TIPO_LICENCIA_LABELS,
 } from "@/types";
 import EstadisticasLicencias, { type AgenteInfoInforme } from "./EstadisticasLicencias";
+import EnviarCarpetaMedicaModal, { type EnvioCarpetaMedicaEntry } from "./EnviarCarpetaMedicaModal";
 import { formatFechaHora } from "@/lib/fecha";
 import { cuilToDni } from "@/lib/personalLabels";
 
@@ -156,6 +157,7 @@ export interface LicenciaEntry {
   motivo: string | null;
   observacion: string | null;
   createdAt: string;
+  envios?: EnvioCarpetaMedicaEntry[];
 }
 
 export interface UsoLicenciaPendienteEntry {
@@ -2173,6 +2175,7 @@ function TabLicencias({
   const [abriendoFormLicencia, setAbriendoFormLicencia] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [confirmarEliminarId, setConfirmarEliminarId] = useState<string | null>(null);
+  const [mailCarpetaId, setMailCarpetaId] = useState<string | null>(null);
   const [usoFormId, setUsoFormId] = useState<string | null>(null);
   const [confirmarEliminarUsoId, setConfirmarEliminarUsoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -2589,6 +2592,19 @@ function TabLicencias({
           <div className="space-y-2">
             {licencias.map((l) => (
               <div key={l.id}>
+                {mailCarpetaId === l.id && (
+                  <EnviarCarpetaMedicaModal
+                    licencia={l}
+                    agente={{
+                      apellidos: agenteInfo.nombreCompleto.split(", ")[0] ?? "",
+                      nombres: agenteInfo.nombreCompleto.split(", ").slice(1).join(", "),
+                      cuil: agenteInfo.cuil,
+                      turno: agenteInfo.turno,
+                    }}
+                    envios={l.envios ?? []}
+                    onClose={() => setMailCarpetaId(null)}
+                  />
+                )}
                 {confirmarEliminarId === l.id && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmarEliminarId(null)} />
@@ -2647,6 +2663,21 @@ function TabLicencias({
                     </div>
                     {canManage && (
                       <div className="flex items-center gap-1 shrink-0 self-end sm:self-start">
+                        {l.tipo === "CARPETA_MEDICA" && tipoPersonal === "CIVIL_BECARIO" && (
+                          <button
+                            type="button"
+                            onClick={() => { setMailCarpetaId(l.id); setError(null); }}
+                            className={`inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+                              l.envios && l.envios.length > 0
+                                ? "text-[var(--c-green)] hover:bg-[var(--c-green)]/10"
+                                : "text-[var(--c-blue-text)] hover:bg-[var(--c-blue)]/10"
+                            }`}
+                            title={l.envios && l.envios.length > 0 ? `Enviada por mail (${l.envios.length}) — click para reenviar` : "Enviar por mail a RR.HH."}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            {l.envios && l.envios.length > 0 ? "Enviada" : "Enviar mail"}
+                          </button>
+                        )}
                         <button type="button" onClick={() => { setEditandoId(l.id); setMostrarForm(false); setError(null); }} className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-text-muted)] hover:bg-[var(--c-line)] transition-colors" title="Editar">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>

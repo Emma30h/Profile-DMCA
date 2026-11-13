@@ -445,10 +445,45 @@ model Licencia {
   observacion String?
   aprobadoPor String?
   aprobadoEn  DateTime?
+  envios      EnvioCarpetaMedica[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("licencias")
+}
+
+// Aviso por mail de una Carpeta Médica de un Civil Becario (personal del
+// Ministerio de Seguridad) a RR.HH. Guarda lo enviado tal cual salió. La imagen
+// del certificado vive en el bucket privado "certificados-medicos" solo hasta
+// certificadoExpiraEn (7 días); después se borra y certificadoPath queda null.
+model EnvioCarpetaMedica {
+  id                  String    @id @default(cuid())
+  licenciaId          String
+  licencia            Licencia  @relation(fields: [licenciaId], references: [id], onDelete: Cascade)
+  destinatario        String
+  turno               String
+  fechaHora           DateTime
+  diagnostico         String
+  doctor              String
+  matricula           String
+  reposo              String
+  certificadoPath     String?
+  certificadoExpiraEn DateTime?
+  enviadoPor          String?
+  createdAt           DateTime  @default(now())
+
+  @@index([licenciaId])
+  @@map("envios_carpeta_medica")
+}
+
+// Configuración general clave/valor editable desde la app (ej. destinatario
+// predeterminado de los mails de carpetas médicas).
+model ConfiguracionApp {
+  clave     String   @id
+  valor     String
+  updatedAt DateTime @updatedAt
+
+  @@map("configuracion_app")
 }
 
 // Saldo de días de licencia acumulados/pendientes de usar (licencia anual ordinaria

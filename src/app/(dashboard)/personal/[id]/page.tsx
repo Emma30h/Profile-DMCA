@@ -84,6 +84,12 @@ export default async function PersonalDetallePage({
         },
         licencias: {
           orderBy: { fechaInicio: "desc" },
+          include: {
+            envios: {
+              orderBy: { createdAt: "desc" },
+              select: { id: true, createdAt: true, destinatario: true, enviadoPor: true, certificadoPath: true, certificadoExpiraEn: true },
+            },
+          },
         },
         licenciasPendientes: {
           orderBy: [{ anio: "desc" }, { createdAt: "desc" }],
@@ -189,6 +195,8 @@ export default async function PersonalDetallePage({
 
   const subtitulo = [agente.rango?.nombre, TIPO_LABELS[tipo] ?? tipo].filter(Boolean).join(" - ");
   const rangoPrefijo = agente.rango?.nombre ? `${agente.rango.nombre} - ` : "";
+  // Para saber si el certificado de cada envío de Carpeta Médica sigue en el bucket (7 días).
+  const ahora = new Date();
 
   return (
     <>
@@ -299,6 +307,13 @@ export default async function PersonalDetallePage({
             motivo: l.motivo,
             observacion: l.observacion,
             createdAt: l.createdAt.toISOString(),
+            envios: l.envios.map((e) => ({
+              id: e.id,
+              createdAt: e.createdAt.toISOString(),
+              destinatario: e.destinatario,
+              enviadoPor: e.enviadoPor,
+              certificadoDisponible: !!e.certificadoPath && (!e.certificadoExpiraEn || e.certificadoExpiraEn > ahora),
+            })),
           }))}
           licenciasPendientes={licenciasPendientes.map((p) => ({
             id: p.id,
