@@ -19,9 +19,23 @@ interface Notif {
 
 interface Props {
   notificaciones: Notif[];
+  usuarioId: string | null;
 }
 
-export default function NotificacionesBell({ notificaciones: inicial }: Props) {
+// Fila tal como la manda Supabase Realtime (columnas de gestion_personal.notificaciones)
+interface FilaNotif {
+  id: string;
+  tipo: string;
+  mensaje: string;
+  referenciaId: string | null;
+  leida: boolean;
+  createdAt: string;
+}
+
+// Las columnas timestamp sin zona llegan sin "Z": se interpretan en UTC, igual que Prisma
+const aIso = (t: string) => new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? t : t + "Z").toISOString();
+
+export default function NotificacionesBell({ notificaciones: inicial, usuarioId }: Props) {
   const router = useRouter();
   const [notificaciones, setNotificaciones] = useState<Notif[]>(inicial);
   const [abierto, setAbierto] = useState(false);
@@ -39,30 +53,63 @@ export default function NotificacionesBell({ notificaciones: inicial }: Props) {
     }
   }, []);
 
-  // SSE: recibe notificaciones en tiempo real y forzar logout si la cuenta es deshabilitada
+  // Supabase Realtime: la base avisa cuando llega una notificación o se deshabilita la cuenta.
+  // No ocupa funciones de Vercel (antes había una conexión abierta por pestaña que consultaba cada 1,5 s).
   useEffect(() => {
-    const es = new EventSource("/api/notificaciones/stream");
+    if (!usuarioId) return;
+    const supabase = createClient();
+    let canal: ReturnType<typeof supabase.channel> | null = null;
+    let cancelado = false;
 
-    es.onmessage = (e) => {
-      const incoming: Notif[] = JSON.parse(e.data as string);
-      setNotificaciones((prev) => {
-        const ids = new Set(prev.map((n) => n.id));
-        const nuevas = incoming.filter((n) => !ids.has(n.id));
-        return nuevas.length > 0 ? [...nuevas, ...prev].slice(0, 30) : prev;
-      });
-      if (incoming.some((n) => n.tipo === "ESTADO_CAMBIADO")) {
-        router.refresh();
-      }
-    };
-
-    es.addEventListener("forzarLogout", async () => {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      window.location.href = "/login?error=cuenta_deshabilitada";
+    // Realtime tiene que entrar con la sesión del usuario: si se suscribe antes de cargarla,
+    // entra como anónimo y las reglas de la base (cada uno ve lo suyo) no le mandan nada.
+    const { data: auth } = supabase.auth.onAuthStateChange((_evento, sesion) => {
+      if (sesion) supabase.realtime.setAuth(sesion.access_token);
     });
 
-    return () => es.close();
-  }, [router]);
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelado || !session) return;
+      await supabase.realtime.setAuth(session.access_token);
+      if (cancelado) return;
+      canal = supabase
+      .channel(`notificaciones-${usuarioId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "gestion_personal", table: "notificaciones", filter: `usuarioId=eq.${usuarioId}` },
+        (payload) => {
+          const f = payload.new as FilaNotif;
+          const n: Notif = { id: f.id, tipo: f.tipo, mensaje: f.mensaje, referenciaId: f.referenciaId, leida: f.leida, createdAt: aIso(f.createdAt) };
+          setNotificaciones((prev) => (prev.some((x) => x.id === n.id) ? prev : [n, ...prev].slice(0, 30)));
+          if (n.tipo === "ESTADO_CAMBIADO") router.refresh();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "gestion_personal", table: "usuarios", filter: `id=eq.${usuarioId}` },
+        async (payload) => {
+          if ((payload.new as { activo?: boolean }).activo === false) {
+            await supabase.auth.signOut();
+            window.location.href = "/login?error=cuenta_deshabilitada";
+          }
+        }
+      )
+      .subscribe();
+    })();
+
+    // Si la pestaña estuvo dormida y se perdió algún aviso, se pone al día al volver
+    const alVolver = () => {
+      if (document.visibilityState === "visible") fetchNotificaciones();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+
+    return () => {
+      cancelado = true;
+      document.removeEventListener("visibilitychange", alVolver);
+      auth.subscription.unsubscribe();
+      if (canal) supabase.removeChannel(canal);
+    };
+  }, [usuarioId, router, fetchNotificaciones]);
 
   const noLeidas = notificaciones.filter((n) => !n.leida).length;
 

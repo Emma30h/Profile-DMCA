@@ -20,6 +20,7 @@ export default async function Header() {
   let notificaciones: { id: string; tipo: string; mensaje: string; referenciaId?: string | null; leida: boolean; createdAt: string }[] = [];
   let esAdmin = false;
   let fotoUrl: string | null = null;
+  let usuarioId: string | null = null;
 
   if (user) {
     const usuario = await prisma.usuario.findFirst({
@@ -43,6 +44,7 @@ export default async function Header() {
     fotoUrl = usuario?.agente?.fotoUrl ?? null;
 
     if (usuario) {
+      usuarioId = usuario.id;
       const notifs = await prisma.notificacion.findMany({
         where: { usuarioId: usuario.id },
         orderBy: { createdAt: "desc" },
@@ -69,7 +71,7 @@ export default async function Header() {
       </h1>
       <div className="ml-auto flex items-center gap-3 shrink-0">
         <AgenteAncladoChip />
-        <NotificacionesBell notificaciones={notificaciones} />
+        <NotificacionesBell notificaciones={notificaciones} usuarioId={usuarioId} />
         {user && (
           <UserMenu
             displayName={displayName}
