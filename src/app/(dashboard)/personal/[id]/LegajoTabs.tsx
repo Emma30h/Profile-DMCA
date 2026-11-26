@@ -35,6 +35,7 @@ import {
   TIPO_LICENCIA_LABELS,
 } from "@/types";
 import EstadisticasLicencias, { type AgenteInfoInforme } from "./EstadisticasLicencias";
+import { esTipoAvisoMedico } from "@/lib/carpetaMedica";
 import EnviarCarpetaMedicaModal, { type EnvioCarpetaMedicaEntry } from "./EnviarCarpetaMedicaModal";
 import { formatFechaHora } from "@/lib/fecha";
 import { cuilToDni } from "@/lib/personalLabels";
@@ -2663,7 +2664,7 @@ function TabLicencias({
                     </div>
                     {canManage && (
                       <div className="flex items-center gap-1 shrink-0 self-end sm:self-start">
-                        {(l.tipo === "CARPETA_MEDICA" || l.tipo === "MEDICA") && tipoPersonal === "CIVIL_BECARIO" && (
+                        {esTipoAvisoMedico(l.tipo) && tipoPersonal === "CIVIL_BECARIO" && (
                           <button
                             type="button"
                             onClick={() => { setMailCarpetaId(l.id); setError(null); }}

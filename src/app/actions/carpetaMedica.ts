@@ -11,6 +11,7 @@ import {
   asuntoCarpetaMedica,
   esEmailValido,
   esTipoAvisoMedico,
+  esTipoMedico,
   BUCKET_CERTIFICADOS,
   CLAVE_CONFIG_DESTINATARIO,
   DESTINATARIO_CARPETA_MEDICA_DEFAULT,
@@ -94,7 +95,7 @@ async function cargarLicenciaCivil(licenciaId: string, current: Awaited<ReturnTy
   });
   if (!licencia) throw new Error("Licencia no encontrada");
   if (!esTipoAvisoMedico(licencia.tipo)) {
-    throw new Error("Solo se envían por mail las Carpetas Médicas y las Licencias Médicas");
+    throw new Error("Este tipo de licencia no se envía por mail");
   }
   if (licencia.agente.tipoPersonal !== "CIVIL_BECARIO") {
     throw new Error("El aviso por mail aplica solo a Civiles Becarios (Ministerio de Seguridad)");
@@ -147,8 +148,11 @@ export async function enviarCarpetaMedicaMail(fd: FormData): Promise<Resultado> 
       matricula: campo("matricula"),
       reposo: campo("reposo"),
     };
-    const faltantes = (["turno", "fecha", "hora", "diagnostico", "doctor", "matricula", "reposo"] as const)
-      .filter((k) => !datos[k]);
+    // En tipos no médicos "diagnostico" es el motivo (opcional) y doctor/matrícula no aplican.
+    const requeridos = esTipoMedico(licencia.tipo)
+      ? (["turno", "fecha", "hora", "diagnostico", "doctor", "matricula", "reposo"] as const)
+      : (["turno", "fecha", "hora", "reposo"] as const);
+    const faltantes = requeridos.filter((k) => !datos[k]);
     if (faltantes.length > 0) throw new Error(`Faltan completar: ${faltantes.join(", ")}`);
 
     const fechaMatch = datos.fecha.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);

@@ -7,10 +7,12 @@ import {
   armarTextoCarpetaMedica,
   diagnosticoDesdeMotivo,
   doctorDesdeObservacion,
+  esTipoMedico,
   DESTINATARIO_CARPETA_MEDICA_DEFAULT,
   DIAS_RETENCION_CERTIFICADO,
 } from "@/lib/carpetaMedica";
 import { cuilToDni } from "@/lib/personalLabels";
+import { TIPO_LICENCIA_LABELS } from "@/types";
 
 export interface EnvioCarpetaMedicaEntry {
   id: string;
@@ -32,6 +34,12 @@ function ahoraHHmm(): string {
 function isoADdMmAaaa(iso: string): string {
   const [a, m, d] = iso.split("-");
   return a && m && d ? `${d}/${m}/${a}` : "";
+}
+function fmtFechaUtc(iso: string): string {
+  const d = new Date(iso);
+  return isNaN(d.getTime())
+    ? ""
+    : d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 }
 function fmtFechaHora(iso: string): string {
   return new Date(iso).toLocaleString("es-AR", {
@@ -70,7 +78,7 @@ export default function EnviarCarpetaMedicaModal({
   envios,
   onClose,
 }: {
-  licencia: { id: string; tipo: string; motivo: string | null; observacion: string | null; diasHabiles: number };
+  licencia: { id: string; tipo: string; motivo: string | null; observacion: string | null; diasHabiles: number; fechaInicio: string; fechaFin: string };
   agente: { apellidos: string; nombres: string; cuil: string; turno: string | null };
   envios: EnvioCarpetaMedicaEntry[];
   onClose: () => void;
@@ -81,7 +89,8 @@ export default function EnviarCarpetaMedicaModal({
   const [puedeCambiarPredeterminado, setPuedeCambiarPredeterminado] = useState(false);
   const [guardarPredeterminado, setGuardarPredeterminado] = useState(false);
   const [destinatarioDefault, setDestinatarioDefault] = useState(DESTINATARIO_CARPETA_MEDICA_DEFAULT);
-  const esLicenciaMedica = licencia.tipo === "MEDICA";
+  const esMedico = esTipoMedico(licencia.tipo);
+  const tituloTipo = esMedico ? (licencia.tipo === "MEDICA" ? "Licencia Médica" : "Carpeta Médica") : (TIPO_LICENCIA_LABELS[licencia.tipo] ?? licencia.tipo);
   const doctorObs = doctorDesdeObservacion(licencia.observacion);
 
   const [turno, setTurno] = useState(agente.turno ?? "");
@@ -90,7 +99,11 @@ export default function EnviarCarpetaMedicaModal({
   const [diagnostico, setDiagnostico] = useState(diagnosticoDesdeMotivo(licencia.motivo));
   const [doctor, setDoctor] = useState(doctorObs.doctor);
   const [matricula, setMatricula] = useState(doctorObs.matricula);
-  const [reposo, setReposo] = useState(`${licencia.diasHabiles * 24} HS`);
+  const [reposo, setReposo] = useState(
+    esMedico
+      ? `${licencia.diasHabiles * 24} HS`
+      : `${fmtFechaUtc(licencia.fechaInicio)} AL ${fmtFechaUtc(licencia.fechaFin)} (${licencia.diasHabiles} ${licencia.diasHabiles === 1 ? "DIA" : "DIAS"})`
+  );
 
   const [certificado, setCertificado] = useState<Blob | null>(null);
   const [certificadoPreview, setCertificadoPreview] = useState<string | null>(null);
@@ -124,12 +137,12 @@ export default function EnviarCarpetaMedicaModal({
   const texto = useMemo(
     () =>
       armarTextoCarpetaMedica({
-        tipo: esLicenciaMedica ? "MEDICA" : "CARPETA_MEDICA",
+        tipo: licencia.tipo,
         turno, fecha: isoADdMmAaaa(fecha), hora,
         apellidos: agente.apellidos, nombres: agente.nombres, dni: cuilToDni(agente.cuil),
         diagnostico, doctor, matricula, reposo,
       }),
-    [esLicenciaMedica, turno, fecha, hora, agente, diagnostico, doctor, matricula, reposo]
+    [licencia.tipo, turno, fecha, hora, agente, diagnostico, doctor, matricula, reposo]
   );
 
   async function elegirImagen(file: File | undefined) {
@@ -173,8 +186,8 @@ export default function EnviarCarpetaMedicaModal({
     fd.set("fecha", isoADdMmAaaa(fecha));
     fd.set("hora", hora);
     fd.set("diagnostico", diagnostico);
-    fd.set("doctor", doctor);
-    fd.set("matricula", matricula);
+    fd.set("doctor", esMedico ? doctor : "");
+    fd.set("matricula", esMedico ? matricula : "");
     fd.set("reposo", reposo);
     if (certificado) fd.set("certificado", new File([certificado], "certificado.jpg", { type: "image/jpeg" }));
     startTransition(async () => {
@@ -205,7 +218,7 @@ export default function EnviarCarpetaMedicaModal({
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[var(--c-line)] bg-[var(--c-bg-elev)] px-5 py-3">
           <div className="flex items-center gap-2 min-w-0">
             <Mail className="h-4 w-4 text-[var(--c-blue-text)] shrink-0" strokeWidth={1.8} />
-            <h2 className="text-base font-semibold text-[var(--c-text)] truncate">Enviar {esLicenciaMedica ? "Licencia Médica" : "Carpeta Médica"} por mail</h2>
+            <h2 className="text-base font-semibold text-[var(--c-text)] truncate">Enviar {tituloTipo} por mail</h2>
           </div>
           <button type="button" onClick={onClose} disabled={pending} className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-text)] hover:bg-[var(--c-line)] disabled:opacity-50" title="Cerrar">
             <X className="h-4 w-4" />
@@ -266,26 +279,28 @@ export default function EnviarCarpetaMedicaModal({
                 </div>
               </div>
               <div>
-                <label className={labelCls}>Diagnóstico</label>
-                <input required value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} placeholder="Rinofaringitis" className={inputCls} />
+                <label className={labelCls}>{esMedico ? "Diagnóstico" : "Motivo (opcional)"}</label>
+                <input required={esMedico} value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} placeholder={esMedico ? "Rinofaringitis" : ""} className={inputCls} />
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className={labelCls}>Doctor</label>
-                  <input required value={doctor} onChange={(e) => setDoctor(e.target.value)} placeholder="Apellido Nombre" className={inputCls} />
+              {esMedico && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2">
+                    <label className={labelCls}>Doctor</label>
+                    <input required value={doctor} onChange={(e) => setDoctor(e.target.value)} placeholder="Apellido Nombre" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>MP</label>
+                    <input required value={matricula} onChange={(e) => setMatricula(e.target.value)} inputMode="numeric" className={inputCls} />
+                  </div>
                 </div>
-                <div>
-                  <label className={labelCls}>MP</label>
-                  <input required value={matricula} onChange={(e) => setMatricula(e.target.value)} inputMode="numeric" className={inputCls} />
-                </div>
-              </div>
+              )}
               <div>
-                <label className={labelCls}>Reposo</label>
-                <input required value={reposo} onChange={(e) => setReposo(e.target.value)} placeholder="24 HS" className={inputCls} />
+                <label className={labelCls}>{esMedico ? "Reposo" : "Período"}</label>
+                <input required value={reposo} onChange={(e) => setReposo(e.target.value)} placeholder={esMedico ? "24 HS" : ""} className={inputCls} />
               </div>
 
               <div>
-                <label className={labelCls}>Certificado médico (imagen, opcional)</label>
+                <label className={labelCls}>{esMedico ? "Certificado médico" : "Constancia o certificado"} (imagen, opcional)</label>
                 {certificadoPreview ? (
                   <div className="relative rounded-lg border border-[var(--c-line)] overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}

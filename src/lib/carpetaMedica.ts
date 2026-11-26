@@ -3,36 +3,48 @@
 // y "copiar para WhatsApp") como en la server action que manda el mail, así el
 // texto que se ve es exactamente el que sale.
 
+import { LICENCIA_TIPOS_POR_CATEGORIA, TIPO_LICENCIA_LABELS } from "@/types";
+
 export const DESTINATARIO_CARPETA_MEDICA_DEFAULT = "rrhh.inasistencias@gmail.com";
 export const CLAVE_CONFIG_DESTINATARIO = "CARPETA_MEDICA_DESTINATARIO";
 export const DIAS_RETENCION_CERTIFICADO = 7;
 export const BUCKET_CERTIFICADOS = "certificados-medicos";
 
-/** Tipos de licencia que se avisan por mail a RR.HH. */
-export type TipoAvisoMedico = "CARPETA_MEDICA" | "MEDICA";
-
-export function esTipoAvisoMedico(tipo: string): tipo is TipoAvisoMedico {
+/** Tipos médicos: llevan diagnóstico, doctor, matrícula y reposo. */
+export function esTipoMedico(tipo: string): boolean {
   return tipo === "CARPETA_MEDICA" || tipo === "MEDICA";
 }
 
-/** Título del aviso según el tipo de licencia. */
-export function tituloAvisoMedico(tipo: TipoAvisoMedico | undefined): string {
-  return tipo === "MEDICA" ? "LICENCIA MEDICA" : "CARPETA MEDICA";
+/** Tipos de licencia que se pueden avisar por mail a RR.HH.: los médicos y
+ *  todas las extraordinarias (familiar enfermo, maternidad, etc.). */
+export function esTipoAvisoMedico(tipo: string): boolean {
+  return esTipoMedico(tipo) || LICENCIA_TIPOS_POR_CATEGORIA.EXTRAORDINARIA.some((t) => t.value === tipo);
+}
+
+const sinTildes = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+/** Título del aviso según el tipo de licencia (sin tildes, como el resto del texto). */
+export function tituloAvisoMedico(tipo: string | undefined): string {
+  if (!tipo || tipo === "CARPETA_MEDICA") return "CARPETA MEDICA";
+  if (tipo === "MEDICA") return "LICENCIA MEDICA";
+  return sinTildes(TIPO_LICENCIA_LABELS[tipo] ?? tipo).toUpperCase();
 }
 
 export interface DatosCarpetaMedica {
   /** Por defecto CARPETA_MEDICA. */
-  tipo?: TipoAvisoMedico;
+  tipo?: string;
   turno: string;
   fecha: string; // dd/mm/aaaa
   hora: string; // HH:mm
   apellidos: string;
   nombres: string;
   dni: string; // solo dígitos o ya con puntos
+  /** En tipos no médicos es el motivo/detalle (opcional). */
   diagnostico: string;
   doctor: string;
   matricula: string;
-  reposo: string; // ej. "24 HS"
+  /** Médicos: "24 HS". No médicos: el período, ej. "21/11/2026 AL 25/11/2026 (5 DIAS)". */
+  reposo: string;
 }
 
 /** 47172623 → 47.172.623 */
@@ -45,6 +57,18 @@ const mayus = (s: string) => s.trim().toUpperCase();
 
 /** Texto del aviso, con el formato de WhatsApp que usa RR.HH. */
 export function armarTextoCarpetaMedica(d: DatosCarpetaMedica): string {
+  if (d.tipo && !esTipoMedico(d.tipo)) {
+    return [
+      `*${tituloAvisoMedico(d.tipo)} - TURNO ${mayus(d.turno)}*`,
+      "",
+      `*FECHA:* ${d.fecha.trim()}`,
+      `*HORA*: ${d.hora.trim()}`,
+      `*P. CIVIL ${mayus(d.apellidos)} ${mayus(d.nombres)}*`,
+      `*DNI:* ${formatearDni(d.dni)}`,
+      ...(d.diagnostico.trim() ? [`*MOTIVO:* ${mayus(d.diagnostico)}`] : []),
+      `*PERIODO:* ${mayus(d.reposo)}`,
+    ].join("\n");
+  }
   return [
     `*${tituloAvisoMedico(d.tipo)} - TURNO ${mayus(d.turno)}*`,
     "",
