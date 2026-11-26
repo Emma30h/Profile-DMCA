@@ -70,7 +70,7 @@ export default function EnviarCarpetaMedicaModal({
   envios,
   onClose,
 }: {
-  licencia: { id: string; motivo: string | null; observacion: string | null; diasHabiles: number };
+  licencia: { id: string; tipo: string; motivo: string | null; observacion: string | null; diasHabiles: number };
   agente: { apellidos: string; nombres: string; cuil: string; turno: string | null };
   envios: EnvioCarpetaMedicaEntry[];
   onClose: () => void;
@@ -81,6 +81,7 @@ export default function EnviarCarpetaMedicaModal({
   const [puedeCambiarPredeterminado, setPuedeCambiarPredeterminado] = useState(false);
   const [guardarPredeterminado, setGuardarPredeterminado] = useState(false);
   const [destinatarioDefault, setDestinatarioDefault] = useState(DESTINATARIO_CARPETA_MEDICA_DEFAULT);
+  const esLicenciaMedica = licencia.tipo === "MEDICA";
   const doctorObs = doctorDesdeObservacion(licencia.observacion);
 
   const [turno, setTurno] = useState(agente.turno ?? "");
@@ -123,11 +124,12 @@ export default function EnviarCarpetaMedicaModal({
   const texto = useMemo(
     () =>
       armarTextoCarpetaMedica({
+        tipo: esLicenciaMedica ? "MEDICA" : "CARPETA_MEDICA",
         turno, fecha: isoADdMmAaaa(fecha), hora,
         apellidos: agente.apellidos, nombres: agente.nombres, dni: cuilToDni(agente.cuil),
         diagnostico, doctor, matricula, reposo,
       }),
-    [turno, fecha, hora, agente, diagnostico, doctor, matricula, reposo]
+    [esLicenciaMedica, turno, fecha, hora, agente, diagnostico, doctor, matricula, reposo]
   );
 
   async function elegirImagen(file: File | undefined) {
@@ -203,7 +205,7 @@ export default function EnviarCarpetaMedicaModal({
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[var(--c-line)] bg-[var(--c-bg-elev)] px-5 py-3">
           <div className="flex items-center gap-2 min-w-0">
             <Mail className="h-4 w-4 text-[var(--c-blue-text)] shrink-0" strokeWidth={1.8} />
-            <h2 className="text-base font-semibold text-[var(--c-text)] truncate">Enviar Carpeta Médica por mail</h2>
+            <h2 className="text-base font-semibold text-[var(--c-text)] truncate">Enviar {esLicenciaMedica ? "Licencia Médica" : "Carpeta Médica"} por mail</h2>
           </div>
           <button type="button" onClick={onClose} disabled={pending} className="rounded-lg p-1.5 text-[var(--c-text-faint)] hover:text-[var(--c-text)] hover:bg-[var(--c-line)] disabled:opacity-50" title="Cerrar">
             <X className="h-4 w-4" />

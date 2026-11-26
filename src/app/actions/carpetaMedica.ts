@@ -10,6 +10,7 @@ import {
   armarTextoCarpetaMedica,
   asuntoCarpetaMedica,
   esEmailValido,
+  esTipoAvisoMedico,
   BUCKET_CERTIFICADOS,
   CLAVE_CONFIG_DESTINATARIO,
   DESTINATARIO_CARPETA_MEDICA_DEFAULT,
@@ -92,14 +93,16 @@ async function cargarLicenciaCivil(licenciaId: string, current: Awaited<ReturnTy
     },
   });
   if (!licencia) throw new Error("Licencia no encontrada");
-  if (licencia.tipo !== "CARPETA_MEDICA") throw new Error("Solo se envían por mail las Carpetas Médicas");
+  if (!esTipoAvisoMedico(licencia.tipo)) {
+    throw new Error("Solo se envían por mail las Carpetas Médicas y las Licencias Médicas");
+  }
   if (licencia.agente.tipoPersonal !== "CIVIL_BECARIO") {
     throw new Error("El aviso por mail aplica solo a Civiles Becarios (Ministerio de Seguridad)");
   }
   if (current.rol === "SUPERVISOR" && licencia.agente.sectorId !== current.agente?.sectorId) {
     throw new Error("Sin permiso para gestionar licencias de este agente");
   }
-  return licencia;
+  return { ...licencia, tipo: licencia.tipo };
 }
 
 export async function obtenerConfigCarpetaMedica(): Promise<
@@ -132,6 +135,7 @@ export async function enviarCarpetaMedicaMail(fd: FormData): Promise<Resultado> 
     if (!esEmailValido(destinatario)) throw new Error("La dirección de mail del destinatario no es válida");
 
     const datos = {
+      tipo: licencia.tipo,
       turno: campo("turno"),
       fecha: campo("fecha"),
       hora: campo("hora"),

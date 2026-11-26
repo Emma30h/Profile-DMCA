@@ -8,7 +8,21 @@ export const CLAVE_CONFIG_DESTINATARIO = "CARPETA_MEDICA_DESTINATARIO";
 export const DIAS_RETENCION_CERTIFICADO = 7;
 export const BUCKET_CERTIFICADOS = "certificados-medicos";
 
+/** Tipos de licencia que se avisan por mail a RR.HH. */
+export type TipoAvisoMedico = "CARPETA_MEDICA" | "MEDICA";
+
+export function esTipoAvisoMedico(tipo: string): tipo is TipoAvisoMedico {
+  return tipo === "CARPETA_MEDICA" || tipo === "MEDICA";
+}
+
+/** Título del aviso según el tipo de licencia. */
+export function tituloAvisoMedico(tipo: TipoAvisoMedico | undefined): string {
+  return tipo === "MEDICA" ? "LICENCIA MEDICA" : "CARPETA MEDICA";
+}
+
 export interface DatosCarpetaMedica {
+  /** Por defecto CARPETA_MEDICA. */
+  tipo?: TipoAvisoMedico;
   turno: string;
   fecha: string; // dd/mm/aaaa
   hora: string; // HH:mm
@@ -32,7 +46,7 @@ const mayus = (s: string) => s.trim().toUpperCase();
 /** Texto del aviso, con el formato de WhatsApp que usa RR.HH. */
 export function armarTextoCarpetaMedica(d: DatosCarpetaMedica): string {
   return [
-    `*CARPETA MEDICA - TURNO ${mayus(d.turno)}*`,
+    `*${tituloAvisoMedico(d.tipo)} - TURNO ${mayus(d.turno)}*`,
     "",
     `*FECHA:* ${d.fecha.trim()}`,
     `*HORA*: ${d.hora.trim()}`,
@@ -45,8 +59,8 @@ export function armarTextoCarpetaMedica(d: DatosCarpetaMedica): string {
   ].join("\n");
 }
 
-export function asuntoCarpetaMedica(d: Pick<DatosCarpetaMedica, "turno" | "apellidos" | "nombres" | "fecha">): string {
-  return `CARPETA MEDICA - TURNO ${mayus(d.turno)} - ${mayus(d.apellidos)} ${mayus(d.nombres)} - ${d.fecha.trim()}`;
+export function asuntoCarpetaMedica(d: Pick<DatosCarpetaMedica, "tipo" | "turno" | "apellidos" | "nombres" | "fecha">): string {
+  return `${tituloAvisoMedico(d.tipo)} - TURNO ${mayus(d.turno)} - ${mayus(d.apellidos)} ${mayus(d.nombres)} - ${d.fecha.trim()}`;
 }
 
 /** Quita el prefijo "Diagnostico:" (y sus tipeos) con el que se carga el motivo. */

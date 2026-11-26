@@ -2663,7 +2663,7 @@ function TabLicencias({
                     </div>
                     {canManage && (
                       <div className="flex items-center gap-1 shrink-0 self-end sm:self-start">
-                        {l.tipo === "CARPETA_MEDICA" && tipoPersonal === "CIVIL_BECARIO" && (
+                        {(l.tipo === "CARPETA_MEDICA" || l.tipo === "MEDICA") && tipoPersonal === "CIVIL_BECARIO" && (
                           <button
                             type="button"
                             onClick={() => { setMailCarpetaId(l.id); setError(null); }}
